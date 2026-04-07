@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CFE823DE2F7EFB4200818E01 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CFE823DD2F7EFB4200818E01 /* FirebaseAuth */; };
+		CFE823E02F7EFB4200818E01 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = CFE823DF2F7EFB4200818E01 /* FirebaseCore */; };
+		CFE823E22F7EFB4200818E01 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CFE823E12F7EFB4200818E01 /* FirebaseFirestore */; };
+		CFE823E72F7F1FA200818E01 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = CFE823E62F7F1FA200818E01 /* GoogleSignIn */; };
+		CFE823E92F7F1FA200818E01 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = CFE823E82F7F1FA200818E01 /* GoogleSignInSwift */; };
+		CFE825222F7F3E2500818E01 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = CFE824E32F7F3D9800818E01 /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CFED88CB2E402928003E57FF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +61,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFE825222F7F3E2500818E01 /* GoogleMobileAds in Frameworks */,
+				CFE823E92F7F1FA200818E01 /* GoogleSignInSwift in Frameworks */,
+				CFE823E02F7EFB4200818E01 /* FirebaseCore in Frameworks */,
+				CFE823E72F7F1FA200818E01 /* GoogleSignIn in Frameworks */,
+				CFE823DE2F7EFB4200818E01 /* FirebaseAuth in Frameworks */,
+				CFE823E22F7EFB4200818E01 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +127,12 @@
 			);
 			name = "Equion for iOS";
 			packageProductDependencies = (
+				CFE823DD2F7EFB4200818E01 /* FirebaseAuth */,
+				CFE823DF2F7EFB4200818E01 /* FirebaseCore */,
+				CFE823E12F7EFB4200818E01 /* FirebaseFirestore */,
+				CFE823E62F7F1FA200818E01 /* GoogleSignIn */,
+				CFE823E82F7F1FA200818E01 /* GoogleSignInSwift */,
+				CFE824E32F7F3D9800818E01 /* GoogleMobileAds */,
 			);
 			productName = "Equion for iOS";
 			productReference = CFED88BD2E402926003E57FF /* Equion for iOS.app */;
@@ -195,6 +216,11 @@
 			);
 			mainGroup = CFED88B42E402926003E57FF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CFE823DC2F7EFB4200818E01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				CFE823E52F7F1FA200818E01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				CFE824E22F7F3D9800818E01 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CFED88BE2E402926003E57FF /* Products */;
 			projectDirPath = "";
@@ -395,13 +421,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Equion for iOS/Equion for iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UGLFKNLB5F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Orion Finance";
+				INFOPLIST_KEY_GADApplicationIdentifier = "ca-app-pub-3940256099942544~1458002511";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Orion needs camera access for video chat with AI.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Orion needs microphone access for voice and video chat with AI.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Orion uses speech recognition to convert your voice to text.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "fetch processing remote-notification";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -423,13 +456,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Equion for iOS/Equion for iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UGLFKNLB5F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Orion Finance";
+				INFOPLIST_KEY_GADApplicationIdentifier = "ca-app-pub-3940256099942544~1458002511";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Orion needs camera access for video chat with AI.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Orion needs microphone access for voice and video chat with AI.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Orion uses speech recognition to convert your voice to text.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "fetch processing remote-notification";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -558,6 +598,66 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CFE823DC2F7EFB4200818E01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.11.0;
+			};
+		};
+		CFE823E52F7F1FA200818E01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+		CFE824E22F7F3D9800818E01 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CFE823DD2F7EFB4200818E01 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE823DC2F7EFB4200818E01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		CFE823DF2F7EFB4200818E01 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE823DC2F7EFB4200818E01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		CFE823E12F7EFB4200818E01 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE823DC2F7EFB4200818E01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		CFE823E62F7F1FA200818E01 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE823E52F7F1FA200818E01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		CFE823E82F7F1FA200818E01 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE823E52F7F1FA200818E01 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		CFE824E32F7F3D9800818E01 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFE824E22F7F3D9800818E01 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CFED88B52E402926003E57FF /* Project object */;
 }

@@ -1,0 +1,33 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserdata
+*.xcworkspace
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.workspace
+
+# CocoaPods
+Pods/
+
+# Secrets — NEVER commit
+**/APIKeys.swift
+**/GoogleService-Info.plist
+
+# OS files
+.DS_Store
+*.swp
+*~
+Thumbs.db
+
+# Archives
+*.ipa
+*.dSYM.zip
+*.dSYM
