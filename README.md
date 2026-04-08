@@ -1,4 +1,15 @@
+<p align="center">
+  <img src="icons/4887BBCA-6D35-440B-A3A9-EA936D1F2C1E.png" alt="Orion Finance Banner" width="100%">
+</p>
+
 # Orion Finance
+
+![Swift](https://img.shields.io/badge/Swift-5.0-F05138?logo=swift&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-iOS%2017+-000000?logo=apple&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-007AFF?logo=swift&logoColor=white)
+![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)
+![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?logo=firebase&logoColor=black)
+![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
 
 **A modern iOS stock portfolio & AI-powered investment assistant.**
 
@@ -188,7 +199,18 @@ Unauthorized copying, modification, merging, publishing, distribution, sublicens
 
 <a id="中文版"></a>
 
+<p align="center">
+  <img src="icons/4887BBCA-6D35-440B-A3A9-EA936D1F2C1E.png" alt="Orion Finance 横幅" width="100%">
+</p>
+
 # Orion Finance（猎户座金融）
+
+![Swift](https://img.shields.io/badge/Swift-5.0-F05138?logo=swift&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-iOS%2017+-000000?logo=apple&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-007AFF?logo=swift&logoColor=white)
+![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)
+![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?logo=firebase&logoColor=black)
+![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
 
 **一款现代化的 iOS 股票投资组合与 AI 智能投资助手。**
 
