@@ -762,17 +762,11 @@ class APIService {
     // MARK: - AI Decision Dashboard (Gemini)
     // =========================================
 
-    func fetchAIDecisionDashboard(symbol: String, name: String, price: Double, quote: StockQuote?, metrics: FundamentalMetrics?, news: [NewsItem]) async throws -> AIDecisionDashboard {
-        let upper = symbol.uppercased()
-        // Cache: 1 hour
-        if let cached = await cache.getAIDashboard(upper),
-           Date().timeIntervalSince(cached.fetchedAt) < 3600 {
-            return cached.dashboard
-        }
+    /// Build the prompt and data context for AI dashboard (shared by cached and streaming paths)
+    private func buildDashboardPrompt(symbol: String, name: String, price: Double, quote: StockQuote?, metrics: FundamentalMetrics?, news: [NewsItem]) -> String {
         let lang = SettingsManager.shared.appLanguage
         let newsBlock = news.prefix(8).map { "- \($0.headline)" }.joined(separator: "\n")
 
-        // Build data context
         var dataContext = "\(name) (\(symbol))\n"
         if let q = quote {
             dataContext += "Current: $\(String(format: "%.2f", q.price)), Change: \(String(format: "%.2f%%", q.changePercent))\n"
@@ -793,7 +787,7 @@ class APIService {
         }
         dataContext += "Recent News:\n\(newsBlock)\n"
 
-        let prompt = """
+        return """
         Analyze this stock and return ONLY valid JSON (no markdown, no code fences):
 
         \(dataContext)
@@ -822,21 +816,19 @@ class APIService {
         - summary, bullPoints, bearPoints should be in \(lang)
         - ONLY return the JSON object, nothing else
         """
+    }
 
-        let reply = try await sendGeminiMessage(text: prompt, language: "English")
-
-        // Parse JSON from response (strip potential code fences)
-        let cleaned = reply
+    /// Parse a complete JSON string into AIDecisionDashboard
+    private func parseDashboardJSON(_ text: String) -> AIDecisionDashboard? {
+        let cleaned = text
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let jsonData = cleaned.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
-            throw APIError.invalidData
+        guard let data = cleaned.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
         }
-
-        let dashboard = AIDecisionDashboard(
+        return AIDecisionDashboard(
             rating: json["rating"] as? String ?? "Watch",
             score: json["score"] as? Int ?? 50,
             summary: json["summary"] as? String ?? "",
@@ -848,7 +840,84 @@ class APIService {
             sentiment: json["sentiment"] as? Double ?? 0,
             sentimentLabel: json["sentimentLabel"] as? String ?? "Neutral"
         )
+    }
+
+    /// Non-streaming fetch (used for cache check + fallback)
+    func fetchAIDecisionDashboard(symbol: String, name: String, price: Double, quote: StockQuote?, metrics: FundamentalMetrics?, news: [NewsItem]) async throws -> AIDecisionDashboard {
+        let upper = symbol.uppercased()
+        if let cached = await cache.getAIDashboard(upper),
+           Date().timeIntervalSince(cached.fetchedAt) < 3600 {
+            return cached.dashboard
+        }
+        let prompt = buildDashboardPrompt(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
+        let reply = try await sendGeminiMessage(text: prompt, language: "English")
+        guard let dashboard = parseDashboardJSON(reply) else { throw APIError.invalidData }
         await cache.setAIDashboard(upper, dashboard: dashboard)
+        return dashboard
+    }
+
+    /// Streaming fetch — calls `onUpdate` with partial dashboard as chunks arrive
+    func streamAIDecisionDashboard(
+        symbol: String, name: String, price: Double,
+        quote: StockQuote?, metrics: FundamentalMetrics?, news: [NewsItem],
+        onUpdate: @escaping (AIDecisionDashboard) -> Void
+    ) async throws -> AIDecisionDashboard {
+        let upper = symbol.uppercased()
+        // Cache check
+        if let cached = await cache.getAIDashboard(upper),
+           Date().timeIntervalSince(cached.fetchedAt) < 3600 {
+            onUpdate(cached.dashboard)
+            return cached.dashboard
+        }
+
+        let prompt = buildDashboardPrompt(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
+        let systemPrompt = buildSystemPrompt(language: "English")
+
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=\(APIKeys.gemini)")!
+        let body: [String: Any] = [
+            "system_instruction": ["parts": [["text": systemPrompt]]],
+            "contents": [["role": "user", "parts": [["text": prompt]]]]
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (stream, response) = try await URLSession.shared.bytes(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            // Fallback to non-streaming
+            let dashboard = try await fetchAIDecisionDashboard(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
+            onUpdate(dashboard)
+            return dashboard
+        }
+
+        var accumulated = ""
+        for try await line in stream.lines {
+            // SSE format: "data: {...}"
+            guard line.hasPrefix("data: ") else { continue }
+            let jsonStr = String(line.dropFirst(6))
+            guard let chunkData = jsonStr.data(using: .utf8),
+                  let chunkJSON = try? JSONSerialization.jsonObject(with: chunkData) as? [String: Any],
+                  let candidates = chunkJSON["candidates"] as? [[String: Any]],
+                  let content = candidates.first?["content"] as? [String: Any],
+                  let parts = content["parts"] as? [[String: Any]],
+                  let text = parts.first?["text"] as? String else { continue }
+
+            accumulated += text
+
+            // Try to parse partial JSON — show whatever fields are available
+            if let partial = parseDashboardJSON(accumulated) {
+                await MainActor.run { onUpdate(partial) }
+            }
+        }
+
+        // Final parse
+        guard let dashboard = parseDashboardJSON(accumulated) else {
+            throw APIError.invalidData
+        }
+        await cache.setAIDashboard(upper, dashboard: dashboard)
+        await MainActor.run { onUpdate(dashboard) }
         return dashboard
     }
 

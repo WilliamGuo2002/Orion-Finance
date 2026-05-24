@@ -1368,8 +1368,9 @@ struct StockDetailView: View {
             async let week52Task: () = loadWeek52Range()
             async let fundamentalsTask: () = loadFundamentals()
             _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask)
-            // Load AI dashboard after news & fundamentals are ready (needs them as input)
-            await loadAIDashboard()
+            // AI dashboard loads independently — don't block other modules
+            // It starts as soon as news & fundamentals are ready
+            Task { await loadAIDashboard() }
         } else {
             _ = await (newsTask, commentsTask)
         }
@@ -1402,17 +1403,17 @@ struct StockDetailView: View {
     private func loadAIDashboard() async {
         await MainActor.run { isLoadingDashboard = true }
         do {
-            let dashboard = try await APIService.shared.fetchAIDecisionDashboard(
+            _ = try await APIService.shared.streamAIDecisionDashboard(
                 symbol: symbol,
                 name: name,
                 price: currentPrice,
                 quote: quote,
                 metrics: fundamentals,
                 news: companyNews
-            )
-            await MainActor.run {
-                aiDashboard = dashboard
-                isLoadingDashboard = false
+            ) { partial in
+                // Update UI progressively as streaming chunks arrive
+                self.aiDashboard = partial
+                self.isLoadingDashboard = false
             }
         } catch {
             await MainActor.run { isLoadingDashboard = false }

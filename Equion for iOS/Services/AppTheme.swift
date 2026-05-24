@@ -330,161 +330,61 @@ struct AppTheme {
 // MARK: - Shared card background builder
 private struct CardBackgroundContent: View {
     let colorScheme: ColorScheme
-    var glossPosition: UnitPoint? = nil // nil = no gloss active
 
     var body: some View {
-        ZStack {
-            // Frosted glass base
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                .fill(
-                    colorScheme == .dark
-                        ? AppTheme.cardBackground.opacity(0.85)
-                        : AppTheme.cardBackground.opacity(0.75)
+        RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+            .fill(
+                LinearGradient(
+                    colors: colorScheme == .dark
+                        ? [AppTheme.cardBackground, AppTheme.cardBackground.opacity(0.92)]
+                        : [Color.white, Color(red: 0.97, green: 0.95, blue: 0.93)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .background(
-                    RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                        .fill(.ultraThinMaterial)
-                )
-
-            // Warm diagonal gradient overlay
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                .fill(
-                    LinearGradient(
-                        colors: colorScheme == .dark
-                            ? [Color.white.opacity(0.06), Color.clear]
-                            : [Color(red: 0.98, green: 0.96, blue: 0.93).opacity(0.6), Color.white.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            // Light mode: subtle bottom vignette for depth
-            if colorScheme == .light {
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.clear, Color(red: 0.90, green: 0.88, blue: 0.85).opacity(0.2)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            }
-
-            // Gloss highlight following finger
-            if let pos = glossPosition {
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                    .fill(
-                        RadialGradient(
-                            colors: colorScheme == .dark
-                                ? [Color.white.opacity(0.12), Color.clear]
-                                : [Color.white.opacity(0.55), Color.clear],
-                            center: pos,
-                            startRadius: 0,
-                            endRadius: 180
-                        )
-                    )
-                    .blendMode(.overlay)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
+            )
     }
 }
 
-// MARK: - Interactive Card Modifier
+// MARK: - Card Modifier
 struct ThemeCardModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var isPressed = false
-    @State private var pressedAt: Date? = nil
 
     func body(content: Content) -> some View {
         content
             .padding(AppTheme.cardPadding)
-            .background(CardBackgroundContent(colorScheme: colorScheme, glossPosition: isPressed ? .center : nil))
+            .background(CardBackgroundContent(colorScheme: colorScheme))
             .cornerRadius(AppTheme.cardRadius)
-            // Outer glow border
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
                     .stroke(
-                        LinearGradient(
-                            colors: colorScheme == .dark
-                                ? [Color.white.opacity(0.12), Color.white.opacity(0.04)]
-                                : [Color.white.opacity(0.9), AppTheme.border.opacity(0.5)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: colorScheme == .dark ? 0.5 : 1.0
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.08)
+                            : AppTheme.border.opacity(0.6),
+                        lineWidth: colorScheme == .dark ? 0.5 : 0.8
                     )
             )
-            // 1. Press scale
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            // 4. Shadow shrinks on press, expands on release
-            .shadow(color: Color.black.opacity(colorScheme == .dark
-                ? (isPressed ? 0.15 : 0.35)
-                : (isPressed ? 0.05 : 0.12)), radius: isPressed ? 6 : 16, y: isPressed ? 3 : 8)
-            .shadow(color: Color.black.opacity(colorScheme == .dark
-                ? (isPressed ? 0.1 : 0.2)
-                : (isPressed ? 0.03 : 0.06)), radius: isPressed ? 1 : 4, y: isPressed ? 1 : 2)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
-            // Press detection with minimum visible duration
-            .onLongPressGesture(minimumDuration: 60, pressing: { pressing in
-                if pressing {
-                    pressedAt = Date()
-                    withAnimation(.easeIn(duration: 0.1)) { isPressed = true }
-                } else {
-                    // Ensure animation is visible for at least 150ms
-                    let elapsed = Date().timeIntervalSince(pressedAt ?? Date())
-                    let delay = max(0, 0.15 - elapsed)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { isPressed = false }
-                    }
-                }
-            }, perform: {})
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 
-/// Surface-only modifier — no padding, with interaction
+/// Surface-only modifier — no padding
 struct ThemeCardSurface: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var isPressed = false
-    @State private var pressedAt: Date? = nil
 
     func body(content: Content) -> some View {
         content
-            .background(CardBackgroundContent(colorScheme: colorScheme, glossPosition: isPressed ? .center : nil))
+            .background(CardBackgroundContent(colorScheme: colorScheme))
             .cornerRadius(AppTheme.cardRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
                     .stroke(
-                        LinearGradient(
-                            colors: colorScheme == .dark
-                                ? [Color.white.opacity(0.12), Color.white.opacity(0.04)]
-                                : [Color.white.opacity(0.9), AppTheme.border.opacity(0.5)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: colorScheme == .dark ? 0.5 : 1.0
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.08)
+                            : AppTheme.border.opacity(0.6),
+                        lineWidth: colorScheme == .dark ? 0.5 : 0.8
                     )
             )
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            .shadow(color: Color.black.opacity(colorScheme == .dark
-                ? (isPressed ? 0.15 : 0.35)
-                : (isPressed ? 0.05 : 0.12)), radius: isPressed ? 6 : 16, y: isPressed ? 3 : 8)
-            .shadow(color: Color.black.opacity(colorScheme == .dark
-                ? (isPressed ? 0.05 : 0.05)
-                : (isPressed ? 0.03 : 0.06)), radius: isPressed ? 1 : 4, y: isPressed ? 1 : 2)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
-            .onLongPressGesture(minimumDuration: 60, pressing: { pressing in
-                if pressing {
-                    pressedAt = Date()
-                    withAnimation(.easeIn(duration: 0.1)) { isPressed = true }
-                } else {
-                    let elapsed = Date().timeIntervalSince(pressedAt ?? Date())
-                    let delay = max(0, 0.15 - elapsed)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { isPressed = false }
-                    }
-                }
-            }, perform: {})
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 
