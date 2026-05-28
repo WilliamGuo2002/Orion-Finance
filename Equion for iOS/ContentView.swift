@@ -5,15 +5,28 @@ struct ContentView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @ObservedObject private var interests = InterestsManager.shared
     @State private var showOnboarding = false
+    @State private var showRiskProfile = false
     @State private var checkingNewUser = true
 
     var body: some View {
         Group {
             if firebaseController.isLoggedIn {
-                if showOnboarding {
+                if showRiskProfile {
+                    NavigationStack {
+                        RiskProfileView(isOnboarding: true, onComplete: {
+                            withAnimation {
+                                showRiskProfile = false
+                            }
+                        })
+                    }
+                    .transition(.move(edge: .trailing))
+                } else if showOnboarding {
                     NavigationStack {
                         InterestsSelectionView(isOnboarding: true, onComplete: {
-                            withAnimation { showOnboarding = false }
+                            withAnimation {
+                                showOnboarding = false
+                                showRiskProfile = true
+                            }
                         })
                     }
                     .transition(.move(edge: .trailing))

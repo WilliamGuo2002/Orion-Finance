@@ -5,6 +5,7 @@ struct MyHoldingView: View {
     @State private var stockList: [StockInfo] = []
     @State private var marketIndices: [MarketIndex] = []
     @State private var showAddDialog = false
+    @State private var showPortfolioWizard = false
     @State private var isLoading = false
     @State private var greetingSub = AppTheme.greetingSubtitle()
     @State private var recommendedStocks: [RecommendedStock] = []
@@ -218,6 +219,9 @@ struct MyHoldingView: View {
             .padding(.trailing, 20)
             .padding(.bottom, 80)
         }
+        .sheet(isPresented: $showPortfolioWizard) {
+            PortfolioWizardView()
+        }
         .sheet(isPresented: $showAddDialog) {
             AddAssetSheet(
                 existingSymbols: Set(stockList.map { $0.symbol.uppercased() }),
@@ -286,6 +290,22 @@ struct MyHoldingView: View {
                 .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
                 .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
+            }
+
+            Button(action: { Haptic.tap(); showPortfolioWizard = true }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(L("Help Me Pick Stocks"))
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundColor(AppTheme.accent)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .stroke(AppTheme.accent, lineWidth: 1.5)
+                )
             }
         }
         .padding(.horizontal, 40)

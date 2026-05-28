@@ -40,6 +40,15 @@ struct StockDetailView: View {
     @State private var aiDashboard: AIDecisionDashboard?
     @State private var isLoadingDashboard = false
 
+    // Earnings
+    @State private var upcomingEarnings: [APIService.EarningsEvent] = []
+
+    // Metric explanation
+    @State private var showMetricExplanation = false
+    @State private var metricExplanationTitle = ""
+    @State private var metricExplanationText = ""
+    @State private var isLoadingMetricExplanation = false
+
     private let intervals = ["1D", "5D", "1M", "6M", "YTD", "1Y", "ALL"]
     private let etZone = TimeZone(identifier: "America/New_York")!
 
@@ -135,6 +144,48 @@ struct StockDetailView: View {
             await loadQuote()
             await loadAllModules()
         }
+        .sheet(isPresented: $showMetricExplanation) {
+            metricExplanationSheet
+        }
+    }
+
+    // MARK: - Metric Explanation Sheet
+    private var metricExplanationSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundColor(AppTheme.accent)
+                            .font(.title2)
+                        Text(metricExplanationTitle)
+                            .font(.title2.weight(.bold))
+                            .foregroundColor(AppTheme.primaryText)
+                    }
+
+                    if isLoadingMetricExplanation {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                                .tint(AppTheme.accent)
+                            Text(L("Analyzing..."))
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 20)
+                    } else {
+                        Text(metricExplanationText)
+                            .font(.body)
+                            .foregroundColor(AppTheme.primaryText)
+                            .lineSpacing(4)
+                    }
+                }
+                .padding(20)
+            }
+            .background(AppTheme.background)
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Compact (iPhone portrait)
@@ -168,6 +219,7 @@ struct StockDetailView: View {
                 VStack(spacing: 16) {
                     aiDashboardModule
                     fundamentalsModule
+                    earningsModule
                     keyDataModule
                     predictionsModule
                 }
@@ -220,6 +272,7 @@ struct StockDetailView: View {
                     VStack(spacing: AppTheme.moduleSpacing) {
                         aiDashboardModule
                         fundamentalsModule
+                        earningsModule
                         keyDataModule
                         predictionsModule
                         newsModule
@@ -870,6 +923,35 @@ struct StockDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                // ── Action Guide for Beginners ──
+                if !d.actionGuide.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "figure.walk")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(AppTheme.accent)
+                            Text(L("What Should I Do?"))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.accent)
+                        }
+                        Text(d.actionGuide)
+                            .font(.system(size: 13))
+                            .foregroundColor(AppTheme.primaryText)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(AppTheme.accent.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(AppTheme.accent.opacity(0.15), lineWidth: 1)
+                            )
+                    )
+                }
+
                 // ── Deep Dive Link ──
                 NavigationLink(destination: AIAnalysisView(symbol: symbol, name: name)) {
                     HStack {
@@ -969,16 +1051,130 @@ struct StockDetailView: View {
     }
 
     private func fundamentalRow(_ label: String, value: String, color: Color? = nil) -> some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(AppTheme.secondaryText)
-            Spacer()
-            Text(value)
-                .font(AppTheme.number(14, weight: .semibold))
-                .foregroundColor(color ?? AppTheme.primaryText)
+        Button {
+            Haptic.light()
+            metricExplanationTitle = label
+            metricExplanationText = ""
+            isLoadingMetricExplanation = true
+            showMetricExplanation = true
+            Task {
+                do {
+                    let explanation = try await APIService.shared.fetchMetricExplanation(
+                        metric: label, value: value, symbol: symbol, name: name
+                    )
+                    await MainActor.run {
+                        metricExplanationText = explanation
+                        isLoadingMetricExplanation = false
+                    }
+                } catch {
+                    await MainActor.run {
+                        metricExplanationText = L("Unable to load explanation. Please try again.")
+                        isLoadingMetricExplanation = false
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText)
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppTheme.accent.opacity(0.6))
+                Spacer()
+                Text(value)
+                    .font(AppTheme.number(14, weight: .semibold))
+                    .foregroundColor(color ?? AppTheme.primaryText)
+            }
+            .padding(.vertical, 2)
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+    }
+
+    // ===================================
+    // MARK: - Earnings Module
+    // ===================================
+    @ViewBuilder
+    private var earningsModule: some View {
+        if !upcomingEarnings.isEmpty {
+            moduleCard("Upcoming Earnings", icon: "calendar.badge.clock") {
+                ForEach(upcomingEarnings.prefix(3)) { event in
+                    HStack(spacing: 12) {
+                        // Date badge
+                        VStack(spacing: 0) {
+                            Text(earningsMonth(event.date))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 2)
+                                .background(AppTheme.accent)
+                            Text(earningsDay(event.date))
+                                .font(AppTheme.number(18, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                        }
+                        .frame(width: 44)
+                        .background(AppTheme.subtleFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(L("Earnings Report"))
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                if !event.hour.isEmpty {
+                                    Text(event.hour == "bmo" ? L("Before Open") : L("After Close"))
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(AppTheme.accent)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
+                                }
+                            }
+                            if let est = event.epsEstimate {
+                                Text(String(format: "EPS %@: $%.2f", L("Estimate"), est))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                // Beginner tip
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.accent)
+                        .padding(.top, 1)
+                    Text(L("Stock prices often move sharply around earnings dates. If you're new to investing, consider waiting until after the report to make decisions."))
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.secondaryText)
+                        .lineSpacing(2)
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(AppTheme.accent.opacity(0.05))
+                )
+            }
+        }
+    }
+
+    private func earningsMonth(_ dateStr: String) -> String {
+        let parts = dateStr.split(separator: "-")
+        guard parts.count >= 2, let month = Int(parts[1]) else { return "" }
+        let months = ["", "JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+        return month < months.count ? months[month] : ""
+    }
+
+    private func earningsDay(_ dateStr: String) -> String {
+        let parts = dateStr.split(separator: "-")
+        guard parts.count >= 3 else { return "" }
+        return String(parts[2])
     }
 
     // =============================
@@ -1367,7 +1563,8 @@ struct StockDetailView: View {
             async let profileTask: () = loadCompanyProfile()
             async let week52Task: () = loadWeek52Range()
             async let fundamentalsTask: () = loadFundamentals()
-            _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask)
+            async let earningsTask: () = loadEarnings()
+            _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask, earningsTask)
             // AI dashboard loads independently — don't block other modules
             // It starts as soon as news & fundamentals are ready
             Task { await loadAIDashboard() }
@@ -1399,6 +1596,9 @@ struct StockDetailView: View {
     }
     private func loadFundamentals() async {
         do { fundamentals = try await APIService.shared.fetchFundamentalMetrics(symbol: symbol) } catch {}
+    }
+    private func loadEarnings() async {
+        do { upcomingEarnings = try await APIService.shared.fetchEarningsCalendar(symbol: symbol) } catch {}
     }
     private func loadAIDashboard() async {
         await MainActor.run { isLoadingDashboard = true }

@@ -7,6 +7,9 @@ struct MenuView: View {
     @State private var showAppearance = false
     @State private var showLanguage = false
     @State private var showInterests = false
+    @State private var showRiskProfile = false
+    @State private var showPortfolioWizard = false
+    @State private var showStockCompare = false
 
     var body: some View {
         List {
@@ -60,6 +63,32 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
+                // Risk Profile
+                Button(action: { showRiskProfile = true }) {
+                    menuRow(icon: "shield.checkered", title: L("Investment Style"), detail: riskProfileDetail)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
+                // Portfolio Builder
+                Button(action: { showPortfolioWizard = true }) {
+                    menuRow(icon: "sparkles", title: L("Portfolio Builder"), detail: nil)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
+                // Stock Compare
+                Button(action: { showStockCompare = true }) {
+                    menuRow(icon: "arrow.left.arrow.right", title: L("Compare Stocks"), detail: nil)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
+                // Paper Trading
+                NavigationLink {
+                    PaperTradingView()
+                } label: {
+                    menuRow(icon: "chart.line.uptrend.xyaxis", title: L("Paper Trading"), detail: String(format: "$%.0f", PaperPortfolioManager.shared.cash + PaperPortfolioManager.shared.holdings.reduce(0) { $0 + $1.cost }))
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
                 menuRow(icon: "square.and.arrow.up", title: L("Share"))
                     .listRowBackground(AppTheme.cardBackground)
                 menuRow(icon: "questionmark.circle", title: L("Support"))
@@ -98,11 +127,31 @@ struct MenuView: View {
                 InterestsSelectionView(isOnboarding: false)
             }
         }
+        .sheet(isPresented: $showRiskProfile) {
+            NavigationStack {
+                RiskProfileView(isOnboarding: false)
+            }
+        }
+        .sheet(isPresented: $showPortfolioWizard) {
+            PortfolioWizardView()
+        }
+        .sheet(isPresented: $showStockCompare) {
+            StockCompareView()
+        }
     }
 
     private var interestsDetail: String {
         let count = InterestsManager.shared.selectedInterests.count
         return count > 0 ? "\(count) \(L("selected"))" : L("Not set")
+    }
+
+    private var riskProfileDetail: String {
+        switch settings.riskProfile {
+        case "conservative": return L("Conservative")
+        case "moderate":     return L("Moderate")
+        case "aggressive":   return L("Aggressive")
+        default:             return L("Not set")
+        }
     }
 
     private var appearanceLabel: String {

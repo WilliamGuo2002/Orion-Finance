@@ -13,6 +13,9 @@ class SettingsManager: ObservableObject {
     @AppStorage("appLanguage") var appLanguage: String = "English" {
         didSet { objectWillChange.send() }
     }
+    @AppStorage("riskProfile") var riskProfile: String = "" {
+        didSet { objectWillChange.send() }
+    }
 
     var colorScheme: ColorScheme? {
         switch appearanceMode {

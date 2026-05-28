@@ -72,6 +72,7 @@ struct AIDecisionDashboard {
     let bearPoints: [String]      // Risk factors
     let sentiment: Double         // -1.0 (bearish) to +1.0 (bullish)
     let sentimentLabel: String    // "Very Bearish" ... "Very Bullish"
+    let actionGuide: String       // Beginner-friendly action guide
 }
 
 /// Market mover (gainer, loser, or most active)
@@ -527,6 +528,45 @@ class APIService {
     }
 
     // =========================================
+    // MARK: - Earnings Calendar (Finnhub)
+    // =========================================
+
+    struct EarningsEvent: Identifiable {
+        let id = UUID()
+        let symbol: String
+        let date: String      // "YYYY-MM-DD"
+        let epsEstimate: Double?
+        let epsActual: Double?
+        let revenueEstimate: Double?
+        let revenueActual: Double?
+        let hour: String      // "bmo" (before market open), "amc" (after market close), ""
+    }
+
+    func fetchEarningsCalendar(symbol: String) async throws -> [EarningsEvent] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let from = formatter.string(from: Date())
+        let to = formatter.string(from: Calendar.current.date(byAdding: .month, value: 3, to: Date())!)
+        let url = URL(string: "https://finnhub.io/api/v1/calendar/earnings?symbol=\(symbol)&from=\(from)&to=\(to)&token=\(APIKeys.finnhub)")!
+        let (data, _) = try await session.data(from: url)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let earnings = json["earningsCalendar"] as? [[String: Any]] ?? []
+
+        return earnings.compactMap { e in
+            guard let date = e["date"] as? String else { return nil }
+            return EarningsEvent(
+                symbol: e["symbol"] as? String ?? symbol,
+                date: date,
+                epsEstimate: e["epsEstimate"] as? Double,
+                epsActual: e["epsActual"] as? Double,
+                revenueEstimate: e["revenueEstimate"] as? Double,
+                revenueActual: e["revenueActual"] as? Double,
+                hour: e["hour"] as? String ?? ""
+            )
+        }
+    }
+
+    // =========================================
     // MARK: - Recommendations & Peers (Finnhub)
     // =========================================
 
@@ -803,7 +843,8 @@ class APIService {
           "bullPoints": ["point1", "point2", "point3"],
           "bearPoints": ["point1", "point2", "point3"],
           "sentiment": -1.0 to 1.0 float,
-          "sentimentLabel": "Very Bearish"/"Bearish"/"Neutral"/"Bullish"/"Very Bullish"
+          "sentimentLabel": "Very Bearish"/"Bearish"/"Neutral"/"Bullish"/"Very Bullish",
+          "actionGuide": "2-3 sentence beginner-friendly action guide"
         }
 
         Rules:
@@ -813,7 +854,8 @@ class APIService {
         - sentiment: weighted average of news sentiment, technical trend, and fundamental health
         - rating MUST be exactly one of: "Buy", "Watch", "Sell" (always English)
         - sentimentLabel MUST be one of: "Very Bearish", "Bearish", "Neutral", "Bullish", "Very Bullish" (always English)
-        - summary, bullPoints, bearPoints should be in \(lang)
+        - summary, bullPoints, bearPoints, actionGuide should be in \(lang)
+        - actionGuide: Write for a COMPLETE beginner. Use concrete dollar amounts as examples (e.g. "if you have $1000 budget..."). Explain what to do if the price goes up or down. No jargon. 2-3 sentences max. Tailor advice to the user's risk profile: \(SettingsManager.shared.riskProfile.isEmpty ? "unknown (assume moderate)" : SettingsManager.shared.riskProfile).
         - ONLY return the JSON object, nothing else
         """
     }
@@ -838,7 +880,8 @@ class APIService {
             bullPoints: json["bullPoints"] as? [String] ?? [],
             bearPoints: json["bearPoints"] as? [String] ?? [],
             sentiment: json["sentiment"] as? Double ?? 0,
-            sentimentLabel: json["sentimentLabel"] as? String ?? "Neutral"
+            sentimentLabel: json["sentimentLabel"] as? String ?? "Neutral",
+            actionGuide: json["actionGuide"] as? String ?? ""
         )
     }
 
@@ -865,7 +908,8 @@ class APIService {
             bullPoints: extractStringArray(from: cleaned, key: "bullPoints"),
             bearPoints: extractStringArray(from: cleaned, key: "bearPoints"),
             sentiment: extractDouble(from: cleaned, key: "sentiment") ?? 0,
-            sentimentLabel: extractString(from: cleaned, key: "sentimentLabel") ?? "Neutral"
+            sentimentLabel: extractString(from: cleaned, key: "sentimentLabel") ?? "Neutral",
+            actionGuide: extractString(from: cleaned, key: "actionGuide") ?? ""
         )
     }
 
@@ -1015,6 +1059,26 @@ class APIService {
 
         let analysis = try await sendGeminiMessage(text: prompt, language: lang)
         return (headlinesText, analysis)
+    }
+
+    // MARK: - Metric Explanation (AI)
+
+    func fetchMetricExplanation(metric: String, value: String, symbol: String, name: String) async throws -> String {
+        let lang = SettingsManager.shared.appLanguage
+        let prompt = """
+        Explain the financial metric "\(metric)" for the stock \(name) (\(symbol)).
+        The current value is: \(value).
+
+        Rules:
+        - Write for a complete beginner who has ZERO knowledge of investing or finance.
+        - Use plain, everyday language. No jargon.
+        - First explain what this metric means in one simple sentence (like explaining to a 15-year-old).
+        - Then explain whether this specific value (\(value)) is good, bad, or neutral for this stock, and compare to typical values in its industry if possible.
+        - Give a practical takeaway: what should a beginner understand from this number?
+        - Keep the entire response under 100 words.
+        - Respond in \(lang).
+        """
+        return try await sendGeminiMessage(text: prompt, language: lang)
     }
 
     enum APIError: LocalizedError {

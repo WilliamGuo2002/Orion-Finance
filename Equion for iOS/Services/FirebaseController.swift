@@ -281,6 +281,25 @@ class FirebaseController: ObservableObject {
         }
     }
 
+    // MARK: - Risk Profile
+    func saveUserRiskProfile(_ profile: String) {
+        guard let uid = currentUser?.uid ?? auth.currentUser?.uid else { return }
+        userDocRef(uid: uid).updateData([
+            "riskProfile": profile,
+            "riskProfileUpdatedAt": Timestamp()
+        ])
+    }
+
+    func getUserRiskProfile() async -> String? {
+        guard let uid = await resolvedUid() else { return nil }
+        do {
+            let doc = try await userDocRef(uid: uid).getDocument()
+            return doc.data()?["riskProfile"] as? String
+        } catch {
+            return nil
+        }
+    }
+
     /// Check if this is a brand-new user (no interests set yet)
     func isNewUser() async -> Bool {
         guard let uid = await resolvedUid() else { return false }
