@@ -80,6 +80,7 @@ extension Notification.Name {
 struct Equion_for_iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var firebaseController = FirebaseController.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -88,6 +89,20 @@ struct Equion_for_iOSApp: App {
                 .onAppear {
                     NotificationService.shared.clearBadge()
                 }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .active:
+                // App came to foreground — start periodic price monitoring
+                NotificationService.shared.clearBadge()
+                NotificationService.shared.startForegroundMonitoring()
+            case .background:
+                // App went to background — stop foreground timer, rely on BGTask
+                NotificationService.shared.stopForegroundMonitoring()
+                NotificationService.shared.scheduleBackgroundTask()
+            default:
+                break
+            }
         }
     }
 }

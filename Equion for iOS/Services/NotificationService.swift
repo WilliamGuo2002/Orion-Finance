@@ -55,6 +55,52 @@ class NotificationService: ObservableObject {
     // Minimum interval between notifications for same symbol (30 min)
     private let minNotifInterval: TimeInterval = 1800
 
+    // Foreground periodic check timer
+    private var foregroundTimer: Timer?
+    // Interval between foreground checks (10 minutes)
+    private let foregroundCheckInterval: TimeInterval = 600
+
+    // MARK: - Foreground Timer
+
+    /// Start periodic price checks while app is in foreground
+    func startForegroundMonitoring() {
+        stopForegroundMonitoring()
+        guard SettingsManager.shared.notificationsEnabled else { return }
+
+        // Immediately perform a check
+        Task { await performPriceCheck() }
+
+        // Schedule repeating timer on main run loop
+        DispatchQueue.main.async {
+            self.foregroundTimer = Timer.scheduledTimer(withTimeInterval: self.foregroundCheckInterval, repeats: true) { [weak self] _ in
+                guard let self else { return }
+                Task { await self.performPriceCheck() }
+            }
+        }
+    }
+
+    /// Stop foreground monitoring when app goes to background
+    func stopForegroundMonitoring() {
+        foregroundTimer?.invalidate()
+        foregroundTimer = nil
+    }
+
+    /// Check if US market is currently in trading hours (roughly 9:30 AM – 4:00 PM ET, weekdays)
+    private var isMarketHours: Bool {
+        let ny = TimeZone(identifier: "America/New_York")!
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = ny
+        let now = Date()
+        let weekday = cal.component(.weekday, from: now)
+        // 1 = Sunday, 7 = Saturday
+        guard weekday >= 2 && weekday <= 6 else { return false }
+        let hour = cal.component(.hour, from: now)
+        let minute = cal.component(.minute, from: now)
+        let minuteOfDay = hour * 60 + minute
+        // 9:30 AM = 570, 4:00 PM = 960
+        return minuteOfDay >= 570 && minuteOfDay <= 960
+    }
+
     // MARK: - Init preferences from UserDefaults
 
     func loadPreferences() {
@@ -131,6 +177,8 @@ class NotificationService: ObservableObject {
 
     func performPriceCheck() async {
         guard SettingsManager.shared.notificationsEnabled else { return }
+        // Skip checks outside market hours to save API calls
+        guard isMarketHours else { return }
 
         // 1. Check major indices
         if marketAlertEnabled {
