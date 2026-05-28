@@ -1411,7 +1411,6 @@ struct StockDetailView: View {
                 metrics: fundamentals,
                 news: companyNews
             ) { partial in
-                // Update UI progressively as streaming chunks arrive
                 self.aiDashboard = partial
                 self.isLoadingDashboard = false
             }

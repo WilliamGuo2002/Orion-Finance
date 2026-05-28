@@ -842,6 +842,80 @@ class APIService {
         )
     }
 
+    /// Parse incomplete/streaming JSON by extracting available fields with regex
+    private func parsePartialDashboardJSON(_ text: String) -> AIDecisionDashboard? {
+        let cleaned = text
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Try complete parse first
+        if let full = parseDashboardJSON(cleaned) { return full }
+
+        // Need at least rating to show anything
+        guard let rating = extractString(from: cleaned, key: "rating") else { return nil }
+
+        return AIDecisionDashboard(
+            rating: rating,
+            score: extractInt(from: cleaned, key: "score") ?? 50,
+            summary: extractString(from: cleaned, key: "summary") ?? "",
+            entryPrice: extractDouble(from: cleaned, key: "entryPrice"),
+            stopLoss: extractDouble(from: cleaned, key: "stopLoss"),
+            targetPrice: extractDouble(from: cleaned, key: "targetPrice"),
+            bullPoints: extractStringArray(from: cleaned, key: "bullPoints"),
+            bearPoints: extractStringArray(from: cleaned, key: "bearPoints"),
+            sentiment: extractDouble(from: cleaned, key: "sentiment") ?? 0,
+            sentimentLabel: extractString(from: cleaned, key: "sentimentLabel") ?? "Neutral"
+        )
+    }
+
+    // MARK: - Partial JSON field extractors
+    private func extractString(from text: String, key: String) -> String? {
+        // Match "key": "value"
+        guard let range = text.range(of: "\"\(key)\"\\s*:\\s*\"", options: .regularExpression) else { return nil }
+        let after = text[range.upperBound...]
+        guard let endQuote = after.firstIndex(of: "\"") else {
+            // String still being streamed — return what we have
+            return String(after).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return String(after[..<endQuote])
+    }
+
+    private func extractInt(from text: String, key: String) -> Int? {
+        guard let range = text.range(of: "\"\(key)\"\\s*:\\s*", options: .regularExpression) else { return nil }
+        let after = text[range.upperBound...]
+        let numStr = after.prefix(while: { $0.isNumber || $0 == "-" })
+        return Int(numStr)
+    }
+
+    private func extractDouble(from text: String, key: String) -> Double? {
+        guard let range = text.range(of: "\"\(key)\"\\s*:\\s*", options: .regularExpression) else { return nil }
+        let after = text[range.upperBound...]
+        if after.hasPrefix("null") { return nil }
+        let numStr = after.prefix(while: { $0.isNumber || $0 == "." || $0 == "-" })
+        return Double(numStr)
+    }
+
+    private func extractStringArray(from text: String, key: String) -> [String] {
+        guard let range = text.range(of: "\"\(key)\"\\s*:\\s*\\[", options: .regularExpression) else { return [] }
+        let after = String(text[range.upperBound...])
+        // Find all complete quoted strings in the array
+        var results: [String] = []
+        let pattern = try? NSRegularExpression(pattern: "\"((?:[^\"\\\\]|\\\\.)*)\"", options: [])
+        let matches = pattern?.matches(in: after, options: [], range: NSRange(after.startIndex..., in: after)) ?? []
+        for match in matches {
+            if let r = Range(match.range(at: 1), in: after) {
+                let value = String(after[r])
+                // Stop if we've hit the closing bracket
+                if let bracketPos = after.firstIndex(of: "]"),
+                   let matchStart = Range(match.range, in: after)?.lowerBound,
+                   matchStart > bracketPos { break }
+                results.append(value)
+            }
+        }
+        return results
+    }
+
     /// Non-streaming fetch (used for cache check + fallback)
     func fetchAIDecisionDashboard(symbol: String, name: String, price: Double, quote: StockQuote?, metrics: FundamentalMetrics?, news: [NewsItem]) async throws -> AIDecisionDashboard {
         let upper = symbol.uppercased()
@@ -873,7 +947,7 @@ class APIService {
         let prompt = buildDashboardPrompt(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
         let systemPrompt = buildSystemPrompt(language: "English")
 
-        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=\(APIKeys.gemini)")!
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=\(APIKeys.gemini)")!
         let body: [String: Any] = [
             "system_instruction": ["parts": [["text": systemPrompt]]],
             "contents": [["role": "user", "parts": [["text": prompt]]]]
@@ -885,14 +959,15 @@ class APIService {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (stream, response) = try await URLSession.shared.bytes(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            // Fallback to non-streaming
+        let http = response as? HTTPURLResponse
+        guard let http = http, http.statusCode == 200 else {
             let dashboard = try await fetchAIDecisionDashboard(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
             onUpdate(dashboard)
             return dashboard
         }
 
         var accumulated = ""
+
         for try await line in stream.lines {
             // SSE format: "data: {...}"
             guard line.hasPrefix("data: ") else { continue }
@@ -906,14 +981,14 @@ class APIService {
 
             accumulated += text
 
-            // Try to parse partial JSON — show whatever fields are available
-            if let partial = parseDashboardJSON(accumulated) {
+            // Parse partial JSON — extract whatever fields are available so far
+            if let partial = parsePartialDashboardJSON(accumulated) {
                 await MainActor.run { onUpdate(partial) }
             }
         }
 
-        // Final parse
-        guard let dashboard = parseDashboardJSON(accumulated) else {
+        // Final parse — try complete first, then partial
+        guard let dashboard = parseDashboardJSON(accumulated) ?? parsePartialDashboardJSON(accumulated) else {
             throw APIError.invalidData
         }
         await cache.setAIDashboard(upper, dashboard: dashboard)
