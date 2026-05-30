@@ -312,6 +312,55 @@ class FirebaseController: ObservableObject {
         }
     }
 
+    // MARK: - Holdings (Transactions)
+
+    func addHoldingTransaction(_ tx: HoldingTransaction) {
+        guard let uid = currentUser?.uid ?? auth.currentUser?.uid else { return }
+        let data: [String: Any] = [
+            "symbol": tx.symbol,
+            "action": tx.action.rawValue,
+            "shares": tx.shares,
+            "pricePerShare": tx.pricePerShare,
+            "date": Timestamp(date: tx.date),
+            "createdAt": Timestamp(date: tx.createdAt)
+        ]
+        userDocRef(uid: uid).collection("holdings").document(tx.id).setData(data)
+    }
+
+    func deleteHoldingTransaction(id: String) {
+        guard let uid = currentUser?.uid ?? auth.currentUser?.uid else { return }
+        userDocRef(uid: uid).collection("holdings").document(id).delete()
+    }
+
+    func getAllHoldings() async -> [HoldingTransaction] {
+        guard let uid = await resolvedUid() else { return [] }
+        let ref = userDocRef(uid: uid).collection("holdings")
+        do {
+            let snapshot = try await ref.order(by: "date", descending: false).getDocuments()
+            return snapshot.documents.compactMap { doc in
+                let d = doc.data()
+                guard let symbol = d["symbol"] as? String,
+                      let actionStr = d["action"] as? String,
+                      let action = HoldingTransaction.HoldingAction(rawValue: actionStr),
+                      let shares = d["shares"] as? Double,
+                      let price = d["pricePerShare"] as? Double,
+                      let dateTmp = d["date"] as? Timestamp,
+                      let createdTmp = d["createdAt"] as? Timestamp else { return nil }
+                return HoldingTransaction(
+                    id: doc.documentID,
+                    symbol: symbol,
+                    action: action,
+                    shares: shares,
+                    pricePerShare: price,
+                    date: dateTmp.dateValue(),
+                    createdAt: createdTmp.dateValue()
+                )
+            }
+        } catch {
+            return []
+        }
+    }
+
     /// Fetch all chat sessions, sorted by timestamp descending
     func getChatSessions() async -> [(id: String, messages: [[String: String]], timestamp: Date)] {
         guard let uid = await resolvedUid() else { return [] }

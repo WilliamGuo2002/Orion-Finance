@@ -49,6 +49,11 @@ struct StockDetailView: View {
     @State private var metricExplanationText = ""
     @State private var isLoadingMetricExplanation = false
 
+    // Holdings
+    @State private var showTransactionSheet = false
+    @State private var holdingAgg: AggregatedHolding?
+    @State private var holdingTransactions: [HoldingTransaction] = []
+
     private let intervals = ["1D", "5D", "1M", "6M", "YTD", "1Y", "ALL"]
     private let etZone = TimeZone(identifier: "America/New_York")!
 
@@ -147,6 +152,11 @@ struct StockDetailView: View {
         .sheet(isPresented: $showMetricExplanation) {
             metricExplanationSheet
         }
+        .sheet(isPresented: $showTransactionSheet) {
+            TransactionEntrySheet(symbol: symbol, name: name, currentPrice: currentPrice) {
+                Task { await loadHoldings() }
+            }
+        }
     }
 
     // MARK: - Metric Explanation Sheet
@@ -212,6 +222,9 @@ struct StockDetailView: View {
                 intervalSelector
                     .padding(.bottom, 6)
 
+                // Holdings (if user owns this asset)
+                holdingsModule
+
                 moduleDivider
                     .padding(.vertical, 14)
 
@@ -265,6 +278,9 @@ struct StockDetailView: View {
                 headerSection
                 chartSection
                 intervalSelector
+
+                // Holdings (if user owns this asset)
+                holdingsModule
 
                 // Two-column layout for modules
                 HStack(alignment: .top, spacing: 16) {
@@ -1094,6 +1110,159 @@ struct StockDetailView: View {
     // ===================================
     // MARK: - Earnings Module
     // ===================================
+    // MARK: - Holdings Module
+    @ViewBuilder
+    private var holdingsModule: some View {
+        VStack(spacing: 0) {
+            // "Record Trade" button — always visible
+            Button {
+                Haptic.tap()
+                showTransactionSheet = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 16))
+                    Text(L("Record Trade"))
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(AppTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(AppTheme.accent, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            // Show holdings info if user has a position
+            if let agg = holdingAgg, agg.totalShares > 0.0001 {
+                VStack(alignment: .leading, spacing: 12) {
+                    AccentSectionTitle(L("Your Position"), icon: "briefcase.fill")
+
+                    // Summary row
+                    HStack(spacing: 0) {
+                        // Shares & Avg Cost
+                        VStack(spacing: 4) {
+                            Text(String(format: "%.4g", agg.totalShares))
+                                .font(AppTheme.number(18, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                            Text(L("Shares"))
+                                .font(.system(size: 11))
+                                .foregroundColor(AppTheme.secondaryText)
+                            Text(String(format: "$%.2f", agg.averageCost))
+                                .font(AppTheme.number(12, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            Text(L("Avg Cost"))
+                                .font(.system(size: 10))
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Divider().frame(height: 60)
+
+                        // Market Value
+                        VStack(spacing: 4) {
+                            Text(String(format: "$%.2f", agg.marketValue))
+                                .font(AppTheme.number(18, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                            Text(L("Market Value"))
+                                .font(.system(size: 11))
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Divider().frame(height: 60)
+
+                        // Total P&L
+                        VStack(spacing: 4) {
+                            Text(String(format: "%@$%.2f", agg.totalPnL >= 0 ? "+" : "-", abs(agg.totalPnL)))
+                                .font(AppTheme.number(16, weight: .bold))
+                                .foregroundColor(agg.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+                            Text(String(format: "%@%.2f%%", agg.totalPnLPercent >= 0 ? "+" : "", agg.totalPnLPercent))
+                                .font(AppTheme.number(12, weight: .semibold))
+                                .foregroundColor(agg.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
+                            Text(L("Total P&L"))
+                                .font(.system(size: 10))
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    // Day P&L
+                    HStack {
+                        Text(L("Today"))
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.secondaryText)
+                        Spacer()
+                        Text(String(format: "%@$%.2f (%@%.2f%%)",
+                                    agg.dayPnL >= 0 ? "+" : "-", abs(agg.dayPnL),
+                                    agg.dayPnLPercent >= 0 ? "+" : "", agg.dayPnLPercent))
+                            .font(AppTheme.number(13, weight: .semibold))
+                            .foregroundColor(agg.dayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+                    }
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill((agg.dayPnL >= 0 ? AppTheme.positive : AppTheme.negative).opacity(0.06))
+                    )
+
+                    // Transaction History
+                    if !holdingTransactions.isEmpty {
+                        Divider().overlay(AppTheme.border.opacity(0.4))
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L("Transaction History"))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(AppTheme.secondaryText)
+
+                            ForEach(holdingTransactions.suffix(5).reversed()) { tx in
+                                HStack(spacing: 8) {
+                                    Image(systemName: tx.action == .buy ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(tx.action == .buy ? AppTheme.positive : AppTheme.negative)
+
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(tx.action == .buy ? L("Buy") : L("Sell"))
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(AppTheme.primaryText)
+                                        Text(txDateString(tx.date))
+                                            .font(.system(size: 10))
+                                            .foregroundColor(AppTheme.secondaryText)
+                                    }
+
+                                    Spacer()
+
+                                    VStack(alignment: .trailing, spacing: 1) {
+                                        Text(String(format: "%.4g × $%.2f", tx.shares, tx.pricePerShare))
+                                            .font(AppTheme.number(12, weight: .medium))
+                                            .foregroundColor(AppTheme.primaryText)
+                                        Text(String(format: "$%.2f", tx.totalValue))
+                                            .font(AppTheme.number(11))
+                                            .foregroundColor(AppTheme.secondaryText)
+                                    }
+                                }
+                                .padding(.vertical, 3)
+                            }
+                        }
+                    }
+                }
+                .padding(AppTheme.cardPadding)
+                .themeCardSurface()
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+            }
+        }
+    }
+
+    private func txDateString(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMM d, yyyy"
+        return fmt.string(from: date)
+    }
+
     @ViewBuilder
     private var earningsModule: some View {
         if !upcomingEarnings.isEmpty {
@@ -1551,11 +1720,25 @@ struct StockDetailView: View {
         AssetMeta.assetType(for: symbol) == .stock
     }
 
+    private func loadHoldings() async {
+        let txs = HoldingsManager.shared.transactions(for: symbol)
+        holdingTransactions = txs
+        holdingAgg = HoldingsManager.shared.aggregatedHolding(for: symbol)
+        // If manager hasn't loaded yet, do a full load
+        if HoldingsManager.shared.transactions.isEmpty {
+            await HoldingsManager.shared.loadAll()
+            let txs2 = HoldingsManager.shared.transactions(for: symbol)
+            holdingTransactions = txs2
+            holdingAgg = HoldingsManager.shared.aggregatedHolding(for: symbol)
+        }
+    }
+
     private func loadAllModules() async {
         // Only load stock-specific modules for actual stocks
         // Crypto/metals don't have analyst ratings, peers, or company profiles
         async let commentsTask: () = loadComments()
         async let newsTask: () = loadCompanyNews()
+        async let holdingsTask: () = loadHoldings()
 
         if isStock {
             async let recTask: () = loadRecommendation()
@@ -1564,12 +1747,12 @@ struct StockDetailView: View {
             async let week52Task: () = loadWeek52Range()
             async let fundamentalsTask: () = loadFundamentals()
             async let earningsTask: () = loadEarnings()
-            _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask, earningsTask)
+            _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask, earningsTask, holdingsTask)
             // AI dashboard loads independently — don't block other modules
             // It starts as soon as news & fundamentals are ready
             Task { await loadAIDashboard() }
         } else {
-            _ = await (newsTask, commentsTask)
+            _ = await (newsTask, commentsTask, holdingsTask)
         }
     }
 
@@ -1865,5 +2048,173 @@ private struct AnalysisChatBubble: View {
             .frame(maxWidth: isUser ? 280 : .infinity, alignment: isUser ? .trailing : .leading)
             if !isUser { Spacer() }
         }
+    }
+}
+
+// MARK: - Transaction Entry Sheet
+struct TransactionEntrySheet: View {
+    let symbol: String
+    let name: String
+    let currentPrice: Double
+    let onComplete: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var action: HoldingTransaction.HoldingAction = .buy
+    @State private var sharesText = ""
+    @State private var priceText = ""
+    @State private var date = Date()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Symbol header
+                    VStack(spacing: 4) {
+                        Text(symbol)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
+                        Text(name)
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(String(format: "$%.2f", currentPrice))
+                            .font(AppTheme.number(16, weight: .semibold))
+                            .foregroundColor(AppTheme.accent)
+                    }
+                    .padding(.top, 8)
+
+                    // Buy / Sell picker
+                    Picker("", selection: $action) {
+                        Text(L("Buy")).tag(HoldingTransaction.HoldingAction.buy)
+                        Text(L("Sell")).tag(HoldingTransaction.HoldingAction.sell)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+
+                    // Input fields
+                    VStack(spacing: 14) {
+                        // Shares
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L("Number of Shares"))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            TextField("0", text: $sharesText)
+                                .keyboardType(.decimalPad)
+                                .font(AppTheme.number(18, weight: .semibold))
+                                .foregroundColor(AppTheme.primaryText)
+                                .padding(12)
+                                .background(AppTheme.subtleFill)
+                                .cornerRadius(10)
+                        }
+
+                        // Price per share
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(L("Price per Share"))
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(AppTheme.secondaryText)
+                                Spacer()
+                                Button(L("Use Current")) {
+                                    priceText = String(format: "%.2f", currentPrice)
+                                }
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(AppTheme.accent)
+                            }
+                            HStack {
+                                Text("$")
+                                    .font(AppTheme.number(18, weight: .medium))
+                                    .foregroundColor(AppTheme.secondaryText)
+                                TextField("0.00", text: $priceText)
+                                    .keyboardType(.decimalPad)
+                                    .font(AppTheme.number(18, weight: .semibold))
+                                    .foregroundColor(AppTheme.primaryText)
+                            }
+                            .padding(12)
+                            .background(AppTheme.subtleFill)
+                            .cornerRadius(10)
+                        }
+
+                        // Date
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L("Transaction Date"))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            DatePicker("", selection: $date, in: ...Date(), displayedComponents: [.date])
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    // Total
+                    if let shares = Double(sharesText), let price = Double(priceText), shares > 0, price > 0 {
+                        HStack {
+                            Text(L("Total"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            Spacer()
+                            Text(String(format: "$%.2f", shares * price))
+                                .font(AppTheme.number(20, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(AppTheme.subtleFill)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                    }
+
+                    // Save button
+                    Button {
+                        save()
+                    } label: {
+                        Text(action == .buy ? L("Record Purchase") : L("Record Sale"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(isValid ? AppTheme.accent : AppTheme.accent.opacity(0.3))
+                            )
+                    }
+                    .disabled(!isValid)
+                    .padding(.horizontal, 16)
+                }
+                .padding(.bottom, 30)
+            }
+            .background(AppTheme.background)
+            .navigationTitle(action == .buy ? L("Buy") + " \(symbol)" : L("Sell") + " \(symbol)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L("Cancel")) { dismiss() }
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+            }
+            .onAppear {
+                priceText = String(format: "%.2f", currentPrice)
+            }
+        }
+    }
+
+    private var isValid: Bool {
+        guard let shares = Double(sharesText), let price = Double(priceText) else { return false }
+        return shares > 0 && price > 0
+    }
+
+    private func save() {
+        guard let shares = Double(sharesText), let price = Double(priceText) else { return }
+        let tx = HoldingTransaction(
+            symbol: symbol.uppercased(),
+            action: action,
+            shares: shares,
+            pricePerShare: price,
+            date: date,
+            createdAt: Date()
+        )
+        HoldingsManager.shared.addTransaction(tx)
+        Haptic.success()
+        onComplete()
+        dismiss()
     }
 }

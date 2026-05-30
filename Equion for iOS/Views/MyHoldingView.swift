@@ -1,5 +1,15 @@
 import SwiftUI
 import Charts
+import Observation
+
+/// Fine-grained scroll state for the parallax chart.
+/// Living in an @Observable (not @State on the view) means writing it during scroll
+/// only re-renders the small chart layer that reads it — NOT the whole heavy body
+/// (watchlist grid, cards, etc.), which is what caused the scroll jank.
+@Observable
+final class ChartParallax {
+    var scrollOffset: CGFloat = 0
+}
 
 struct MyHoldingView: View {
     @State private var stockList: [StockInfo] = []
@@ -10,6 +20,19 @@ struct MyHoldingView: View {
     @State private var greetingSub = AppTheme.greetingSubtitle()
     @State private var recommendedStocks: [RecommendedStock] = []
     @State private var isLoadingRecommendations = false
+    // Holdings — use @State snapshots instead of @ObservedObject to avoid cascade redraws
+    @State private var holdingsSnapshot = HoldingsSnapshot()
+    @State private var portfolioChartData: [PortfolioValueEntry] = []
+    @State private var portfolioInterval = "1M"
+    @State private var selectedPortfolioEntry: PortfolioValueEntry?
+    @State private var showPortfolioMarker = false
+    // Scroll-driven parallax state, isolated so scrolling doesn't re-render the whole body
+    @State private var parallax = ChartParallax()
+    // Width of chart area (for gesture → entry index calculation)
+    @State private var chartAreaWidth: CGFloat = 0
+    // Cached movers — only recomputed when stockList changes
+    @State private var cachedGainers: [StockInfo] = []
+    @State private var cachedLosers: [StockInfo] = []
     // Today's Market
     @State private var todayGainers: [MarketMover] = []
     @State private var todayLosers: [MarketMover] = []
@@ -56,6 +79,11 @@ struct MyHoldingView: View {
         return [GridItem(.flexible())]
     }
 
+    /// Height reserved for the portfolio chart background area
+    private var portfolioChartHeight: CGFloat {
+        holdingsSnapshot.hasHoldings ? 220 : 0
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Market ticker bar
@@ -98,108 +126,21 @@ struct MyHoldingView: View {
             .padding(.top, 14)
             .padding(.bottom, 10)
 
-            // Stock list — adaptive grid
-            if isLoading && stockList.isEmpty {
-                // Skeleton loading state
-                ScrollView {
-                    VStack(spacing: 12) {
-                        todayMarketCard
-                        SkeletonWatchlist()
-                            .padding(.top, 4)
+            // Main content area — chart pinned behind, cards scroll over it
+            ZStack(alignment: .top) {
+                // Background layer: portfolio chart (stays in place, sinks & blurs on scroll).
+                // The parallax math lives inside ParallaxChartLayer (which reads parallax.scrollOffset),
+                // so this body doesn't depend on scroll position and won't re-render while scrolling.
+                if holdingsSnapshot.hasHoldings {
+                    ParallaxChartLayer(parallax: parallax, chartHeight: portfolioChartHeight) {
+                        portfolioChartBackground
                     }
-                    .padding(.top, 4)
-                    .padding(.bottom, 80)
+                    .zIndex(0)
                 }
-            } else if stockList.isEmpty {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        todayMarketCard
-                        myMoversCard
 
-                        emptyStateView
-                            .padding(.top, 12)
-
-                        if !interests.selectedInterests.isEmpty {
-                            recommendationsSection
-                        }
-                    }
-                    .padding(.top, 4)
-                    .padding(.bottom, 80)
-                }
-                .refreshable { await loadAll() }
-            } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        todayMarketCard
-                        myMoversCard
-
-                        // Section label
-                        SectionLabel(title: L("Watchlist"), count: stockList.count)
-                            .padding(.top, 4)
-
-                        // Watchlist
-                        LazyVGrid(columns: gridColumns, spacing: 10) {
-                            ForEach(Array(stockList.enumerated()), id: \.element.id) { index, stock in
-                                NavigationLink(destination: StockDetailView(symbol: stock.symbol, name: stock.name)) {
-                                    StockRowView(stock: stock)
-                                }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button {
-                                        // NavigationLink handles this, but provide explicit option
-                                    } label: {
-                                        Label(L("View Details"), systemImage: "chart.xyaxis.line")
-                                    }
-
-                                    if index > 0 {
-                                        Button {
-                                            Haptic.light()
-                                            withAnimation {
-                                                let item = stockList.remove(at: index)
-                                                stockList.insert(item, at: 0)
-                                            }
-                                        } label: {
-                                            Label(L("Move to Top"), systemImage: "arrow.up.to.line")
-                                        }
-                                    }
-
-                                    Button {
-                                        let text = "\(stock.symbol) - \(stock.name): $\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))"
-                                        UIPasteboard.general.string = text
-                                        Haptic.tap()
-                                    } label: {
-                                        Label(L("Copy Info"), systemImage: "doc.on.doc")
-                                    }
-
-                                    ShareLink(item: "\(stock.symbol) - \(stock.name)\n$\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))") {
-                                        Label(L("Share"), systemImage: "square.and.arrow.up")
-                                    }
-
-                                    Divider()
-
-                                    Button(role: .destructive) {
-                                        Haptic.warning()
-                                        deleteStock(at: IndexSet(integer: index))
-                                    } label: {
-                                        Label(L("Remove from Watchlist"), systemImage: "trash")
-                                    }
-                                } preview: {
-                                    // Rich preview card
-                                    StockContextPreview(stock: stock)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-
-                        if !interests.selectedInterests.isEmpty {
-                            recommendationsSection
-                                .padding(.top, 8)
-                        }
-                    }
-                    .padding(.top, 4)
-                    .padding(.bottom, 80)
-                }
-                .refreshable { await loadAll() }
+                // Foreground layer: scrollable cards
+                scrollContent
+                    .zIndex(1)
             }
         }
         .background(AppTheme.background)
@@ -235,6 +176,165 @@ struct MyHoldingView: View {
         }
         .task {
             await loadAll()
+        }
+    }
+
+    // MARK: - Scroll Content (foreground layer)
+    @ViewBuilder
+    /// Wraps content in a ScrollView with scroll-offset tracking for parallax
+    private func trackedScrollView<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                // Chart area spacer — transparent gap so chart shows through; handles chart touch
+                chartTouchSpacer
+
+                content()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 80)
+        }
+        // iOS 18 first-class scroll observation — fires reliably on every scroll.
+        // contentOffset.y + contentInsets.top == 0 at rest, grows positive scrolling up.
+        // Rounded to whole points to cut sub-pixel update churn. Writes the @Observable
+        // (not view @State), so only the chart layer re-renders — the body stays put.
+        .onScrollGeometryChange(for: CGFloat.self) { geo in
+            (geo.contentOffset.y + geo.contentInsets.top).rounded()
+        } action: { _, newValue in
+            parallax.scrollOffset = max(0, newValue)
+        }
+    }
+
+    /// Transparent spacer occupying the chart area; captures horizontal drag for chart scrubbing.
+    private var chartTouchSpacer: some View {
+        GeometryReader { geo in
+            Color.clear
+                .contentShape(Rectangle())
+                .onAppear { chartAreaWidth = geo.size.width }
+                .onChange(of: geo.size.width) { _, newVal in chartAreaWidth = newVal }
+                // Simultaneous + horizontal-dominance gate: lets vertical drags scroll
+                // the list (so the parallax blur still works) while horizontal drags scrub.
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { val in
+                            guard abs(val.translation.width) > abs(val.translation.height) else { return }
+                            let entries = portfolioChartData
+                            let width = geo.size.width
+                            guard !entries.isEmpty, width > 0 else { return }
+                            let ratio = max(0, min(1, val.location.x / width))
+                            let idx = Int(round(ratio * Double(entries.count - 1)))
+                            let clamped = max(0, min(entries.count - 1, idx))
+                            let previous = selectedPortfolioEntry
+                            withAnimation(.easeInOut(duration: 0.05)) {
+                                selectedPortfolioEntry = entries[clamped]
+                                showPortfolioMarker = true
+                            }
+                            if selectedPortfolioEntry?.index != previous?.index {
+                                Haptic.selection()
+                            }
+                        }
+                        .onEnded { _ in
+                            guard showPortfolioMarker else { return }
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                showPortfolioMarker = false
+                                selectedPortfolioEntry = nil
+                            }
+                            Haptic.soft()
+                        }
+                )
+        }
+        .frame(height: portfolioChartHeight)
+    }
+
+    @ViewBuilder
+    private var scrollContent: some View {
+        if isLoading && stockList.isEmpty {
+            trackedScrollView {
+                todayMarketCard
+                SkeletonWatchlist()
+                    .padding(.top, 4)
+            }
+        } else if stockList.isEmpty {
+            trackedScrollView {
+                portfolioHoldingsListCard
+                todayMarketCard
+                myMoversCard
+
+                emptyStateView
+                    .padding(.top, 12)
+
+                if !interests.selectedInterests.isEmpty {
+                    recommendationsSection
+                }
+            }
+            .refreshable { await loadAll() }
+        } else {
+            trackedScrollView {
+                portfolioHoldingsListCard
+                todayMarketCard
+                myMoversCard
+
+                // Section label
+                SectionLabel(title: L("Watchlist"), count: stockList.count)
+                    .padding(.top, 4)
+
+                // Watchlist
+                LazyVGrid(columns: gridColumns, spacing: 10) {
+                    ForEach(Array(stockList.enumerated()), id: \.element.id) { index, stock in
+                        NavigationLink(destination: StockDetailView(symbol: stock.symbol, name: stock.name)) {
+                            StockRowView(stock: stock)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                            } label: {
+                                Label(L("View Details"), systemImage: "chart.xyaxis.line")
+                            }
+
+                            if index > 0 {
+                                Button {
+                                    Haptic.light()
+                                    withAnimation {
+                                        let item = stockList.remove(at: index)
+                                        stockList.insert(item, at: 0)
+                                    }
+                                } label: {
+                                    Label(L("Move to Top"), systemImage: "arrow.up.to.line")
+                                }
+                            }
+
+                            Button {
+                                let text = "\(stock.symbol) - \(stock.name): $\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))"
+                                UIPasteboard.general.string = text
+                                Haptic.tap()
+                            } label: {
+                                Label(L("Copy Info"), systemImage: "doc.on.doc")
+                            }
+
+                            ShareLink(item: "\(stock.symbol) - \(stock.name)\n$\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))") {
+                                Label(L("Share"), systemImage: "square.and.arrow.up")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                Haptic.warning()
+                                deleteStock(at: IndexSet(integer: index))
+                            } label: {
+                                Label(L("Remove from Watchlist"), systemImage: "trash")
+                            }
+                        } preview: {
+                            StockContextPreview(stock: stock)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                if !interests.selectedInterests.isEmpty {
+                    recommendationsSection
+                        .padding(.top, 8)
+                }
+            }
+            .refreshable { await loadAll() }
         }
     }
 
@@ -317,7 +417,17 @@ struct MyHoldingView: View {
         async let w: () = loadWatchlist()
         async let r: () = loadRecommendations()
         async let t: () = loadTodayMarket()
-        _ = await (m, w, r, t)
+        async let h: () = loadHoldings()
+        _ = await (m, w, r, t, h)
+    }
+
+    private func loadHoldings() async {
+        let mgr = HoldingsManager.shared
+        await mgr.loadAll()
+        await mgr.loadPortfolioChart(range: portfolioInterval)
+        // Copy to @State — single update, no @ObservedObject cascade
+        holdingsSnapshot = mgr.snapshot
+        portfolioChartData = mgr.portfolioChart
     }
 
     // MARK: - Actions
@@ -402,6 +512,7 @@ struct MyHoldingView: View {
         await MainActor.run {
             stockList = loaded
             isLoading = false
+            updateCachedMovers()
         }
     }
 
@@ -466,13 +577,189 @@ struct MyHoldingView: View {
         }
     }
 
-    /// Top 3 gainers and top 3 losers from user's watchlist
-    private var watchlistMovers: (gainers: [StockInfo], losers: [StockInfo]) {
-        guard stockList.count >= 2 else { return ([], []) }
+    /// Cache watchlist movers (called only when stockList changes)
+    private func updateCachedMovers() {
+        guard stockList.count >= 2 else {
+            cachedGainers = []
+            cachedLosers = []
+            return
+        }
         let sorted = stockList.sorted { $0.changePercent > $1.changePercent }
-        let top = Array(sorted.prefix(3))
-        let bottom = Array(sorted.suffix(3).reversed())
-        return (top, bottom)
+        cachedGainers = Array(sorted.prefix(3))
+        cachedLosers = Array(sorted.suffix(3).reversed())
+    }
+
+    // MARK: - Portfolio Chart Background (pinned behind scroll)
+    private var portfolioChartBackground: some View {
+        VStack(spacing: 0) {
+            // Value & P&L header
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("My Portfolio"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(AppTheme.secondaryText)
+
+                    // Show touched value or total value
+                    if let sel = selectedPortfolioEntry, showPortfolioMarker {
+                        // During touch: show market value at that point
+                        HStack(alignment: .firstTextBaseline, spacing: 1) {
+                            Text("$")
+                                .font(AppTheme.number(16, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            Text(String(format: "%.2f", sel.value))
+                                .font(AppTheme.number(24, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                                .contentTransition(.numericText())
+                                .animation(.easeInOut(duration: 0.05), value: sel.value)
+                        }
+
+                        // Date + cost basis + change
+                        let selPnL = sel.value - sel.costBasis
+                        let selPnLPct = sel.costBasis > 0 ? (selPnL / sel.costBasis) * 100 : 0
+
+                        Text(sel.datetime)
+                            .font(AppTheme.caption(11))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .contentTransition(.numericText())
+                            .animation(.easeInOut(duration: 0.05), value: sel.datetime)
+
+                        HStack(spacing: 8) {
+                            Text(String(format: "%@ $%.2f",
+                                        L("Cost"),
+                                        sel.costBasis))
+                                .font(AppTheme.number(11, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+
+                            Text(String(format: "%@$%.2f (%@%.2f%%)",
+                                        selPnL >= 0 ? "+" : "-", abs(selPnL),
+                                        selPnLPct >= 0 ? "+" : "", selPnLPct))
+                                .font(AppTheme.number(11, weight: .semibold))
+                                .foregroundColor(selPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+                                .contentTransition(.numericText())
+                                .animation(.easeInOut(duration: 0.05), value: selPnL)
+                        }
+                    } else {
+                        // Default: show current total
+                        HStack(alignment: .firstTextBaseline, spacing: 1) {
+                            Text("$")
+                                .font(AppTheme.number(16, weight: .medium))
+                                .foregroundColor(AppTheme.secondaryText)
+                            Text(String(format: "%.2f", holdingsSnapshot.totalValue))
+                                .font(AppTheme.number(24, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                                .contentTransition(.numericText())
+                        }
+
+                        HStack(spacing: 8) {
+                            Text(String(format: "%@$%.2f (%@%.2f%%)",
+                                        holdingsSnapshot.totalPnL >= 0 ? "+" : "-", abs(holdingsSnapshot.totalPnL),
+                                        holdingsSnapshot.totalPnLPercent >= 0 ? "+" : "", holdingsSnapshot.totalPnLPercent))
+                                .font(AppTheme.number(12, weight: .semibold))
+                                .foregroundColor(holdingsSnapshot.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+
+                            Text("·")
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+
+                            Text(String(format: "%@ %@$%.2f",
+                                        L("Today"),
+                                        holdingsSnapshot.totalDayPnL >= 0 ? "+" : "-",
+                                        abs(holdingsSnapshot.totalDayPnL)))
+                                .font(AppTheme.number(11, weight: .medium))
+                                .foregroundColor(holdingsSnapshot.totalDayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+                        }
+                    }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+
+            // Edge-to-edge chart — isolated view, won't re-render on scroll
+            if !portfolioChartData.isEmpty {
+                PortfolioChartView(
+                    entries: portfolioChartData,
+                    selectedEntry: $selectedPortfolioEntry,
+                    showMarker: $showPortfolioMarker
+                )
+                .frame(height: 110)
+
+                // Interval selector
+                HStack(spacing: 4) {
+                    ForEach(["1D", "5D", "1M", "6M", "1Y"], id: \.self) { interval in
+                        Button {
+                            portfolioInterval = interval
+                            Task {
+                                await HoldingsManager.shared.loadPortfolioChart(range: interval)
+                                portfolioChartData = HoldingsManager.shared.portfolioChart
+                            }
+                        } label: {
+                            Text(interval)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(portfolioInterval == interval ? .white : AppTheme.secondaryText)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    portfolioInterval == interval
+                                        ? AnyShapeStyle(AppTheme.accent)
+                                        : AnyShapeStyle(AppTheme.subtleFill)
+                                )
+                                .cornerRadius(6)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    // MARK: - Portfolio Holdings List Card (scrollable)
+    @ViewBuilder
+    private var portfolioHoldingsListCard: some View {
+        if holdingsSnapshot.hasHoldings {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    AccentSectionTitle(L("Holdings"), icon: "briefcase.fill")
+                    Spacer()
+                    Text(String(format: "%d %@", holdingsSnapshot.aggregated.count, L("positions")))
+                        .font(AppTheme.caption(11))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+
+                ForEach(holdingsSnapshot.aggregated, id: \.symbol) { holding in
+                    NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(holding.symbol)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                Text(String(format: "%.4g %@", holding.totalShares, L("shares")))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(String(format: "$%.2f", holding.marketValue))
+                                    .font(AppTheme.number(13, weight: .semibold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                Text(String(format: "%@%.2f%%", holding.totalPnLPercent >= 0 ? "+" : "", holding.totalPnLPercent))
+                                    .font(AppTheme.number(11, weight: .medium))
+                                    .foregroundColor(holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
+                            }
+                        }
+                        .padding(.vertical, 3)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .themeCardSurface()
+            .padding(.horizontal, 16)
+        }
     }
 
     // MARK: - Today's Market Card
@@ -562,8 +849,7 @@ struct MyHoldingView: View {
     // MARK: - My Movers Card (separate module)
     @ViewBuilder
     private var myMoversCard: some View {
-        let movers = watchlistMovers
-        if stockList.count >= 2 && (!movers.gainers.isEmpty || !movers.losers.isEmpty) {
+        if stockList.count >= 2 && (!cachedGainers.isEmpty || !cachedLosers.isEmpty) {
             VStack(alignment: .leading, spacing: 10) {
                 // Header
                 HStack(spacing: 0) {
@@ -577,7 +863,7 @@ struct MyHoldingView: View {
                 // Two rows: top gainers / top losers
                 HStack(spacing: 0) {
                     // Gainers column
-                    if !movers.gainers.isEmpty {
+                    if !cachedGainers.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.up.right")
@@ -587,7 +873,7 @@ struct MyHoldingView: View {
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundColor(AppTheme.positive)
                             }
-                            ForEach(movers.gainers) { stock in
+                            ForEach(cachedGainers) { stock in
                                 NavigationLink(destination: StockDetailView(symbol: stock.symbol, name: stock.name)) {
                                     myMoverRow(symbol: stock.symbol, name: stock.name, changePercent: stock.changePercent)
                                 }
@@ -598,7 +884,7 @@ struct MyHoldingView: View {
                     }
 
                     // Vertical divider
-                    if !movers.gainers.isEmpty && !movers.losers.isEmpty {
+                    if !cachedGainers.isEmpty && !cachedLosers.isEmpty {
                         Rectangle()
                             .fill(AppTheme.border)
                             .frame(width: 0.5)
@@ -606,7 +892,7 @@ struct MyHoldingView: View {
                     }
 
                     // Losers column
-                    if !movers.losers.isEmpty {
+                    if !cachedLosers.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.down.right")
@@ -616,7 +902,7 @@ struct MyHoldingView: View {
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundColor(AppTheme.negative)
                             }
-                            ForEach(movers.losers) { stock in
+                            ForEach(cachedLosers) { stock in
                                 NavigationLink(destination: StockDetailView(symbol: stock.symbol, name: stock.name)) {
                                     myMoverRow(symbol: stock.symbol, name: stock.name, changePercent: stock.changePercent)
                                 }
@@ -739,6 +1025,106 @@ struct MyHoldingView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Parallax Chart Layer
+/// Applies the scroll-driven sink + blur to the pinned chart. This is the ONLY view that
+/// reads `parallax.scrollOffset`, so scrolling re-renders just this thin wrapper (cheap
+/// modifier updates on an already-built chart) instead of the whole holdings screen.
+struct ParallaxChartLayer<Content: View>: View {
+    var parallax: ChartParallax
+    var chartHeight: CGFloat
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        // Blur holds off until cards have covered ~1/3 of the chart, then ramps in gently.
+        let threshold = chartHeight / 3
+        let ramp = max(chartHeight * 0.45, 1)
+        let progress = min(max((parallax.scrollOffset - threshold) / ramp, 0), 1)
+
+        content
+            .offset(y: progress * 20)              // gentle sink
+            .blur(radius: progress * 6)            // soft blur — stays readable, never opaque
+            .opacity(1.0 - progress * 0.3)         // fades only to 0.7
+            .scaleEffect(1.0 - progress * 0.03, anchor: .top)
+            .allowsHitTesting(false)               // gestures go to the scroll spacer
+    }
+}
+
+// MARK: - Portfolio Chart View (isolated to prevent scroll-triggered re-renders)
+struct PortfolioChartView: View {
+    let entries: [PortfolioValueEntry]
+    @Binding var selectedEntry: PortfolioValueEntry?
+    @Binding var showMarker: Bool
+
+    var body: some View {
+        let allValues = entries.map(\.value) + entries.map(\.costBasis)
+        let minY = allValues.min() ?? 0
+        let maxY = allValues.max() ?? 0
+        let pad = max((maxY - minY) * 0.1, 1)
+        let chartChange = (entries.last?.value ?? 0) - (entries.first?.value ?? 0)
+        let chartColor = chartChange >= 0 ? AppTheme.positive : AppTheme.negative
+
+        Chart {
+            // Portfolio value area + line
+            ForEach(entries) { entry in
+                AreaMark(
+                    x: .value("X", entry.index),
+                    yStart: .value("Min", minY - pad),
+                    yEnd: .value("Value", entry.value)
+                )
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [chartColor.opacity(0.15), chartColor.opacity(0.0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .interpolationMethod(.catmullRom)
+
+                LineMark(
+                    x: .value("X", entry.index),
+                    y: .value("Value", entry.value),
+                    series: .value("Series", "value")
+                )
+                .foregroundStyle(chartColor)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .interpolationMethod(.catmullRom)
+            }
+
+            // Cost basis — light gray dashed line (own series so it doesn't connect to value line)
+            ForEach(entries) { entry in
+                LineMark(
+                    x: .value("X", entry.index),
+                    y: .value("Cost", entry.costBasis),
+                    series: .value("Series", "cost")
+                )
+                .foregroundStyle(Color.gray.opacity(0.35))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            }
+
+            // Touch indicator: vertical rule + points
+            if let entry = selectedEntry, showMarker {
+                RuleMark(x: .value("X", entry.index))
+                    .foregroundStyle(AppTheme.secondaryText.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
+
+                PointMark(x: .value("X", entry.index), y: .value("Value", entry.value))
+                    .foregroundStyle(chartColor)
+                    .symbolSize(50)
+
+                PointMark(x: .value("X", entry.index), y: .value("Cost", entry.costBasis))
+                    .foregroundStyle(Color.gray.opacity(0.4))
+                    .symbolSize(30)
+            }
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartYScale(domain: (minY - pad)...(maxY + pad))
+        .chartLegend(.hidden)
+        .chartXScale(range: .plotDimension)
+        // No gesture here — gesture lives on the scroll spacer overlay
     }
 }
 
