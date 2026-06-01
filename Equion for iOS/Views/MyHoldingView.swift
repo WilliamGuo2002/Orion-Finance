@@ -243,6 +243,16 @@ struct MyHoldingView: View {
                 )
         }
         .frame(height: portfolioChartHeight)
+        // Invisible, tappable navigation target aligned over the visible Holdings pill
+        // in the chart header. Pinned via offset (in its own view) so it tracks the
+        // pinned chart without re-rendering this body during scroll.
+        .overlay(alignment: .topTrailing) {
+            if holdingsSnapshot.hasHoldings {
+                HoldingsPortalTapTarget(parallax: parallax, chartHeight: portfolioChartHeight)
+                    .padding(.top, 4)
+                    .padding(.trailing, 16)
+            }
+        }
     }
 
     @ViewBuilder
@@ -255,7 +265,6 @@ struct MyHoldingView: View {
             }
         } else if stockList.isEmpty {
             trackedScrollView {
-                portfolioHoldingsListCard
                 todayMarketCard
                 myMoversCard
 
@@ -269,7 +278,6 @@ struct MyHoldingView: View {
             .refreshable { await loadAll() }
         } else {
             trackedScrollView {
-                portfolioHoldingsListCard
                 todayMarketCard
                 myMoversCard
 
@@ -670,6 +678,12 @@ struct MyHoldingView: View {
                     }
                 }
                 Spacer()
+
+                // Visible "Holdings" portal button (sits beside the value, near the right edge).
+                // Lives in the pinned chart background so it sinks + blurs with the chart.
+                // The actual tap is handled by an aligned invisible NavigationLink in the
+                // foreground (touches in this area are captured by the scroll layer).
+                holdingsPortalVisual
             }
             .padding(.horizontal, 20)
             .padding(.top, 6)
@@ -715,51 +729,23 @@ struct MyHoldingView: View {
     }
 
     // MARK: - Portfolio Holdings List Card (scrollable)
-    @ViewBuilder
-    private var portfolioHoldingsListCard: some View {
-        if holdingsSnapshot.hasHoldings {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    AccentSectionTitle(L("Holdings"), icon: "briefcase.fill")
-                    Spacer()
-                    Text(String(format: "%d %@", holdingsSnapshot.aggregated.count, L("positions")))
-                        .font(AppTheme.caption(11))
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-
-                ForEach(holdingsSnapshot.aggregated, id: \.symbol) { holding in
-                    NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(holding.symbol)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(AppTheme.primaryText)
-                                Text(String(format: "%.4g %@", holding.totalShares, L("shares")))
-                                    .font(.system(size: 10))
-                                    .foregroundColor(AppTheme.secondaryText)
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(String(format: "$%.2f", holding.marketValue))
-                                    .font(AppTheme.number(13, weight: .semibold))
-                                    .foregroundColor(AppTheme.primaryText)
-                                Text(String(format: "%@%.2f%%", holding.totalPnLPercent >= 0 ? "+" : "", holding.totalPnLPercent))
-                                    .font(AppTheme.number(11, weight: .medium))
-                                    .foregroundColor(holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
-                            }
-                        }
-                        .padding(.vertical, 3)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .themeCardSurface()
-            .padding(.horizontal, 16)
+    /// Compact "Holdings" portal shown at the top-right of the chart module.
+    /// This is the VISIBLE pill only — it's inside the pinned chart background so it
+    /// sinks + blurs with the chart. Tapping is handled by `holdingsPortalTapTarget`.
+    private var holdingsPortalVisual: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "briefcase.fill")
+                .font(.system(size: 10, weight: .semibold))
+            Text(L("Holdings"))
+                .font(.system(size: 12, weight: .semibold))
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .opacity(0.6)
         }
+        .foregroundColor(AppTheme.accent)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(AppTheme.accent.opacity(0.12)))
     }
 
     // MARK: - Today's Market Card
@@ -1049,6 +1035,123 @@ struct ParallaxChartLayer<Content: View>: View {
             .opacity(1.0 - progress * 0.3)         // fades only to 0.7
             .scaleEffect(1.0 - progress * 0.03, anchor: .top)
             .allowsHitTesting(false)               // gestures go to the scroll spacer
+    }
+}
+
+// MARK: - Holdings Portal Tap Target
+/// Invisible, tappable NavigationLink that sits over the visible "Holdings" pill in the
+/// pinned chart header. It lives in the foreground scroll layer (so it actually receives
+/// touches) but counter-offsets the scroll so it stays glued to the pinned pill. Reads
+/// `parallax.scrollOffset` itself, keeping the parent body off the per-frame scroll path.
+struct HoldingsPortalTapTarget: View {
+    var parallax: ChartParallax
+    var chartHeight: CGFloat
+
+    var body: some View {
+        // Same ramp as ParallaxChartLayer so it sinks in lockstep with the pill.
+        let threshold = chartHeight / 3
+        let ramp = max(chartHeight * 0.45, 1)
+        let progress = min(max((parallax.scrollOffset - threshold) / ramp, 0), 1)
+
+        NavigationLink(destination: HoldingsListPage()) {
+            Color.clear
+                .frame(width: 120, height: 36)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        // Cancel the scroll translation (pin), then add the same gentle sink as the chart.
+        .offset(y: parallax.scrollOffset + progress * 20)
+        // Stop catching taps once the pill is mostly blurred / covered by cards.
+        .allowsHitTesting(progress < 0.85)
+    }
+}
+
+// MARK: - Holdings List Page (pushed from the chart's Holdings button)
+/// Full-screen holdings list, opened from the compact Holdings pill on the home chart.
+struct HoldingsListPage: View {
+    @ObservedObject private var manager = HoldingsManager.shared
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                summaryHeader
+
+                if manager.snapshot.hasHoldings {
+                    VStack(spacing: 6) {
+                        ForEach(manager.snapshot.aggregated, id: \.symbol) { holding in
+                            NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
+                                holdingRow(holding)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .themeCardSurface()
+                    .padding(.horizontal, 16)
+                } else {
+                    Text(L("No holdings yet"))
+                        .font(AppTheme.caption(13))
+                        .foregroundColor(AppTheme.secondaryText)
+                        .padding(.top, 60)
+                }
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 40)
+        }
+        .background(AppTheme.background.ignoresSafeArea())
+        .navigationTitle(L("Holdings"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var summaryHeader: some View {
+        let snap = manager.snapshot
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(L("Total Value"))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(AppTheme.secondaryText)
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text("$")
+                    .font(AppTheme.number(16, weight: .medium))
+                    .foregroundColor(AppTheme.secondaryText)
+                Text(String(format: "%.2f", snap.totalValue))
+                    .font(AppTheme.number(28, weight: .bold))
+                    .foregroundColor(AppTheme.primaryText)
+            }
+            Text(String(format: "%@$%.2f (%@%.2f%%)",
+                        snap.totalPnL >= 0 ? "+" : "-", abs(snap.totalPnL),
+                        snap.totalPnLPercent >= 0 ? "+" : "", snap.totalPnLPercent))
+                .font(AppTheme.number(13, weight: .semibold))
+                .foregroundColor(snap.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 30)
+        .padding(.top, 6)
+    }
+
+    private func holdingRow(_ holding: AggregatedHolding) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(holding.symbol)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(AppTheme.primaryText)
+                Text(String(format: "%.4g %@", holding.totalShares, L("shares")))
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: "$%.2f", holding.marketValue))
+                    .font(AppTheme.number(14, weight: .semibold))
+                    .foregroundColor(AppTheme.primaryText)
+                Text(String(format: "%@%.2f%%", holding.totalPnLPercent >= 0 ? "+" : "", holding.totalPnLPercent))
+                    .font(AppTheme.number(11, weight: .medium))
+                    .foregroundColor(holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
+            }
+        }
+        .padding(.vertical, 6)
     }
 }
 
