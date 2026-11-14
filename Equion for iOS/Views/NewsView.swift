@@ -111,6 +111,7 @@ struct NewsView: View {
                     .padding(.bottom, 80)
                 }
                 .refreshable { await loadNews() }
+                .tracksTabBarCollapse()
             }
         }
         .background(AppTheme.background)

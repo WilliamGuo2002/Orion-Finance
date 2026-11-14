@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import Observation
+import Combine
 
 /// Fine-grained scroll state for the parallax chart.
 /// Living in an @Observable (not @State on the view) means writing it during scroll
@@ -9,6 +10,16 @@ import Observation
 @Observable
 final class ChartParallax {
     var scrollOffset: CGFloat = 0
+
+    /// 0 → 1 as the cards cover the chart. Blur holds off until ~1/3 is covered, then ramps in.
+    /// Quantized to 1/40 steps: re-blurring the chart is the expensive part of a scroll frame,
+    /// and identical values let SwiftUI skip it (steps are 0.15pt of blur, 0.5pt of sink).
+    static func progress(offset: CGFloat, chartHeight: CGFloat) -> CGFloat {
+        let threshold = chartHeight / 3
+        let ramp = max(chartHeight * 0.45, 1)
+        let raw = min(max((offset - threshold) / ramp, 0), 1)
+        return (raw * 40).rounded() / 40
+    }
 }
 
 struct MyHoldingView: View {
@@ -26,6 +37,9 @@ struct MyHoldingView: View {
     @State private var portfolioInterval = "1M"
     @State private var selectedPortfolioEntry: PortfolioValueEntry?
     @State private var showPortfolioMarker = false
+    // Privacy: mask portfolio amounts and swap the chart for a gray placeholder
+    @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
+    @State private var holdingsLoaded = false
     // Scroll-driven parallax state, isolated so scrolling doesn't re-render the whole body
     @State private var parallax = ChartParallax()
     // Width of chart area (for gesture → entry index calculation)
@@ -64,7 +78,7 @@ struct MyHoldingView: View {
     /// Wide layout: iPad OR iPhone landscape
     private var isWide: Bool { hSize == .regular || vSize == .compact }
 
-    private let dateFormatter: DateFormatter = {
+    private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMMM d"
         f.locale = Locale(identifier: "en_US")
@@ -100,7 +114,7 @@ struct MyHoldingView: View {
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
                     Spacer()
-                    Text(dateFormatter.string(from: Date()))
+                    Text(Self.dateFormatter.string(from: Date()))
                         .font(AppTheme.caption(11))
                         .foregroundColor(AppTheme.secondaryText.opacity(0.7))
                 }
@@ -177,6 +191,10 @@ struct MyHoldingView: View {
         .task {
             await loadAll()
         }
+        // Holdings can change from other screens (linking a brokerage, adding a trade).
+        // These only fire on real data updates, never per scroll frame.
+        .onReceive(HoldingsManager.shared.$snapshot.dropFirst()) { holdingsSnapshot = $0 }
+        .onReceive(HoldingsManager.shared.$portfolioChart.dropFirst()) { portfolioChartData = $0 }
     }
 
     // MARK: - Scroll Content (foreground layer)
@@ -187,6 +205,13 @@ struct MyHoldingView: View {
             VStack(spacing: 12) {
                 // Chart area spacer — transparent gap so chart shows through; handles chart touch
                 chartTouchSpacer
+
+                // Nothing linked yet → invite to link accounts (net worth needs them)
+                if holdingsLoaded && !holdingsSnapshot.hasHoldings {
+                    linkAccountsPrompt
+                }
+                // A connection broke or went stale → say so before the user trusts old numbers
+                SyncHealthBanner()
 
                 content()
             }
@@ -199,8 +224,11 @@ struct MyHoldingView: View {
         // (not view @State), so only the chart layer re-renders — the body stays put.
         .onScrollGeometryChange(for: CGFloat.self) { geo in
             (geo.contentOffset.y + geo.contentInsets.top).rounded()
-        } action: { _, newValue in
-            parallax.scrollOffset = max(0, newValue)
+        } action: { oldValue, newValue in
+            let clamped = max(0, newValue)
+            parallax.scrollOffset = clamped
+            // Collapse the bottom bar to icons-only when scrolling up, expand scrolling down.
+            TabBarVisibility.shared.update(offset: clamped, delta: newValue - oldValue)
         }
     }
 
@@ -217,6 +245,7 @@ struct MyHoldingView: View {
                     DragGesture(minimumDistance: 10)
                         .onChanged { val in
                             guard abs(val.translation.width) > abs(val.translation.height) else { return }
+                            guard !hideValues else { return }
                             let entries = portfolioChartData
                             let width = geo.size.width
                             guard !entries.isEmpty, width > 0 else { return }
@@ -243,14 +272,17 @@ struct MyHoldingView: View {
                 )
         }
         .frame(height: portfolioChartHeight)
-        // Invisible, tappable navigation target aligned over the visible Holdings pill
-        // in the chart header. Pinned via offset (in its own view) so it tracks the
-        // pinned chart without re-rendering this body during scroll.
+        // Invisible, tappable copy of the header controls (Holdings / USD-CAD / hide),
+        // laid exactly over the visible ones in the pinned chart header. Pinned via offset
+        // (in its own view) so it tracks the chart without re-rendering this body on scroll.
+        // Top padding: header sits 6pt into the chart layer; this spacer starts 4pt down.
         .overlay(alignment: .topTrailing) {
             if holdingsSnapshot.hasHoldings {
-                HoldingsPortalTapTarget(parallax: parallax, chartHeight: portfolioChartHeight)
-                    .padding(.top, 4)
-                    .padding(.trailing, 16)
+                PinnedHeaderTapLayer(parallax: parallax, chartHeight: portfolioChartHeight) {
+                    headerControls(ghost: true)
+                }
+                .padding(.top, 2)
+                .padding(.trailing, 20)
             }
         }
     }
@@ -436,6 +468,38 @@ struct MyHoldingView: View {
         // Copy to @State — single update, no @ObservedObject cascade
         holdingsSnapshot = mgr.snapshot
         portfolioChartData = mgr.portfolioChart
+        holdingsLoaded = true
+    }
+
+    /// Shown on home until at least one account is linked.
+    private var linkAccountsPrompt: some View {
+        NavigationLink {
+            LinkedAccountsView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "building.columns.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(AppTheme.accent)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(AppTheme.accent.opacity(0.12)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("See your net worth"))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(AppTheme.primaryText)
+                    Text(L("Link your brokerage and bank accounts · read-only"))
+                        .font(AppTheme.caption(11))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            .padding(14)
+            .themeCardSurface()
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Actions
@@ -603,27 +667,38 @@ struct MyHoldingView: View {
             // Value & P&L header
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L("My Portfolio"))
+                    Text(L("My Net Worth"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(AppTheme.secondaryText)
 
-                    // Show touched value or total value
-                    if let sel = selectedPortfolioEntry, showPortfolioMarker {
+                    // Hidden → asterisks; else touched value; else current total
+                    if hideValues {
+                        Text(PortfolioPrivacy.mask)
+                            .font(AppTheme.number(24, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
+                            .padding(.top, 2)
+                        Text("\(PortfolioPrivacy.shortMask) (\(PortfolioPrivacy.shortMask))  ·  \(L("Today")) \(PortfolioPrivacy.shortMask)")
+                            .font(AppTheme.number(12, weight: .semibold))
+                            .foregroundColor(AppTheme.secondaryText)
+                    } else if let sel = selectedPortfolioEntry, showPortfolioMarker {
                         // During touch: show market value at that point
+                        // Amounts are stored in USD; holdingsSnapshot converts to the display currency.
                         HStack(alignment: .firstTextBaseline, spacing: 1) {
-                            Text("$")
+                            Text(holdingsSnapshot.currencySymbol)
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
-                            Text(String(format: "%.2f", sel.value))
+                            Text(String(format: "%.2f", holdingsSnapshot.display(sel.value)))
                                 .font(AppTheme.number(24, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                                 .animation(.easeInOut(duration: 0.05), value: sel.value)
                         }
 
-                        // Date + cost basis + change
+                        // Date + cost basis + change (cash is in both value and cost, so it cancels;
+                        // the % is on invested cost only)
                         let selPnL = sel.value - sel.costBasis
-                        let selPnLPct = sel.costBasis > 0 ? (selPnL / sel.costBasis) * 100 : 0
+                        let investedCost = sel.costBasis - sel.cash
+                        let selPnLPct = investedCost > 0 ? (selPnL / investedCost) * 100 : 0
 
                         Text(sel.datetime)
                             .font(AppTheme.caption(11))
@@ -632,14 +707,12 @@ struct MyHoldingView: View {
                             .animation(.easeInOut(duration: 0.05), value: sel.datetime)
 
                         HStack(spacing: 8) {
-                            Text(String(format: "%@ $%.2f",
-                                        L("Cost"),
-                                        sel.costBasis))
+                            Text("\(L("Cost")) \(holdingsSnapshot.format(investedCost))")
                                 .font(AppTheme.number(11, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
 
-                            Text(String(format: "%@$%.2f (%@%.2f%%)",
-                                        selPnL >= 0 ? "+" : "-", abs(selPnL),
+                            Text(String(format: "%@%@ (%@%.2f%%)",
+                                        selPnL >= 0 ? "+" : "-", holdingsSnapshot.format(abs(selPnL)),
                                         selPnLPct >= 0 ? "+" : "", selPnLPct))
                                 .font(AppTheme.number(11, weight: .semibold))
                                 .foregroundColor(selPnL >= 0 ? AppTheme.positive : AppTheme.negative)
@@ -649,18 +722,18 @@ struct MyHoldingView: View {
                     } else {
                         // Default: show current total
                         HStack(alignment: .firstTextBaseline, spacing: 1) {
-                            Text("$")
+                            Text(holdingsSnapshot.currencySymbol)
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
-                            Text(String(format: "%.2f", holdingsSnapshot.totalValue))
+                            Text((holdingsSnapshot.totalValue < 0 ? "-" : "") + String(format: "%.2f", abs(holdingsSnapshot.display(holdingsSnapshot.totalValue))))
                                 .font(AppTheme.number(24, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                         }
 
                         HStack(spacing: 8) {
-                            Text(String(format: "%@$%.2f (%@%.2f%%)",
-                                        holdingsSnapshot.totalPnL >= 0 ? "+" : "-", abs(holdingsSnapshot.totalPnL),
+                            Text(String(format: "%@%@ (%@%.2f%%)",
+                                        holdingsSnapshot.totalPnL >= 0 ? "+" : "-", holdingsSnapshot.format(abs(holdingsSnapshot.totalPnL)),
                                         holdingsSnapshot.totalPnLPercent >= 0 ? "+" : "", holdingsSnapshot.totalPnLPercent))
                                 .font(AppTheme.number(12, weight: .semibold))
                                 .foregroundColor(holdingsSnapshot.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
@@ -668,10 +741,10 @@ struct MyHoldingView: View {
                             Text("·")
                                 .foregroundColor(AppTheme.secondaryText.opacity(0.5))
 
-                            Text(String(format: "%@ %@$%.2f",
+                            Text(String(format: "%@ %@%@",
                                         L("Today"),
                                         holdingsSnapshot.totalDayPnL >= 0 ? "+" : "-",
-                                        abs(holdingsSnapshot.totalDayPnL)))
+                                        holdingsSnapshot.format(abs(holdingsSnapshot.totalDayPnL))))
                                 .font(AppTheme.number(11, weight: .medium))
                                 .foregroundColor(holdingsSnapshot.totalDayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
                         }
@@ -679,22 +752,27 @@ struct MyHoldingView: View {
                 }
                 Spacer()
 
-                // Visible "Holdings" portal button (sits beside the value, near the right edge).
-                // Lives in the pinned chart background so it sinks + blurs with the chart.
-                // The actual tap is handled by an aligned invisible NavigationLink in the
-                // foreground (touches in this area are captured by the scroll layer).
-                holdingsPortalVisual
+                // Visible header controls (Holdings, USD/CAD, hide). They live in the pinned
+                // chart background so they sink + blur with the chart; taps are handled by an
+                // identical invisible copy in the foreground (the scroll layer captures touches here).
+                headerControls(ghost: false)
             }
             .padding(.horizontal, 20)
             .padding(.top, 6)
 
             // Edge-to-edge chart — isolated view, won't re-render on scroll
             if !portfolioChartData.isEmpty {
-                PortfolioChartView(
-                    entries: portfolioChartData,
-                    selectedEntry: $selectedPortfolioEntry,
-                    showMarker: $showPortfolioMarker
-                )
+                Group {
+                    if hideValues {
+                        PortfolioChartPlaceholder()
+                    } else {
+                        PortfolioChartView(
+                            entries: portfolioChartData,
+                            selectedEntry: $selectedPortfolioEntry,
+                            showMarker: $showPortfolioMarker
+                        )
+                    }
+                }
                 .frame(height: 110)
 
                 // Interval selector
@@ -728,24 +806,16 @@ struct MyHoldingView: View {
         }
     }
 
-    // MARK: - Portfolio Holdings List Card (scrollable)
-    /// Compact "Holdings" portal shown at the top-right of the chart module.
-    /// This is the VISIBLE pill only — it's inside the pinned chart background so it
-    /// sinks + blurs with the chart. Tapping is handled by `holdingsPortalTapTarget`.
-    private var holdingsPortalVisual: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "briefcase.fill")
-                .font(.system(size: 10, weight: .semibold))
-            Text(L("Holdings"))
-                .font(.system(size: 12, weight: .semibold))
-            Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .bold))
-                .opacity(0.6)
-        }
-        .foregroundColor(AppTheme.accent)
-        .padding(.horizontal, 11)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(AppTheme.accent.opacity(0.12)))
+    // MARK: - Portfolio header controls
+    /// The same view is drawn twice: visibly in the pinned chart header (`ghost: false`,
+    /// not hit-testable) and invisibly in the foreground scroll layer (`ghost: true`),
+    /// which is what actually receives the taps. Identical layout keeps them aligned.
+    private func headerControls(ghost: Bool) -> some View {
+        PortfolioHeaderControls(
+            displayCurrency: holdingsSnapshot.displayCurrency,
+            showCurrencyToggle: holdingsSnapshot.hasCADExposure || holdingsSnapshot.displayCurrency != "USD"
+        )
+        .opacity(ghost ? 0.001 : 1)   // not 0: fully transparent views don't receive touches
     }
 
     // MARK: - Today's Market Card
@@ -778,7 +848,7 @@ struct MyHoldingView: View {
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(
-                            Capsule().fill(todayTab == tab ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(.ultraThinMaterial))
+                            Capsule().fill(todayTab == tab ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
                         )
                     }
                 }
@@ -977,8 +1047,8 @@ struct MyHoldingView: View {
             // Section header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    AccentSectionTitle(L("Recommended for You"), icon: "sparkles")
-                    Text(L("Based on your interests"))
+                    AccentSectionTitle(L("Ideas to Explore"), icon: "sparkles")
+                    Text(L("Popular names in your interests · not a recommendation"))
                         .font(AppTheme.caption(12))
                         .foregroundColor(AppTheme.secondaryText)
                         .padding(.leading, 11) // align with title text after accent bar
@@ -1024,10 +1094,7 @@ struct ParallaxChartLayer<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        // Blur holds off until cards have covered ~1/3 of the chart, then ramps in gently.
-        let threshold = chartHeight / 3
-        let ramp = max(chartHeight * 0.45, 1)
-        let progress = min(max((parallax.scrollOffset - threshold) / ramp, 0), 1)
+        let progress = ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
 
         content
             .offset(y: progress * 20)              // gentle sink
@@ -1038,31 +1105,157 @@ struct ParallaxChartLayer<Content: View>: View {
     }
 }
 
-// MARK: - Holdings Portal Tap Target
-/// Invisible, tappable NavigationLink that sits over the visible "Holdings" pill in the
-/// pinned chart header. It lives in the foreground scroll layer (so it actually receives
-/// touches) but counter-offsets the scroll so it stays glued to the pinned pill. Reads
-/// `parallax.scrollOffset` itself, keeping the parent body off the per-frame scroll path.
-struct HoldingsPortalTapTarget: View {
+// MARK: - Pinned Header Tap Layer
+/// Hosts tappable controls that sit over the pinned chart header. It lives in the foreground
+/// scroll layer (so it actually receives touches) but counter-offsets the scroll so it stays
+/// glued to the pinned header. Reads `parallax.scrollOffset` itself, keeping the parent body
+/// off the per-frame scroll path.
+struct PinnedHeaderTapLayer<Content: View>: View {
     var parallax: ChartParallax
     var chartHeight: CGFloat
+    @ViewBuilder var content: Content
 
     var body: some View {
-        // Same ramp as ParallaxChartLayer so it sinks in lockstep with the pill.
-        let threshold = chartHeight / 3
-        let ramp = max(chartHeight * 0.45, 1)
-        let progress = min(max((parallax.scrollOffset - threshold) / ramp, 0), 1)
+        // Same ramp as ParallaxChartLayer so it sinks in lockstep with the visible header.
+        let progress = ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
 
-        NavigationLink(destination: HoldingsListPage()) {
-            Color.clear
-                .frame(width: 120, height: 36)
-                .contentShape(Rectangle())
+        content
+            // Cancel the scroll translation (pin), then add the same gentle sink as the chart.
+            .offset(y: parallax.scrollOffset + progress * 20)
+            // Stop catching taps once the header is mostly blurred / covered by cards.
+            .allowsHitTesting(progress < 0.85)
+    }
+}
+
+// MARK: - Portfolio privacy (hide amounts)
+enum PortfolioPrivacy {
+    static let storageKey = "hidePortfolioValues"
+    static let mask = "******"
+    static let shortMask = "****"
+}
+
+/// Eye / eye-slash button that toggles hiding portfolio amounts app-wide.
+struct HideValuesButton: View {
+    @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
+
+    var body: some View {
+        Button {
+            Haptic.selection()
+            withAnimation(.easeInOut(duration: 0.2)) { hideValues.toggle() }
+        } label: {
+            Image(systemName: hideValues ? "eye.slash" : "eye")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(AppTheme.secondaryText)
+                .frame(width: 34, height: 27)
+                .background(Capsule().fill(AppTheme.subtleFill))
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        // Cancel the scroll translation (pin), then add the same gentle sink as the chart.
-        .offset(y: parallax.scrollOffset + progress * 20)
-        // Stop catching taps once the pill is mostly blurred / covered by cards.
-        .allowsHitTesting(progress < 0.85)
+        .accessibilityLabel(hideValues ? L("Show amounts") : L("Hide amounts"))
+    }
+}
+
+/// Compact USD | CAD pill. Same setting as More → Display Currency.
+struct CurrencyToggle: View {
+    let selected: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(SettingsManager.supportedCurrencies, id: \.self) { currency in
+                Button {
+                    guard currency != selected else { return }
+                    Haptic.selection()
+                    Task { await HoldingsManager.shared.setDisplayCurrency(currency) }
+                } label: {
+                    Text(currency)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(currency == selected ? .white : AppTheme.secondaryText)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule().fill(currency == selected ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(Color.clear))
+                        )
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(Capsule().fill(AppTheme.subtleFill))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(L("Display Currency"))
+    }
+}
+
+/// Right-hand controls of the home portfolio header:
+/// row 1 = Holdings portal, row 2 = [USD|CAD] (Canadian accounts only) + hide button.
+struct PortfolioHeaderControls: View {
+    let displayCurrency: String
+    let showCurrencyToggle: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 8) {
+            NavigationLink(destination: HoldingsListPage()) {
+                HStack(spacing: 4) {
+                    Image(systemName: "building.columns.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(L("Accounts"))
+                        .font(.system(size: 12, weight: .semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .opacity(0.6)
+                }
+                .foregroundColor(AppTheme.accent)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(AppTheme.accent.opacity(0.12)))
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 6) {
+                if showCurrencyToggle {
+                    CurrencyToggle(selected: displayCurrency)
+                }
+                HideValuesButton()
+            }
+        }
+    }
+}
+
+/// Gray stand-in for the portfolio chart while amounts are hidden — same footprint,
+/// fixed shape, no real data.
+struct PortfolioChartPlaceholder: View {
+    private static let points: [Double] = [0.42, 0.48, 0.45, 0.55, 0.52, 0.6, 0.57, 0.66,
+                                           0.62, 0.7, 0.68, 0.74, 0.71, 0.78, 0.82]
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let pts = Self.points.enumerated().map { i, v in
+                CGPoint(x: w * CGFloat(i) / CGFloat(Self.points.count - 1),
+                        y: h * (1 - CGFloat(v)))
+            }
+            ZStack {
+                // Soft area
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: h))
+                    pts.forEach { p.addLine(to: $0) }
+                    p.addLine(to: CGPoint(x: w, y: h))
+                    p.closeSubpath()
+                }
+                .fill(LinearGradient(colors: [Color.gray.opacity(0.12), Color.gray.opacity(0)],
+                                     startPoint: .top, endPoint: .bottom))
+                // Line
+                Path { p in
+                    p.move(to: pts[0])
+                    pts.dropFirst().forEach { p.addLine(to: $0) }
+                }
+                .stroke(Color.gray.opacity(0.45),
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -1070,63 +1263,213 @@ struct HoldingsPortalTapTarget: View {
 /// Full-screen holdings list, opened from the compact Holdings pill on the home chart.
 struct HoldingsListPage: View {
     @ObservedObject private var manager = HoldingsManager.shared
+    @ObservedObject private var brokerage = BrokerageManager.shared
+    @ObservedObject private var bank = BankManager.shared
+    @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
+
+    /// Banks that have at least one account counted in net worth (or need attention).
+    private var bankItems: [BankItem] {
+        bank.currentItems.filter { item in
+            item.error != nil || bankAccounts(in: item).contains { manager.snapshot.accountValues[HoldingsSnapshot.bankKey($0.id)] != nil }
+        }
+    }
+
+    private func bankAccounts(in item: BankItem) -> [BankAccount] {
+        bank.currentAccounts.filter { $0.itemId == item.id }
+            .filter { manager.snapshot.accountValues[HoldingsSnapshot.bankKey($0.id)] != nil }
+            .sorted { ($0.isDebt ? 1 : 0, $0.name) < ($1.isDebt ? 1 : 0, $1.name) }
+    }
+
+    /// Investments first, then bank accounts, then debts; largest first within each.
+    private var accounts: [LinkedAccount] {
+        let values = manager.snapshot.accountValues
+        func rank(_ a: LinkedAccount) -> Int {
+            switch a.accountKind { case .investment: 0; case .cash: 1; case .other: 2; case .debt: 3 }
+        }
+        return brokerage.currentAccounts.sorted { a, b in
+            rank(a) != rank(b) ? rank(a) < rank(b) : abs(values[a.id] ?? 0) > abs(values[b.id] ?? 0)
+        }
+    }
+
+    private func holdings(in account: LinkedAccount) -> [AggregatedHolding] {
+        manager.snapshot.aggregated
+            .filter { if case .linked(let id, _, _) = $0.source { return id == account.id } else { return false } }
+            .sorted { $0.marketValue > $1.marketValue }
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                summaryHeader
+                NetWorthChartModule()
 
-                if manager.snapshot.hasHoldings {
-                    VStack(spacing: 6) {
-                        ForEach(manager.snapshot.aggregated, id: \.symbol) { holding in
-                            NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
-                                holdingRow(holding)
+                SyncHealthBanner()
+
+                TaxAssistantCard()
+
+                if accounts.isEmpty && bankItems.isEmpty {
+                    Text(L("No accounts linked yet"))
+                        .font(AppTheme.caption(13))
+                        .foregroundColor(AppTheme.secondaryText)
+                        .padding(.top, 60)
+                } else {
+                    ForEach(accounts) { account in
+                        VStack(alignment: .leading, spacing: 6) {
+                            accountHeader(account)
+                            ForEach(holdings(in: account)) { holding in
+                                NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
+                                    holdingRow(holding)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .themeCardSurface()
+                        .padding(.horizontal, 16)
+                    }
+                }
+
+                // Banks (Plaid): one card per bank login, one row per account
+                ForEach(bankItems) { item in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(item.institution, systemImage: "building.columns.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(AppTheme.accent)
+                        if let error = item.error {
+                            Text(L(error))
+                                .font(AppTheme.caption(10))
+                                .foregroundColor(AppTheme.warning)
+                        }
+                        ForEach(bankAccounts(in: item)) { account in
+                            bankRow(account)
                         }
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .themeCardSurface()
                     .padding(.horizontal, 16)
-                } else {
-                    Text(L("No holdings yet"))
-                        .font(AppTheme.caption(13))
-                        .foregroundColor(AppTheme.secondaryText)
-                        .padding(.top, 60)
                 }
+
+                linkBrokerageCard
             }
             .padding(.top, 10)
             .padding(.bottom, 40)
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle(L("Holdings"))
+        .navigationTitle(L("Accounts"))
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            async let b: Void = brokerage.sync()
+            async let p: Void = bank.sync()
+            _ = await (b, p)
+            await manager.reloadAfterBrokerageChange()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    LinkedAccountsView()
+                } label: {
+                    Image(systemName: "building.columns")
+                }
+                .accessibilityLabel(L("Linked Accounts"))
+            }
+        }
     }
 
-    private var summaryHeader: some View {
-        let snap = manager.snapshot
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(L("Total Value"))
-                .font(.system(size: 11, weight: .medium))
+    private func bankRow(_ account: BankAccount) -> some View {
+        let value = manager.snapshot.accountValues[HoldingsSnapshot.bankKey(account.id)] ?? 0
+        return HStack(spacing: 10) {
+            Image(systemName: account.icon)
+                .font(.system(size: 12))
                 .foregroundColor(AppTheme.secondaryText)
-            HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text("$")
-                    .font(AppTheme.number(16, weight: .medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                Text(String(format: "%.2f", snap.totalValue))
-                    .font(AppTheme.number(28, weight: .bold))
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(account.name)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
+                    .lineLimit(1)
+                if let masked = account.maskedNumber {
+                    Text(masked)
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
             }
-            Text(String(format: "%@$%.2f (%@%.2f%%)",
-                        snap.totalPnL >= 0 ? "+" : "-", abs(snap.totalPnL),
-                        snap.totalPnLPercent >= 0 ? "+" : "", snap.totalPnLPercent))
-                .font(AppTheme.number(13, weight: .semibold))
-                .foregroundColor(snap.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+            Spacer()
+            Text(hideValues ? PortfolioPrivacy.shortMask
+                 : (value < 0 ? "-" : "") + manager.snapshot.format(abs(value)))
+                .font(AppTheme.number(14, weight: .semibold))
+                .foregroundColor(value < 0 && !hideValues ? AppTheme.negative : AppTheme.primaryText)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 30)
-        .padding(.top, 6)
+        .padding(.vertical, 6)
+    }
+
+    private func accountIcon(_ account: LinkedAccount) -> String {
+        switch account.accountKind {
+        case .investment: return "chart.line.uptrend.xyaxis"
+        case .cash: return "banknote.fill"
+        case .debt: return "creditcard.fill"
+        case .other: return "building.columns.fill"
+        }
+    }
+
+    private func accountHeader(_ account: LinkedAccount) -> some View {
+        let value = manager.snapshot.accountValues[account.id]
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Label("\(account.institution) · \(account.name)", systemImage: accountIcon(account))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(AppTheme.accent)
+                    .lineLimit(1)
+                Spacer()
+                if let value {
+                    Text(hideValues ? PortfolioPrivacy.shortMask
+                         : (value < 0 ? "-" : "") + manager.snapshot.format(abs(value)))
+                        .font(AppTheme.number(12, weight: .semibold))
+                        .foregroundColor(value < 0 && !hideValues ? AppTheme.negative : AppTheme.primaryText)
+                }
+            }
+            if account.accountKind == .investment, !account.cash.isEmpty {
+                // Multi-currency cash summed into the display currency
+                let cashUSD = account.cash.reduce(0) { $0 + manager.usd($1.amount, from: $1.currency) }
+                Text(L("Cash") + " " + (hideValues ? PortfolioPrivacy.shortMask : manager.snapshot.format(cashUSD)))
+                    .font(AppTheme.caption(10))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            if let error = account.error {
+                Text(L(error))
+                    .font(AppTheme.caption(10))
+                    .foregroundColor(AppTheme.warning)
+            }
+        }
+        .padding(.bottom, 2)
+    }
+
+    private var linkBrokerageCard: some View {
+        NavigationLink {
+            LinkedAccountsView()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "building.columns")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppTheme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(brokerage.connections.isEmpty && bank.currentItems.isEmpty ? L("Link your accounts") : L("Manage linked accounts"))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppTheme.primaryText)
+                    Text(L("Wealthsimple, banks and more · read-only"))
+                        .font(AppTheme.caption(11))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            .padding(14)
+            .themeCardSurface()
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(.plain)
     }
 
     private func holdingRow(_ holding: AggregatedHolding) -> some View {
@@ -1135,7 +1478,7 @@ struct HoldingsListPage: View {
                 Text(holding.symbol)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(AppTheme.primaryText)
-                Text(String(format: "%.4g %@", holding.totalShares, L("shares")))
+                Text(hideValues ? "\(PortfolioPrivacy.shortMask) \(L("shares"))" : String(format: "%.4g %@", holding.totalShares, L("shares")))
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.secondaryText)
             }
@@ -1143,12 +1486,13 @@ struct HoldingsListPage: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "$%.2f", holding.marketValue))
+                // Display currency, so the rows add up to the total above.
+                Text(hideValues ? PortfolioPrivacy.shortMask : manager.snapshot.format(holding.marketValue))
                     .font(AppTheme.number(14, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
-                Text(String(format: "%@%.2f%%", holding.totalPnLPercent >= 0 ? "+" : "", holding.totalPnLPercent))
+                Text(hideValues ? PortfolioPrivacy.shortMask : String(format: "%@%.2f%%", holding.totalPnLPercent >= 0 ? "+" : "", holding.totalPnLPercent))
                     .font(AppTheme.number(11, weight: .medium))
-                    .foregroundColor(holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
+                    .foregroundColor(hideValues ? AppTheme.secondaryText : (holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative))
             }
         }
         .padding(.vertical, 6)
@@ -1361,37 +1705,9 @@ struct StockRowView: View {
 
             // Mini chart
             if !stock.chartData.isEmpty {
-                let minY = stock.chartData.map(\.close).min() ?? 0
-                let maxY = stock.chartData.map(\.close).max() ?? 0
-                let pad = (maxY - minY) * 0.1
-                let chartColor = stock.changePercent >= 0 ? AppTheme.positive : AppTheme.negative
-
-                Chart(stock.chartData) { entry in
-                    AreaMark(
-                        x: .value("X", entry.index),
-                        yStart: .value("Min", Double(minY - pad)),
-                        yEnd: .value("Price", Double(entry.close))
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [chartColor.opacity(0.2), chartColor.opacity(0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-
-                    LineMark(
-                        x: .value("X", entry.index),
-                        y: .value("Price", Double(entry.close))
-                    )
-                    .foregroundStyle(chartColor)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartYScale(domain: Double(minY - pad)...Double(maxY + pad))
-                .chartLegend(.hidden)
-                .frame(width: 64, height: 36)
+                Sparkline(stock.chartData,
+                          color: stock.changePercent >= 0 ? AppTheme.positive : AppTheme.negative)
+                    .frame(width: 64, height: 36)
             }
 
             // Price & Change
@@ -1733,13 +2049,15 @@ struct MoverChip: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppTheme.cardBackground)
+                .shadow(color: AppTheme.primaryText.opacity(0.03), radius: 4, y: 2)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(AppTheme.border, lineWidth: 0.5)
         )
-        .shadow(color: AppTheme.primaryText.opacity(0.03), radius: 4, y: 2)
     }
 }
 
@@ -1793,36 +2111,10 @@ struct RecommendationCard: View {
 
             // Mini chart
             if !stock.chartData.isEmpty {
-                let minY = stock.chartData.map(\.close).min() ?? 0
-                let maxY = stock.chartData.map(\.close).max() ?? 0
-                let pad = (maxY - minY) * 0.1
-                let chartColor = stock.changePercent >= 0 ? AppTheme.positive : AppTheme.negative
-
-                Chart(stock.chartData) { entry in
-                    AreaMark(
-                        x: .value("X", entry.index),
-                        yStart: .value("Min", Double(minY - pad)),
-                        yEnd: .value("Price", Double(entry.close))
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [chartColor.opacity(0.25), chartColor.opacity(0.0)],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-
-                    LineMark(
-                        x: .value("X", entry.index),
-                        y: .value("Price", Double(entry.close))
-                    )
-                    .foregroundStyle(chartColor)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartYScale(domain: Double(minY - pad)...Double(maxY + pad))
-                .chartLegend(.hidden)
-                .frame(height: 40)
+                Sparkline(stock.chartData,
+                          color: stock.changePercent >= 0 ? AppTheme.positive : AppTheme.negative,
+                          fillOpacity: 0.25)
+                    .frame(height: 40)
             }
 
             // Price & Change

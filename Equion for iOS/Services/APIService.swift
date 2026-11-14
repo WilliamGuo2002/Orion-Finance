@@ -631,18 +631,30 @@ class APIService {
     private func buildSystemPrompt(language: String? = nil) -> String {
         if let lang = language {
             return """
-                You are Orion, an AI financial assistant built into the Orion Finance app. \
+                You are Orion, an AI research assistant built into the Orion Finance app. \
                 When users greet you or ask who you are, introduce yourself as Orion. \
-                You specialize in stock market analysis, investment advice, and financial news. \
+                You help people understand stocks, markets, personal finance and financial news. \
+                Orion is an educational and research tool, not a registered investment adviser or dealer. \
+                Explain concepts, summarize facts and news, and lay out the pros, cons and risks of different options. \
+                Do NOT tell the user to buy, sell or hold a specific security, give price targets, entry or stop-loss prices, \
+                or say how much of their money to put into something. If asked "should I buy X?", explain the main factors and \
+                risks to weigh and suggest they decide for themselves or talk to a registered adviser. \
+                Mention that it isn't financial advice only when the user asks for a recommendation — not in every reply. \
                 Be concise, helpful, and professional. You can answer general questions too. \
                 Always keep the name "Orion" and "Orion Finance" unchanged regardless of language. \
                 Respond in \(lang).
                 """
         } else {
             return """
-                You are Orion, an AI financial assistant built into the Orion Finance app. \
+                You are Orion, an AI research assistant built into the Orion Finance app. \
                 When users greet you or ask who you are, introduce yourself as Orion. \
-                You specialize in stock market analysis, investment advice, and financial news. \
+                You help people understand stocks, markets, personal finance and financial news. \
+                Orion is an educational and research tool, not a registered investment adviser or dealer. \
+                Explain concepts, summarize facts and news, and lay out the pros, cons and risks of different options. \
+                Do NOT tell the user to buy, sell or hold a specific security, give price targets, entry or stop-loss prices, \
+                or say how much of their money to put into something. If asked "should I buy X?", explain the main factors and \
+                risks to weigh and suggest they decide for themselves or talk to a registered adviser. \
+                Mention that it isn't financial advice only when the user asks for a recommendation — not in every reply. \
                 Be concise, helpful, and professional. You can answer general questions too. \
                 Always keep the name "Orion" and "Orion Finance" unchanged regardless of language. \
                 Detect the language the user is writing in, and always reply in that same language.
@@ -651,6 +663,7 @@ class APIService {
     }
 
     func sendGeminiMessage(text: String, language: String? = nil, maxRetries: Int = 3) async throws -> String {
+        try await AIConsent.shared.ensure()   // nothing goes to Gemini without consent
         let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(APIKeys.gemini)")!
 
         let systemPrompt = buildSystemPrompt(language: language)
@@ -702,6 +715,7 @@ class APIService {
     }
 
     func sendGeminiMultimodal(text: String, imageData: Data?, fileText: String?, language: String? = nil, maxRetries: Int = 3) async throws -> String {
+        try await AIConsent.shared.ensure()   // nothing goes to Gemini without consent
         let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(APIKeys.gemini)")!
 
         let systemPrompt = buildSystemPrompt(language: language)
@@ -834,28 +848,31 @@ class APIService {
 
         Return this exact JSON structure:
         {
-          "rating": "Buy" or "Watch" or "Sell",
+          "rating": "Positive" or "Mixed" or "Negative",
           "score": 0-100 integer,
-          "summary": "one-sentence investment conclusion",
-          "entryPrice": number or null,
-          "stopLoss": number or null,
-          "targetPrice": number or null,
+          "summary": "one-sentence neutral summary of the current picture",
+          "entryPrice": null,
+          "stopLoss": null,
+          "targetPrice": null,
           "bullPoints": ["point1", "point2", "point3"],
           "bearPoints": ["point1", "point2", "point3"],
           "sentiment": -1.0 to 1.0 float,
           "sentimentLabel": "Very Bearish"/"Bearish"/"Neutral"/"Bullish"/"Very Bullish",
-          "actionGuide": "2-3 sentence beginner-friendly action guide"
+          "actionGuide": "2-3 sentences on what to watch next"
         }
 
+        This is an educational research summary, NOT a recommendation. Never tell the reader to buy, sell or hold.
+
         Rules:
-        - score: 0-30 = Sell zone, 31-60 = Watch zone, 61-100 = Buy zone
-        - entryPrice/stopLoss/targetPrice: realistic prices based on technical levels, null if unclear
+        - rating describes the overall balance of signals (news, trend, fundamentals): Positive, Mixed or Negative — it is not a buy/sell call
+        - score: strength of the signals, 0-30 mostly negative, 31-60 mixed, 61-100 mostly positive
+        - entryPrice, stopLoss and targetPrice MUST always be null
         - bullPoints/bearPoints: 2-4 concise points each
         - sentiment: weighted average of news sentiment, technical trend, and fundamental health
-        - rating MUST be exactly one of: "Buy", "Watch", "Sell" (always English)
+        - rating MUST be exactly one of: "Positive", "Mixed", "Negative" (always English)
         - sentimentLabel MUST be one of: "Very Bearish", "Bearish", "Neutral", "Bullish", "Very Bullish" (always English)
         - summary, bullPoints, bearPoints, actionGuide should be in \(lang)
-        - actionGuide: Write for a COMPLETE beginner. Use concrete dollar amounts as examples (e.g. "if you have $1000 budget..."). Explain what to do if the price goes up or down. No jargon. 2-3 sentences max. Tailor advice to the user's risk profile: \(SettingsManager.shared.riskProfile.isEmpty ? "unknown (assume moderate)" : SettingsManager.shared.riskProfile).
+        - actionGuide: for a COMPLETE beginner, explain which upcoming events or numbers (earnings, guidance, rates, key risks) are worth watching and why. No instructions to buy or sell, no amounts of money to invest, no jargon. 2-3 sentences max.
         - ONLY return the JSON object, nothing else
         """
     }
@@ -987,6 +1004,7 @@ class APIService {
             onUpdate(cached.dashboard)
             return cached.dashboard
         }
+        try await AIConsent.shared.ensure()   // nothing goes to Gemini without consent
 
         let prompt = buildDashboardPrompt(symbol: symbol, name: name, price: price, quote: quote, metrics: metrics, news: news)
         let systemPrompt = buildSystemPrompt(language: "English")
@@ -1047,14 +1065,14 @@ class APIService {
         let headlinesText = "Recent related news:\n\(newsBlock)\n"
 
         let lang = SettingsManager.shared.appLanguage
-        var prompt = "\(name) (\(symbol)) recent news:\n\(newsBlock)\nPlease provide a concise investment suggestion (100-200 words) based on the above. Respond in \(lang)."
+        var prompt = "\(name) (\(symbol)) recent news:\n\(newsBlock)\nWrite a concise research note (100-200 words) on what this news means for the company: the key takeaways, the main risks, and what to watch next. This is for education — do not tell the reader to buy, sell or hold, and give no price targets. Respond in \(lang)."
         switch tone {
         case "conservative":
-            prompt += "\nPlease give a conservative investment suggestion."
+            prompt += "\nView it through a cautious lens: focus most on risks and downside scenarios."
         case "aggressive":
-            prompt += "\nPlease give an aggressive investment suggestion."
+            prompt += "\nView it through a growth lens: focus most on upside drivers, while still naming the risks."
         default:
-            break
+            prompt += "\nGive a balanced view."
         }
 
         let analysis = try await sendGeminiMessage(text: prompt, language: lang)

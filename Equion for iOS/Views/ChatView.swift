@@ -269,14 +269,14 @@ struct ChatDetailView: View {
                     .textFieldStyle(.roundedBorder)
 
                 // Voice chat (Gemini Live)
-                Button(action: { showVoiceChat = true }) {
+                Button(action: { Task { if await AIConsent.shared.request() { showVoiceChat = true } } }) {
                     Image(systemName: "mic.fill")
                         .font(.system(size: 20))
                         .foregroundColor(AppTheme.secondaryText)
                 }
 
                 // Video chat (Gemini Live)
-                Button(action: { showVideoChat = true }) {
+                Button(action: { Task { if await AIConsent.shared.request() { showVideoChat = true } } }) {
                     Image(systemName: "video.fill")
                         .font(.system(size: 18))
                         .foregroundColor(AppTheme.secondaryText)

@@ -44,7 +44,7 @@ struct InterestsSelectionView: View {
                     .font(AppTheme.serifTitle(isOnboarding ? 28 : 24))
                     .foregroundColor(AppTheme.primaryText)
 
-                Text(isOnboarding ? L("Pick your favorite categories to get personalized recommendations") : L("Update your interests for better recommendations"))
+                Text(isOnboarding ? L("Pick the categories you want to follow and learn about") : L("Update the categories you follow"))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.secondaryText)
                     .multilineTextAlignment(.center)

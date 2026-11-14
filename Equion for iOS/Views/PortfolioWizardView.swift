@@ -272,11 +272,15 @@ struct PortfolioWizardView: View {
                         Image(systemName: "sparkles")
                             .font(.system(size: 20))
                             .foregroundColor(AppTheme.accent)
-                        Text(L("Your Recommended Portfolio"))
+                        Text(L("Example Portfolio to Explore"))
                             .font(AppTheme.serifHeadline(20))
                             .foregroundColor(AppTheme.primaryText)
                     }
                     .padding(.top, 8)
+
+                    Text(L("An educational example to try in Paper Trading — not a recommendation. Do your own research before investing."))
+                        .font(AppTheme.caption(11))
+                        .foregroundColor(AppTheme.secondaryText)
 
                     Text(String(format: L("Budget: $%@  •  Horizon: %@  •  Goal: %@"),
                                 budget,
@@ -460,7 +464,9 @@ struct PortfolioWizardView: View {
                 let lang = settings.appLanguage
 
                 let prompt = """
-                You are a portfolio advisor for a beginner investor. Build a diversified portfolio.
+                You are an investing teacher. Build an EXAMPLE diversified portfolio that illustrates how
+                someone with this profile might think about allocation. It is for education and paper trading
+                only — not a personal recommendation. Do not tell the user to buy anything.
 
                 User profile:
                 - Budget: $\(Int(budgetNum))
@@ -479,7 +485,7 @@ struct PortfolioWizardView: View {
                       "reason": "Short reason why"
                     }
                   ],
-                  "explanation": "2-3 sentence overall explanation of why this allocation makes sense"
+                  "explanation": "2-3 sentences explaining the diversification idea behind this example and its main risks"
                 }
 
                 Rules:

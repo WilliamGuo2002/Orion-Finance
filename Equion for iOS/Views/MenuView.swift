@@ -3,6 +3,10 @@ import SwiftUI
 struct MenuView: View {
     @EnvironmentObject var firebaseController: FirebaseController
     @ObservedObject private var settings = SettingsManager.shared
+    @ObservedObject private var brokerage = BrokerageManager.shared
+    @ObservedObject private var bank = BankManager.shared
+    @ObservedObject private var aiConsent = AIConsent.shared
+    @State private var showDisclaimer = false
 
     @State private var showAppearance = false
     @State private var showLanguage = false
@@ -36,6 +40,42 @@ struct MenuView: View {
 
             // Settings section
             Section(L("Settings")) {
+                // Linked brokerages (SnapTrade, read-only)
+                NavigationLink {
+                    LinkedAccountsView()
+                } label: {
+                    let linkedCount = brokerage.connections.count + bank.currentItems.count
+                    menuRow(icon: "building.columns", title: L("Linked Accounts"),
+                            detail: linkedCount == 0 ? nil : "\(linkedCount)")
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
+                // Canadian registered accounts + superficial loss watch
+                NavigationLink {
+                    TaxCenterView()
+                } label: {
+                    menuRow(icon: "doc.text.magnifyingglass", title: L("Tax Assistant"), detail: nil)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
+                // Display currency for portfolio amounts (USD default)
+                Menu {
+                    ForEach(SettingsManager.supportedCurrencies, id: \.self) { currency in
+                        Button {
+                            Task { await HoldingsManager.shared.setDisplayCurrency(currency) }
+                        } label: {
+                            if currency == settings.displayCurrency {
+                                Label(currencyName(currency), systemImage: "checkmark")
+                            } else {
+                                Text(currencyName(currency))
+                            }
+                        }
+                    }
+                } label: {
+                    menuRow(icon: "dollarsign.circle", title: L("Display Currency"), detail: settings.displayCurrency)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
                 // Appearance
                 Button(action: { showAppearance = true }) {
                     menuRow(icon: "paintbrush", title: L("Appearance"), detail: appearanceLabel)
@@ -89,6 +129,32 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
+                // AI data sharing (Google Gemini) — consent can be withdrawn any time
+                Toggle(isOn: Binding(
+                    get: { aiConsent.granted },
+                    set: { aiConsent.setGranted($0) }
+                )) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L("AI Data Sharing"))
+                                .foregroundColor(AppTheme.primaryText)
+                            Text(L("Send your AI questions to Google Gemini"))
+                                .font(.caption)
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                    }
+                }
+                .tint(AppTheme.accent)
+                .listRowBackground(AppTheme.cardBackground)
+
+                Button(action: { showDisclaimer = true }) {
+                    menuRow(icon: "info.circle", title: L("Disclaimer"), detail: nil)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
                 menuRow(icon: "square.and.arrow.up", title: L("Share"))
                     .listRowBackground(AppTheme.cardBackground)
                 menuRow(icon: "questionmark.circle", title: L("Support"))
@@ -114,6 +180,7 @@ struct MenuView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(AppTheme.background)
+        .tracksTabBarCollapse()
         .sheet(isPresented: $showAppearance) {
             AppearanceSheet(selected: $settings.appearanceMode)
                 .presentationDetents([.medium])
@@ -137,6 +204,10 @@ struct MenuView: View {
         }
         .sheet(isPresented: $showStockCompare) {
             StockCompareView()
+        }
+        .sheet(isPresented: $showDisclaimer) {
+            DisclaimerSheet()
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -182,8 +253,46 @@ struct MenuView: View {
         }
     }
 
+    private func currencyName(_ code: String) -> String {
+        switch code {
+        case "USD": return L("US Dollar") + " (USD)"
+        case "CAD": return L("Canadian Dollar") + " (CAD)"
+        default:    return code
+        }
+    }
+
     private func logout() {
         try? firebaseController.signOut()
+    }
+}
+
+// MARK: - Disclaimer
+struct DisclaimerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(L("Orion Finance provides information and education only. It is not a registered investment adviser, dealer or tax professional, and nothing in the app is a recommendation to buy, sell or hold any security."))
+                    Text(L("AI-generated content can be wrong or out of date. Market data may be delayed. Linked account data comes from your institutions through SnapTrade and Plaid and may not match your official statements."))
+                    Text(L("Tax features are estimates to help you spot issues. Confirm your contribution room in CRA My Account and talk to a qualified professional before making decisions."))
+                    Text(L("Orion only reads your accounts. It cannot trade, move money or change anything at your institutions."))
+                }
+                .font(.system(size: 14))
+                .foregroundColor(AppTheme.primaryText)
+                .padding(20)
+            }
+            .background(AppTheme.background)
+            .navigationTitle(L("Disclaimer"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L("Done")) { dismiss() }
+                        .foregroundColor(AppTheme.accent)
+                }
+            }
+        }
     }
 }
 

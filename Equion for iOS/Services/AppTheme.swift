@@ -304,6 +304,13 @@ struct AppTheme {
     }
 
     /// Returns a closure reason if market is closed today, or nil if it's a normal trading day.
+    private static let etDayFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = etZone
+        return fmt
+    }()
+
     static func marketClosedReason() -> String? {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = etZone
@@ -315,10 +322,7 @@ struct AppTheme {
         if weekday == 7 { return L("Markets are closed today — enjoy your Saturday") }
 
         // Holiday
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = etZone
-        let today = fmt.string(from: now)
+        let today = etDayFormatter.string(from: now)
         if marketHolidays.contains(today) {
             return L("Markets are closed today for a holiday")
         }
@@ -342,6 +346,9 @@ private struct CardBackgroundContent: View {
                     endPoint: .bottomTrailing
                 )
             )
+            // Shadow from the rounded-rect path only. A .shadow on the whole card made SwiftUI
+            // render each card's contents offscreen every frame just to find its outline.
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 
@@ -352,8 +359,8 @@ struct ThemeCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(AppTheme.cardPadding)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
             .background(CardBackgroundContent(colorScheme: colorScheme))
-            .cornerRadius(AppTheme.cardRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
                     .stroke(
@@ -363,7 +370,6 @@ struct ThemeCardModifier: ViewModifier {
                         lineWidth: colorScheme == .dark ? 0.5 : 0.8
                     )
             )
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 
@@ -373,8 +379,8 @@ struct ThemeCardSurface: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
             .background(CardBackgroundContent(colorScheme: colorScheme))
-            .cornerRadius(AppTheme.cardRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
                     .stroke(
@@ -384,7 +390,6 @@ struct ThemeCardSurface: ViewModifier {
                         lineWidth: colorScheme == .dark ? 0.5 : 0.8
                     )
             )
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 

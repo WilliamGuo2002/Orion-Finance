@@ -789,7 +789,7 @@ struct StockDetailView: View {
     // ==============================
     @ViewBuilder
     private var aiDashboardModule: some View {
-        moduleCard("AI Decision Dashboard", icon: "sparkles") {
+        moduleCard("AI Research Snapshot", icon: "sparkles") {
             if let d = aiDashboard {
                 // ── Rating + Score Row ──
                 HStack(spacing: 12) {
@@ -826,8 +826,8 @@ struct StockDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // ── Price Targets ──
-                if d.entryPrice != nil || d.stopLoss != nil || d.targetPrice != nil {
+                // Price targets removed: specific entry / stop / target prices read as trading advice.
+                if false, d.entryPrice != nil || d.stopLoss != nil || d.targetPrice != nil {
                     HStack(spacing: 0) {
                         if let entry = d.entryPrice {
                             priceTargetItem(L("Entry"), value: entry, color: AppTheme.accent)
@@ -946,7 +946,7 @@ struct StockDetailView: View {
                             Image(systemName: "figure.walk")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(AppTheme.accent)
-                            Text(L("What Should I Do?"))
+                            Text(L("What to Watch"))
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(AppTheme.accent)
                         }
@@ -967,6 +967,10 @@ struct StockDetailView: View {
                             )
                     )
                 }
+
+                Text(L("AI-generated research summary for education. Not a recommendation to buy or sell."))
+                    .font(AppTheme.caption(10))
+                    .foregroundColor(AppTheme.secondaryText)
 
                 // ── Deep Dive Link ──
                 NavigationLink(destination: AIAnalysisView(symbol: symbol, name: name)) {
@@ -1015,8 +1019,8 @@ struct StockDetailView: View {
 
     private func ratingColor(_ rating: String) -> Color {
         let r = rating.lowercased()
-        if r.contains("buy") || r.contains("买") { return AppTheme.positive }
-        if r.contains("sell") || r.contains("卖") { return AppTheme.negative }
+        if r.contains("positive") || r.contains("buy") || r.contains("买") { return AppTheme.positive }
+        if r.contains("negative") || r.contains("sell") || r.contains("卖") { return AppTheme.negative }
         return AppTheme.accent
     }
 
@@ -1114,29 +1118,7 @@ struct StockDetailView: View {
     @ViewBuilder
     private var holdingsModule: some View {
         VStack(spacing: 0) {
-            // "Record Trade" button — always visible
-            Button {
-                Haptic.tap()
-                showTransactionSheet = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16))
-                    Text(L("Record Trade"))
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .foregroundColor(AppTheme.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(AppTheme.accent, lineWidth: 1)
-                )
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-
+            // Manual trade entry was removed: positions come from linked accounts only.
             // Show holdings info if user has a position
             if let agg = holdingAgg, agg.totalShares > 0.0001 {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1152,7 +1134,7 @@ struct StockDetailView: View {
                             Text(L("Shares"))
                                 .font(.system(size: 11))
                                 .foregroundColor(AppTheme.secondaryText)
-                            Text(String(format: "$%.2f", agg.averageCost))
+                            Text(HoldingsManager.shared.snapshot.format(agg.averageCost))
                                 .font(AppTheme.number(12, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(L("Avg Cost"))
@@ -1165,7 +1147,7 @@ struct StockDetailView: View {
 
                         // Market Value
                         VStack(spacing: 4) {
-                            Text(String(format: "$%.2f", agg.marketValue))
+                            Text(HoldingsManager.shared.snapshot.format(agg.marketValue))
                                 .font(AppTheme.number(18, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                             Text(L("Market Value"))
@@ -1178,7 +1160,7 @@ struct StockDetailView: View {
 
                         // Total P&L
                         VStack(spacing: 4) {
-                            Text(String(format: "%@$%.2f", agg.totalPnL >= 0 ? "+" : "-", abs(agg.totalPnL)))
+                            Text((agg.totalPnL >= 0 ? "+" : "-") + HoldingsManager.shared.snapshot.format(abs(agg.totalPnL)))
                                 .font(AppTheme.number(16, weight: .bold))
                                 .foregroundColor(agg.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
                             Text(String(format: "%@%.2f%%", agg.totalPnLPercent >= 0 ? "+" : "", agg.totalPnLPercent))
@@ -1197,8 +1179,8 @@ struct StockDetailView: View {
                             .font(.system(size: 12))
                             .foregroundColor(AppTheme.secondaryText)
                         Spacer()
-                        Text(String(format: "%@$%.2f (%@%.2f%%)",
-                                    agg.dayPnL >= 0 ? "+" : "-", abs(agg.dayPnL),
+                        Text(String(format: "%@%@ (%@%.2f%%)",
+                                    agg.dayPnL >= 0 ? "+" : "-", HoldingsManager.shared.snapshot.format(abs(agg.dayPnL)),
                                     agg.dayPnLPercent >= 0 ? "+" : "", agg.dayPnLPercent))
                             .font(AppTheme.number(13, weight: .semibold))
                             .foregroundColor(agg.dayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
@@ -1725,7 +1707,7 @@ struct StockDetailView: View {
         holdingTransactions = txs
         holdingAgg = HoldingsManager.shared.aggregatedHolding(for: symbol)
         // If manager hasn't loaded yet, do a full load
-        if HoldingsManager.shared.transactions.isEmpty {
+        if !HoldingsManager.shared.hasLoaded {
             await HoldingsManager.shared.loadAll()
             let txs2 = HoldingsManager.shared.transactions(for: symbol)
             holdingTransactions = txs2

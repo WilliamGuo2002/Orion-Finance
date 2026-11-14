@@ -45,6 +45,7 @@ struct InvestorsView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 80)
             }
+            .tracksTabBarCollapse()
         }
         .background(AppTheme.background)
     }

@@ -17,7 +17,25 @@ struct HoldingTransaction: Identifiable, Codable {
     }
 }
 
+// MARK: - Holding Source
+/// Where a holding comes from: typed in by the user, or synced from a linked brokerage account.
+enum HoldingSource: Hashable {
+    case manual
+    case linked(accountId: String, accountName: String, institution: String)
+
+    var key: String {
+        switch self {
+        case .manual: return "manual"
+        case .linked(let accountId, _, _): return "linked:\(accountId)"
+        }
+    }
+
+    var isLinked: Bool { if case .linked = self { return true } else { return false } }
+}
+
 // MARK: - Aggregated Holding (computed client-side)
+/// All money values (averageCost, totalCostBasis, prices) are in USD — the app's display currency.
+/// `currency` / `fxToUSD` keep the native currency so lists can show e.g. CA$ values.
 struct AggregatedHolding: Identifiable {
     let symbol: String
     let name: String
@@ -27,8 +45,15 @@ struct AggregatedHolding: Identifiable {
     let currentPrice: Double
     let previousClose: Double
     let transactions: [HoldingTransaction]
+    var source: HoldingSource = .manual
+    var currency: String = "USD"     // native quote currency
+    var fxToUSD: Double = 1          // native × fxToUSD = USD
 
-    var id: String { symbol }
+    /// Unique per source, so the same ticker can appear in several accounts.
+    var id: String { "\(source.key)|\(symbol)" }
+
+    /// Market value in the holding's native currency.
+    var nativeMarketValue: Double { fxToUSD > 0 ? marketValue / fxToUSD : marketValue }
 
     /// Total market value of position
     var marketValue: Double { totalShares * currentPrice }
@@ -60,7 +85,10 @@ struct PortfolioValueEntry: Identifiable {
     let id = UUID()
     let index: Int
     let date: Date
-    let value: Double      // total portfolio market value at this point
-    let costBasis: Double  // total cost basis (flat line per period)
+    let value: Double      // total portfolio value at this point (positions + cash)
+    let costBasis: Double  // total cost basis + cash (flat line per period)
+    var cash: Double = 0   // linked-account cash included in both of the above
     let datetime: String   // human-readable date/time for display
+    /// Value per institution (brokerage / bank name), USD. Sums to `value`.
+    var breakdown: [String: Double] = [:]
 }

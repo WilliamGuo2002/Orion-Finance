@@ -273,7 +273,7 @@ struct StockCompareView: View {
                 .font(AppTheme.serifHeadline(18))
                 .foregroundColor(AppTheme.primaryText)
 
-            Text(L("Get a side-by-side comparison with an AI recommendation"))
+            Text(L("Get a side-by-side comparison with an AI summary"))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.secondaryText)
                 .multilineTextAlignment(.center)
@@ -326,9 +326,10 @@ struct StockCompareView: View {
         \(context)
 
         Write a clear, concise comparison (3-4 sentences max) in plain language for someone who knows nothing about investing.
-        - State which one you'd recommend and why in ONE clear sentence
-        - Mention one key difference between them that matters for beginners
-        - End with a specific, actionable suggestion
+        - Do NOT say which one to buy or recommend either one — this is an educational comparison
+        - Explain the most important difference between them (e.g. growth vs stability, valuation, dividends, risk)
+        - Say what kind of goal or time horizon each one tends to suit, in general terms
+        - End with one question the reader could ask themselves to decide
         - No jargon, no technical terms
         - Respond in \(lang)
         """

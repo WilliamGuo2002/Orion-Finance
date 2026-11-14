@@ -1,0 +1,24 @@
+{
+  "name": "orion-snaptrade-functions",
+  "private": true,
+  "description": "Orion Finance — read-only account linking: brokerages (SnapTrade) and banks (Plaid)",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "deploy": "firebase deploy --only functions:snaptrade",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.1",
+    "firebase-functions": "^7.4.0",
+    "plaid": "^51.0.0",
+    "snaptrade-typescript-sdk": "^13.2.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

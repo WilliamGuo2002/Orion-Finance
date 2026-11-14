@@ -16,6 +16,13 @@ class SettingsManager: ObservableObject {
     @AppStorage("riskProfile") var riskProfile: String = "" {
         didSet { objectWillChange.send() }
     }
+    /// Currency for portfolio amounts. Change it via `HoldingsManager.setDisplayCurrency(_:)`
+    /// so the numbers are re-converted, not just relabeled.
+    @AppStorage("displayCurrency") var displayCurrency: String = "USD" {
+        didSet { objectWillChange.send() }
+    }
+
+    static let supportedCurrencies = ["USD", "CAD"]
 
     var colorScheme: ColorScheme? {
         switch appearanceMode {

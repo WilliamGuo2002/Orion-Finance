@@ -155,7 +155,7 @@ struct RiskProfileView: View {
                         .font(AppTheme.serifTitle(28))
                         .foregroundColor(AppTheme.primaryText)
 
-                    Text(L("Help us understand your preferences for better recommendations"))
+                    Text(L("Help Orion tailor what it explains and shows you"))
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
                         .multilineTextAlignment(.center)

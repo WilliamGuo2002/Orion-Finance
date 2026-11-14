@@ -161,6 +161,8 @@ class NotificationService: ObservableObject {
 
         let checkTask = Task {
             await performPriceCheck()
+            // Linked accounts: notify if a brokerage/bank connection broke or went stale.
+            await ConnectionMonitor.checkAndNotify()
         }
 
         task.expirationHandler = {

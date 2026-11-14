@@ -140,6 +140,8 @@ struct MainTabView: View {
             }
         }
         .id(settings.appLanguage)
+        // Switching tabs always restores the full-size bar
+        .onChange(of: selectedTab) { _, _ in TabBarVisibility.shared.expand() }
     }
 
     // MARK: - iPad Sidebar Layout
@@ -204,7 +206,7 @@ struct MainTabView: View {
             tabContentStack
         }
         .safeAreaInset(edge: .bottom) {
-            customTabBar
+            PhoneTabBar(selectedTab: $selectedTab)
         }
     }
 
@@ -296,8 +298,20 @@ struct MainTabView: View {
         }
     }
 
+}
+
+/// Bottom bar for iPhone portrait. Observes the collapse state itself, so collapsing/expanding
+/// during a scroll re-renders only the bar — not MainTabView and every tab beneath it.
+struct PhoneTabBar: View {
+    typealias AppTab = MainTabView.AppTab
+    @Binding var selectedTab: AppTab?
+    @ObservedObject private var tabBar = TabBarVisibility.shared
+
+    /// Expanded bar (58) + top (6) and bottom (2) padding.
+    static let reservedHeight: CGFloat = 66
+
     // MARK: - Custom Tab Bar (Phone Portrait)
-    private var customTabBar: some View {
+    var body: some View {
         GeometryReader { geo in
             let spacing: CGFloat = 10
             let hPad: CGFloat = 14
@@ -313,7 +327,7 @@ struct MainTabView: View {
                     tabButton(.gurus)
                     tabButton(.more)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, tabBar.collapsed ? 5 : 8)
                 .padding(.horizontal, 4)
                 .frame(width: capsuleWidth)
                 .background(
@@ -329,7 +343,7 @@ struct MainTabView: View {
 
                 // Right capsule: Orion
                 tabButton(.orion)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, tabBar.collapsed ? 5 : 8)
                     .padding(.horizontal, 4)
                     .frame(width: circleSize)
                     .background(
@@ -345,23 +359,41 @@ struct MainTabView: View {
             }
             .padding(.horizontal, hPad)
             .frame(maxHeight: .infinity)
+            // Tap anywhere on the (collapsed) bar to restore it to full size.
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    if tabBar.collapsed { tabBar.expand() }
+                }
+            )
         }
-        .frame(height: 58)
-        .padding(.top, 6)
+        .frame(height: tabBar.collapsed ? 46 : 58)
+        .padding(.top, tabBar.collapsed ? 4 : 6)
         .padding(.bottom, 2)
+        // Reserve the expanded height so the safe-area inset never changes. Animating the
+        // inset relaid out the whole tab content every frame while the bar collapsed.
+        .frame(height: Self.reservedHeight, alignment: .bottom)
     }
 
     private func tabButton(_ tab: AppTab) -> some View {
-        Button(action: { Haptic.light(); withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab } }) {
-            VStack(spacing: 3) {
+        Button(action: {
+            Haptic.light()
+            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+            tabBar.expand()
+        }) {
+            VStack(spacing: tabBar.collapsed ? 0 : 3) {
                 Image(systemName: selectedTab == tab ? tab.activeIcon : tab.icon)
                     .font(.system(size: 18, weight: selectedTab == tab ? .semibold : .regular))
                     .frame(height: 22)
                     .symbolRenderingMode(.hierarchical)
+                // Label collapses to zero height (icons only) when scrolling up
                 Text(tab.label())
                     .font(.system(size: 10, weight: selectedTab == tab ? .semibold : .regular))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .opacity(tabBar.collapsed ? 0 : 1)
+                    .frame(height: tabBar.collapsed ? 0 : 13)
+                    .clipped()
             }
             .foregroundColor(
                 tab == .orion
@@ -370,6 +402,54 @@ struct MainTabView: View {
             )
             .frame(maxWidth: .infinity)
             .padding(.vertical, 2)
+        }
+    }
+}
+
+// MARK: - Tab Bar Collapse State (driven by scroll direction)
+/// App-level signal for the bottom bar: scroll up to collapse it to icons-only,
+/// scroll down to bring the labels back. Scroll views feed it via `update(offset:delta:)`;
+/// the tab bar observes `collapsed`. Only flips when the state actually changes, so
+/// per-frame scroll callbacks are cheap and don't trigger re-renders.
+final class TabBarVisibility: ObservableObject {
+    static let shared = TabBarVisibility()
+
+    /// When true, the bottom bar shows icons only (labels hidden) and shrinks.
+    @Published var collapsed: Bool = false
+
+    private init() {}
+
+    /// `delta` > 0 means scrolling up (content moving up / deeper into the page).
+    func update(offset: CGFloat, delta: CGFloat) {
+        let next: Bool
+        if offset < 28 {
+            next = false            // near the top: always full size
+        } else if delta > 2 {
+            next = true             // scrolling up → collapse to icons
+        } else if delta < -2 {
+            next = false            // scrolling down → expand with labels
+        } else {
+            next = collapsed        // negligible movement: hold current state
+        }
+        guard next != collapsed else { return }
+        withAnimation(.easeInOut(duration: 0.25)) { collapsed = next }
+    }
+
+    /// Force the bar back to full size (e.g. when switching tabs).
+    func expand() {
+        guard collapsed else { return }
+        withAnimation(.easeInOut(duration: 0.25)) { collapsed = false }
+    }
+}
+
+extension View {
+    /// Lets any scroll view (ScrollView or List) drive the bottom bar's collapse:
+    /// icons-only when scrolling up, labels back when scrolling down.
+    func tracksTabBarCollapse() -> some View {
+        onScrollGeometryChange(for: CGFloat.self) { geo in
+            (geo.contentOffset.y + geo.contentInsets.top).rounded()
+        } action: { oldValue, newValue in
+            TabBarVisibility.shared.update(offset: max(0, newValue), delta: newValue - oldValue)
         }
     }
 }
