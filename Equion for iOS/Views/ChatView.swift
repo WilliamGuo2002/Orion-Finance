@@ -52,7 +52,7 @@ struct ChatView: View {
                             .frame(width: 80, height: 80)
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 32, weight: .light))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
 
                     VStack(spacing: 8) {
@@ -72,7 +72,7 @@ struct ChatView: View {
                             Text(L("Start a new chat"))
                                 .font(.system(size: 15, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.onAccent)
                         .padding(.horizontal, 28)
                         .padding(.vertical, 12)
                         .background(Capsule().fill(AppTheme.accent))
@@ -532,7 +532,7 @@ struct ChatBubble: View {
                         .frame(width: 28, height: 28)
                     Image(systemName: "sparkles")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
 

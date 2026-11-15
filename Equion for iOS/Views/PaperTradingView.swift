@@ -188,7 +188,7 @@ struct PaperTradingView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
@@ -269,7 +269,7 @@ struct PaperTradingView: View {
                     Text(L("Buy Stock"))
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(Capsule().fill(AppTheme.accent))
@@ -419,7 +419,7 @@ struct PaperTradingView: View {
                     Text(L("Buy Your First Stock"))
                         .font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.onAccent)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
@@ -512,7 +512,7 @@ struct PaperTradeSheet: View {
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                            .foregroundColor(AppTheme.tertiaryText)
                     }
                 }
             }
@@ -534,7 +534,7 @@ struct PaperTradeSheet: View {
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                             Text(L("Buy") + " \"\(sym)\"")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(AppTheme.primaryText)
@@ -616,7 +616,7 @@ struct PaperTradeSheet: View {
             } label: {
                 Text(L("Change stock"))
                     .font(.system(size: 13))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
 
             // Shares input
@@ -670,7 +670,7 @@ struct PaperTradeSheet: View {
                              sharesText.isEmpty ? "" : sharesText,
                              selectedSymbol))
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(

@@ -30,7 +30,7 @@ struct NotificationSettingsView: View {
                         }
                     } icon: {
                         Image(systemName: "bell.badge")
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                 }
                 .tint(AppTheme.accent)
@@ -76,7 +76,7 @@ struct NotificationSettingsView: View {
                                 Spacer()
                                 Text(String(format: "%.1f%%", indexThreshold))
                                     .font(AppTheme.number(15, weight: .bold))
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                             Slider(value: $indexThreshold, in: 0.5...5.0, step: 0.5)
                                 .tint(AppTheme.accent)
@@ -122,7 +122,7 @@ struct NotificationSettingsView: View {
                                 Spacer()
                                 Text(String(format: "%.1f%%", stockThreshold))
                                     .font(AppTheme.number(15, weight: .bold))
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                             Slider(value: $stockThreshold, in: 1.0...15.0, step: 0.5)
                                 .tint(AppTheme.accent)
@@ -173,7 +173,7 @@ struct NotificationSettingsView: View {
                 Section {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "info.circle")
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                             .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L("How it works"))

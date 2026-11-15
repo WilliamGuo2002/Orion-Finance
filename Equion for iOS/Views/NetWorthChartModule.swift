@@ -305,7 +305,7 @@ struct NetWorthChartModule: View {
                 } label: {
                     Text(r)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(range == r ? .white : AppTheme.secondaryText)
+                        .foregroundColor(range == r ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(range == r ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
@@ -324,7 +324,7 @@ struct NetWorthChartModule: View {
                     Text(split ? L("Total") : L("By institution"))
                         .font(.system(size: 11, weight: .semibold))
                 }
-                .foregroundColor(split ? .white : AppTheme.accent)
+                .foregroundColor(split ? AppTheme.onAccent : AppTheme.accentText)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(Capsule().fill(split ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.accent.opacity(0.12))))

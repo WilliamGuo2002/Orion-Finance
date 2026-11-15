@@ -41,7 +41,7 @@ struct ErrorStateView: View {
                         Text(L("Try Again"))
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
                     .background(Capsule().fill(AppTheme.accent))

@@ -131,7 +131,7 @@ struct RiskProfileView: View {
             if !isOnboarding {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Done")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
@@ -246,7 +246,7 @@ struct RiskProfileView: View {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 13, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .padding(.vertical, 14)
                     .padding(.horizontal, 24)
                     .background(Capsule().fill(AppTheme.accent))
@@ -275,7 +275,7 @@ struct RiskProfileView: View {
                 Image(systemName: option.symbol)
                     .font(.title3)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .frame(width: 28)
 
                 Text(L(option.label))
@@ -317,7 +317,7 @@ struct RiskProfileView: View {
             Image(systemName: result.icon)
                 .font(.system(size: 36, weight: .light))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .frame(width: 88, height: 88)
                 .background(Circle().fill(AppTheme.accent.opacity(0.1)))
                 .accessibilityHidden(true)
@@ -369,7 +369,7 @@ struct RiskProfileView: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(Capsule().fill(AppTheme.accent))

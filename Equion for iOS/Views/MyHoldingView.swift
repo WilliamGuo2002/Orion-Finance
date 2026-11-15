@@ -152,7 +152,7 @@ struct MyHoldingView: View {
             Button(action: { Haptic.tap(); showAddDialog = true }) {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .frame(width: 52, height: 52)
                     .background(
                         Circle()
@@ -386,7 +386,7 @@ struct MyHoldingView: View {
                     .frame(width: 88, height: 88)
                 Image(systemName: "sparkle")
                     .font(.system(size: 22, weight: .light))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
             .accessibilityHidden(true)
 
@@ -408,7 +408,7 @@ struct MyHoldingView: View {
                     Text(L("Add Stock"))
                         .font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.onAccent)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
@@ -422,7 +422,7 @@ struct MyHoldingView: View {
                     Text(L("Help Me Pick Stocks"))
                         .font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 12)
                 .background(
@@ -462,7 +462,7 @@ struct MyHoldingView: View {
             HStack(spacing: 12) {
                 Image(systemName: "building.columns.fill")
                     .font(.system(size: 18))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(AppTheme.accent.opacity(0.12)))
                 VStack(alignment: .leading, spacing: 2) {
@@ -641,7 +641,7 @@ struct MyHoldingView: View {
                     if let retry = notice.retrySymbol {
                         Button(L("Retry")) { Task { await fetchAndAddStock(symbol: retry) } }
                             .font(.footnote.weight(.semibold))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                     Button {
                         withAnimation(.smooth(duration: 0.25)) { watchlistNotice = nil }
@@ -815,7 +815,7 @@ struct MyHoldingView: View {
                                 .foregroundColor(holdingsSnapshot.totalPnL >= 0 ? AppTheme.positive : AppTheme.negative)
 
                             Text("·")
-                                .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                                .foregroundColor(AppTheme.tertiaryText)
 
                             Text(String(format: "%@ %@%@",
                                         L("Today"),
@@ -863,7 +863,7 @@ struct MyHoldingView: View {
                         } label: {
                             Text(interval)
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(portfolioInterval == interval ? .white : AppTheme.secondaryText)
+                                .foregroundColor(portfolioInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(
@@ -920,7 +920,7 @@ struct MyHoldingView: View {
                             Text(tab.label)
                                 .font(.system(size: 11, weight: .medium))
                         }
-                        .foregroundColor(todayTab == tab ? .white : AppTheme.secondaryText)
+                        .foregroundColor(todayTab == tab ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(
@@ -1239,7 +1239,7 @@ struct CurrencyToggle: View {
                 } label: {
                     Text(currency)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(currency == selected ? .white : AppTheme.secondaryText)
+                        .foregroundColor(currency == selected ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(
@@ -1275,7 +1275,7 @@ struct PortfolioHeaderControls: View {
                         .font(.system(size: 9, weight: .bold))
                         .opacity(0.6)
                 }
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 6)
                 .background(Capsule().fill(AppTheme.accent.opacity(0.12)))
@@ -1404,7 +1404,7 @@ struct HoldingsListPage: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Label(item.institution, systemImage: "building.columns.fill")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                         if let error = item.error {
                             Text(L(error))
                                 .font(AppTheme.caption(10))
@@ -1488,7 +1488,7 @@ struct HoldingsListPage: View {
             HStack {
                 Label("\(account.institution) · \(account.name)", systemImage: accountIcon(account))
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .lineLimit(1)
                 Spacer()
                 if let value {
@@ -1521,7 +1521,7 @@ struct HoldingsListPage: View {
             HStack(spacing: 10) {
                 Image(systemName: "building.columns")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(brokerage.connections.isEmpty && bank.currentItems.isEmpty ? L("Link your accounts") : L("Manage linked accounts"))
                         .font(.system(size: 14, weight: .semibold))
@@ -1877,7 +1877,7 @@ struct AddAssetSheet: View {
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                                .foregroundColor(AppTheme.tertiaryText)
                         }
                     }
                 }
@@ -1895,7 +1895,7 @@ struct AddAssetSheet: View {
                         Button(action: { addSymbol(sym) }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                                 Text(L("Add") + " \"\(sym)\"")
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundColor(AppTheme.primaryText)
@@ -1961,7 +1961,7 @@ struct AddAssetSheet: View {
                                             .foregroundColor(AppTheme.positive)
                                     } else {
                                         Image(systemName: "plus.circle")
-                                            .foregroundColor(AppTheme.accent)
+                                            .foregroundColor(AppTheme.accentText)
                                             .font(.system(size: 20))
                                     }
                                 }
@@ -1982,7 +1982,7 @@ struct AddAssetSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L("Cancel")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
@@ -2031,7 +2031,7 @@ struct AddAssetSheet: View {
                 Text(type.label)
                     .font(.system(size: 13, weight: .medium))
             }
-            .foregroundColor(selectedTab == type ? .white : AppTheme.primaryText)
+            .foregroundColor(selectedTab == type ? AppTheme.onAccent : AppTheme.primaryText)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
@@ -2126,7 +2126,7 @@ struct RecommendationCard: View {
             HStack {
                 Text(L(stock.categoryName))
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
                     .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
@@ -2135,7 +2135,7 @@ struct RecommendationCard: View {
                 Button(action: onAdd) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
 

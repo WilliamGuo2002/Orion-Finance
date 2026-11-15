@@ -44,7 +44,7 @@ struct RegisterView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.onAccent)
                     }
                     .background(AppTheme.accent)
                     .cornerRadius(10)

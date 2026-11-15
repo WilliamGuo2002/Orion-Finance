@@ -39,7 +39,7 @@ struct LoginView: View {
 
                         Image(systemName: "sparkle")
                             .font(.system(size: 36, weight: .light))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                             .scaleEffect(logoAppeared ? 1 : 0.3)
                             .opacity(logoAppeared ? 1 : 0)
                             .shadow(color: AppTheme.accent.opacity(0.4), radius: 12)
@@ -104,7 +104,7 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.onAccent)
                         }
                         .background(AppTheme.accent)
                         .cornerRadius(10)
@@ -171,7 +171,7 @@ struct LoginView: View {
                             Text(L("Don't have an account?"))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(L("Sign Up"))
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                                 .fontWeight(.semibold)
                         }
                         .font(.footnote)
@@ -182,7 +182,7 @@ struct LoginView: View {
                         firebaseController.isLoggedIn = true
                     }
                     .font(.footnote)
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                    .foregroundColor(AppTheme.secondaryText)
 
                     Spacer().frame(height: 40)
                 }
@@ -282,7 +282,7 @@ struct ForgotPasswordView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "envelope.badge")
                         .font(.system(size: 48))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
 
                     if isSent {
                         Text(L("Reset link sent!"))
@@ -294,7 +294,7 @@ struct ForgotPasswordView: View {
                             .multilineTextAlignment(.center)
                         Button(L("Done")) { dismiss() }
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(AppTheme.accent)
@@ -331,7 +331,7 @@ struct ForgotPasswordView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.onAccent)
                         }
                         .background(AppTheme.accent)
                         .cornerRadius(10)

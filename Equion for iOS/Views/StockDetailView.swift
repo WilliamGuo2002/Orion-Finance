@@ -234,7 +234,7 @@ struct StockDetailView: View {
                                     .frame(maxWidth: .infinity, minHeight: 44)
                             }
                             .buttonStyle(.bordered)
-                            .tint(AppTheme.accent)
+                            .tint(AppTheme.accentText)
                         }
                     }
                 }
@@ -707,7 +707,7 @@ struct StockDetailView: View {
                 NavigationLink(destination: AllCommentsView(symbol: symbol)) {
                     Text(L("View more comments"))
                         .font(.caption)
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
                 .padding(.top, 4)
             }
@@ -959,10 +959,10 @@ struct StockDetailView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "figure.walk")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                             Text(L("What to Watch"))
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                         }
                         Text(d.actionGuide)
                             .font(.system(size: 13))
@@ -997,7 +997,7 @@ struct StockDetailView: View {
                         Image(systemName: "arrow.right")
                             .font(.system(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .padding(.vertical, 10)
                     .padding(.horizontal, 12)
                     .background(
@@ -1061,7 +1061,7 @@ struct StockDetailView: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.bordered)
-            .tint(AppTheme.accent)
+            .tint(AppTheme.accentText)
         }
     }
 
@@ -1175,7 +1175,7 @@ struct StockDetailView: View {
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(L("Avg Cost"))
                                 .font(.system(size: 10))
-                                .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
 
@@ -1204,7 +1204,7 @@ struct StockDetailView: View {
                                 .foregroundColor(agg.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
                             Text(L("Total P&L"))
                                 .font(.system(size: 10))
-                                .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -1291,7 +1291,7 @@ struct StockDetailView: View {
                         VStack(spacing: 0) {
                             Text(earningsMonth(event.date))
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppTheme.onAccent)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 2)
                                 .background(AppTheme.accent)
@@ -1313,7 +1313,7 @@ struct StockDetailView: View {
                                 if !event.hour.isEmpty {
                                     Text(event.hour == "bmo" ? L("Before Open") : L("After Close"))
                                         .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(AppTheme.accent)
+                                        .foregroundColor(AppTheme.accentText)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
                                         .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
@@ -1335,7 +1335,7 @@ struct StockDetailView: View {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
                         .font(.system(size: 11))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                         .padding(.top, 1)
                     Text(L("Prices often move more than usual around an earnings report."))
                         .font(.system(size: 11))
@@ -1381,7 +1381,7 @@ struct StockDetailView: View {
                     Task { await loadChart() }
                 }
                 .font(.system(size: 13, weight: selectedInterval == interval ? .bold : .medium))
-                .foregroundColor(selectedInterval == interval ? .white : AppTheme.secondaryText)
+                .foregroundColor(selectedInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background(
@@ -1467,7 +1467,7 @@ struct StockDetailView: View {
                     if marketSession == .closed || marketSession == .holiday {
                         Image(systemName: "moon.zzz.fill")
                             .font(.system(size: 9))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                     Text(marketStatusText).font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText)
                     if let ext = extendedHoursChange {
@@ -1956,7 +1956,7 @@ struct AIAnalysisView: View {
                     Task { await loadAnalysis() }
                 }
                 .font(.system(size: 13, weight: currentTone == tone ? .bold : .medium))
-                .foregroundColor(currentTone == tone ? .white : AppTheme.secondaryText)
+                .foregroundColor(currentTone == tone ? AppTheme.onAccent : AppTheme.secondaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(Capsule().fill(currentTone == tone ? AppTheme.accent : AppTheme.subtleFill))
@@ -1966,7 +1966,7 @@ struct AIAnalysisView: View {
             Button(action: { Task { await loadAnalysis() } }) {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .padding(8)
                     .background(Circle().fill(AppTheme.accent.opacity(0.1)))
             }
@@ -2092,7 +2092,7 @@ struct TransactionEntrySheet: View {
                             .foregroundColor(AppTheme.secondaryText)
                         Text(String(format: "$%.2f", currentPrice))
                             .font(AppTheme.number(16, weight: .semibold))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                     .padding(.top, 8)
 
@@ -2131,7 +2131,7 @@ struct TransactionEntrySheet: View {
                                     priceText = String(format: "%.2f", currentPrice)
                                 }
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                             }
                             HStack {
                                 Text("$")
@@ -2183,7 +2183,7 @@ struct TransactionEntrySheet: View {
                     } label: {
                         Text(action == .buy ? L("Record Purchase") : L("Record Sale"))
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(

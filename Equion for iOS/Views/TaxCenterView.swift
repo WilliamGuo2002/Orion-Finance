@@ -84,7 +84,7 @@ struct TaxCenterView: View {
                 } label: {
                     Text(s.roomCAD == nil ? L("Set room") : L("Edit room"))
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
                 .buttonStyle(.borderless)
             }
@@ -185,7 +185,7 @@ struct TaxCenterView: View {
                              a.symbol, a.windowEnds.formatted(date: .abbreviated, time: .omitted)),
                       systemImage: "clock.badge.exclamationmark")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             case .likelyDenied:
                 Label(L("Likely a superficial loss — you bought it again within 30 days and still hold it."),
                       systemImage: "exclamationmark.triangle.fill")

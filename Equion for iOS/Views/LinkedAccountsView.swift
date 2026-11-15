@@ -48,7 +48,7 @@ struct LinkedAccountsView: View {
                             Task { await connect(reconnect: connection.id) }
                         } label: {
                             Label(L("Reconnect"), systemImage: "arrow.triangle.2.circlepath")
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                         }
                         .disabled(isConnecting)
                         .listRowBackground(AppTheme.cardBackground)
@@ -93,7 +93,7 @@ struct LinkedAccountsView: View {
                             Task { await connectBank(reconnect: item.id) }
                         } label: {
                             Label(L("Reconnect"), systemImage: "arrow.triangle.2.circlepath")
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                         }
                         .disabled(isConnectingBank)
                         .listRowBackground(AppTheme.cardBackground)
@@ -180,7 +180,7 @@ struct LinkedAccountsView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "building.columns.fill")
                         .font(.system(size: 22))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                     Text(L("See your real holdings"))
                         .font(AppTheme.serifHeadline(18))
                         .foregroundColor(AppTheme.primaryText)
@@ -209,7 +209,7 @@ struct LinkedAccountsView: View {
                     Text(brokerage.connections.isEmpty ? L("Connect a Brokerage") : L("Connect Another Brokerage"))
                         .fontWeight(.semibold)
                 }
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
             }
             .disabled(isConnecting)
             .listRowBackground(AppTheme.cardBackground)
@@ -226,7 +226,7 @@ struct LinkedAccountsView: View {
                     Text(bank.currentItems.isEmpty ? L("Connect a Bank") : L("Connect Another Bank"))
                         .fontWeight(.semibold)
                 }
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
             }
             .disabled(isConnectingBank)
             .listRowBackground(AppTheme.cardBackground)

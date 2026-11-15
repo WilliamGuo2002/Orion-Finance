@@ -102,7 +102,7 @@ struct AIConsentView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 34))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .padding(.top, 24)
                 Text(L("Before you use Orion AI"))
                     .font(AppTheme.serifHeadline(24))
@@ -133,7 +133,7 @@ struct AIConsentView: View {
                     Button(action: onAllow) {
                         Text(L("Allow and continue"))
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.accent))
@@ -158,7 +158,7 @@ struct AIConsentView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .frame(width: 20)
             Text(text)
                 .font(.system(size: 14))

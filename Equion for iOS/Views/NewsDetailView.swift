@@ -44,7 +44,7 @@ struct NewsDetailView: View {
                     ShareLink(item: linkURL) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 14))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                 }
             }

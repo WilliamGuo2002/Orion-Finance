@@ -24,7 +24,7 @@ struct MenuView: View {
                     Image(systemName: "person.circle.fill")
                         .resizable()
                         .frame(width: 60, height: 60)
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(firebaseController.currentUser?.email?.components(separatedBy: "@").first ?? "User")
@@ -137,7 +137,7 @@ struct MenuView: View {
                 )) {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L("AI Data Sharing"))
@@ -242,7 +242,7 @@ struct MenuView: View {
     private func menuRow(icon: String, title: String, detail: String? = nil, accessory: RowAccessory = .chevron) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .frame(width: 24)
             Text(title)
                 .foregroundColor(AppTheme.primaryText)
@@ -257,11 +257,11 @@ struct MenuView: View {
             case .chevron:
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                    .foregroundColor(AppTheme.tertiaryText)
             case .menu:
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.footnote.weight(.semibold))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                    .foregroundColor(AppTheme.tertiaryText)
             }
         }
         .contentShape(Rectangle())
@@ -303,7 +303,7 @@ struct DisclaimerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Done")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
@@ -328,14 +328,14 @@ struct AppearanceSheet: View {
                     Button(action: { selected = key; dismiss() }) {
                         HStack(spacing: 12) {
                             Image(systemName: icon)
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                                 .frame(width: 24)
                             Text(L(label))
                                 .foregroundColor(AppTheme.primaryText)
                             Spacer()
                             if selected == key {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                         }
                     }
@@ -350,7 +350,7 @@ struct AppearanceSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Done")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
@@ -373,7 +373,7 @@ struct LanguageSheet: View {
                             Spacer()
                             if selected == lang {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                         }
                     }
@@ -388,7 +388,7 @@ struct LanguageSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Done")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }

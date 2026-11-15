@@ -167,13 +167,13 @@ struct MainTabView: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("Orion Finance")
-            .tint(AppTheme.accent)
+            .tint(AppTheme.accentText)
         } detail: {
             NavigationStack {
                 detailView(for: selectedTab ?? .holdings)
             }
         }
-        .tint(AppTheme.accent)
+        .tint(AppTheme.accentText)
     }
 
     @ViewBuilder
@@ -291,7 +291,7 @@ struct MainTabView: View {
             }
             .foregroundColor(
                 tab == .orion
-                    ? (selectedTab == .orion ? .white : AppTheme.secondaryText)
+                    ? (selectedTab == .orion ? AppTheme.onAccent : AppTheme.secondaryText)
                     : (selectedTab == tab ? AppTheme.accent : AppTheme.secondaryText)
             )
             .frame(width: 54, height: 44)
@@ -405,7 +405,7 @@ struct PhoneTabBar: View {
             }
             .foregroundColor(
                 tab == .orion
-                    ? (selectedTab == .orion ? .white : AppTheme.secondaryText)
+                    ? (selectedTab == .orion ? AppTheme.onAccent : AppTheme.secondaryText)
                     : (selectedTab == tab ? AppTheme.accent : AppTheme.secondaryText)
             )
             .frame(maxWidth: .infinity)

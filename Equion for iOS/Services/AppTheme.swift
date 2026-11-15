@@ -28,8 +28,17 @@ struct AppTheme {
     /// Primary text
     static let primaryText = Color("ThemePrimaryText")
 
-    /// Secondary / caption text
+    /// Secondary / caption text. ≥4.5:1 on background, cards and fills — never fade it with opacity.
     static let secondaryText = Color("ThemeSecondaryText")
+
+    /// Icons, chevrons and other non-text marks that should sit back (≥3:1). Not for body text.
+    static let tertiaryText = Color("ThemeTertiaryText")
+
+    /// Accent as text or small icons (≥4.5:1). `accent` itself is for fills and large graphics.
+    static let accentText = Color("ThemeAccentText")
+
+    /// Text and icons placed on an `accent` fill (dark ink — white on caramel is only 2.7:1).
+    static let onAccent = Color("ThemeOnAccent")
 
     /// Stock up (green) — adapts to dark mode
     static let positive = Color("ThemePositive")
@@ -37,8 +46,8 @@ struct AppTheme {
     /// Stock down (red) — adapts to dark mode
     static let negative = Color("ThemeNegative")
 
-    /// Warning / error
-    static let warning = Color("ThemeNegative")
+    /// Warnings and errors — ochre, deliberately not the "price down" red.
+    static let warning = Color("ThemeWarning")
 
     /// Tab bar / navigation bar background
     static let barBackground = Color("ThemeBarBackground")
@@ -425,10 +434,10 @@ struct SectionLabel: View {
             if let count {
                 Text("·")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                 Text("\(count)")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
             Spacer()
         }
@@ -457,7 +466,7 @@ struct AccentSectionTitle: View {
             if let icon {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
 
             Text(title)

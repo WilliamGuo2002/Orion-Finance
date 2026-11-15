@@ -215,13 +215,13 @@ struct StockCompareView: View {
             HStack {
                 Text(symbolA)
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .frame(maxWidth: .infinity)
                 Text("")
                     .frame(width: 80)
                 Text(symbolB)
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -235,10 +235,10 @@ struct StockCompareView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                 Text(L("AI Verdict"))
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
 
             if isLoadingAI {
@@ -396,7 +396,7 @@ struct StockPickerSheet: View {
                             onSelect(sym, sym)
                         } label: {
                             HStack {
-                                Image(systemName: "plus.circle.fill").foregroundColor(AppTheme.accent)
+                                Image(systemName: "plus.circle.fill").foregroundColor(AppTheme.accentText)
                                 Text("\(L("Select")) \"\(sym)\"")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(AppTheme.primaryText)

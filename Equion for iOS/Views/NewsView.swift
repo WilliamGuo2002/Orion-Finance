@@ -36,7 +36,7 @@ struct NewsView: View {
                     Button(action: { Task { await loadNews() } }) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                             .padding(8)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
@@ -168,7 +168,7 @@ struct NewsCardView: View {
                     if let ts = item.datetime {
                         Text(timeString(from: ts))
                             .font(AppTheme.caption(11))
-                            .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                            .foregroundColor(AppTheme.secondaryText)
                     }
                 }
             }
@@ -178,7 +178,7 @@ struct NewsCardView: View {
             // Chevron
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(AppTheme.secondaryText.opacity(0.4))
+                .foregroundColor(AppTheme.tertiaryText)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -192,7 +192,7 @@ struct NewsCardView: View {
             .overlay {
                 Image(systemName: "newspaper")
                     .font(.system(size: 20))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                    .foregroundColor(AppTheme.tertiaryText)
             }
     }
 
@@ -249,7 +249,7 @@ struct OrionSummarySheet: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 14))
-                                .foregroundColor(AppTheme.accent)
+                                .foregroundColor(AppTheme.accentText)
                                 .padding(.top, 2)
                             Text(summary)
                                 .font(AppTheme.body(15))

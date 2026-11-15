@@ -67,7 +67,7 @@ struct PortfolioWizardView: View {
                     .frame(width: 80, height: 80)
                 Image(systemName: "dollarsign.circle")
                     .font(.system(size: 36, weight: .light))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
 
             Text(L("How much do you want to invest?"))
@@ -83,7 +83,7 @@ struct PortfolioWizardView: View {
             HStack {
                 Text("$")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                 TextField("1,000", text: $budget)
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(AppTheme.primaryText)
@@ -116,7 +116,7 @@ struct PortfolioWizardView: View {
         } label: {
             Text(label)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(budget == value ? .white : AppTheme.accent)
+                .foregroundColor(budget == value ? AppTheme.onAccent : AppTheme.accentText)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
@@ -167,7 +167,7 @@ struct PortfolioWizardView: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                 Text(L(question))
                     .font(AppTheme.serifHeadline(20))
                     .foregroundColor(AppTheme.primaryText)
@@ -198,7 +198,7 @@ struct PortfolioWizardView: View {
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 22))
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                         }
                         .padding(16)
@@ -271,7 +271,7 @@ struct PortfolioWizardView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 20))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                         Text(L("Example Portfolio to Explore"))
                             .font(AppTheme.serifHeadline(20))
                             .foregroundColor(AppTheme.primaryText)
@@ -304,10 +304,10 @@ struct PortfolioWizardView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "lightbulb.fill")
                                     .font(.system(size: 12))
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                                 Text(L("Why this allocation?"))
                                     .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(AppTheme.accent)
+                                    .foregroundColor(AppTheme.accentText)
                             }
                             Text(resultText)
                                 .font(.system(size: 14))
@@ -344,7 +344,7 @@ struct PortfolioWizardView: View {
                             Text(L("Start Over"))
                         }
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
@@ -397,7 +397,7 @@ struct PortfolioWizardView: View {
             if let amount = item.amount {
                 Text(String(format: "$%.0f", amount))
                     .font(AppTheme.number(14, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
         }
         .padding(12)
@@ -443,7 +443,7 @@ struct PortfolioWizardView: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundColor(.white)
+            .foregroundColor(AppTheme.onAccent)
             .padding(.vertical, 14)
             .padding(.horizontal, 24)
             .background(Capsule().fill(enabled ? AppTheme.accent : AppTheme.secondaryText.opacity(0.3)))

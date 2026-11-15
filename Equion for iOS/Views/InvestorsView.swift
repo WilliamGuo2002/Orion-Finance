@@ -64,7 +64,7 @@ struct InvestorCardView: View {
                     .frame(width: 48, height: 48)
                 Text(initials(investor.name))
                     .font(.system(size: 16, weight: .bold, design: .serif))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
             }
 
             // Name & fund
@@ -78,7 +78,7 @@ struct InvestorCardView: View {
                     .lineLimit(1)
                 Text(investor.description)
                     .font(AppTheme.caption(11))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                    .foregroundColor(AppTheme.secondaryText)
                     .lineLimit(1)
             }
 
@@ -88,7 +88,7 @@ struct InvestorCardView: View {
             VStack(spacing: 6) {
                 Text("13F")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(AppTheme.accentText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
@@ -96,7 +96,7 @@ struct InvestorCardView: View {
                     )
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.4))
+                    .foregroundColor(AppTheme.tertiaryText)
             }
         }
         .padding(.horizontal, 14)
@@ -146,7 +146,7 @@ struct InvestorDetailView: View {
                             .frame(width: 56, height: 56)
                         Text(initials(investor.name))
                             .font(.system(size: 20, weight: .bold, design: .serif))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(investor.name)
@@ -236,7 +236,7 @@ struct InvestorDetailView: View {
             Spacer()
             Text("SEC 13F")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(AppTheme.accentText)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
@@ -356,7 +356,7 @@ struct InvestorDetailView: View {
                             .frame(width: 70, alignment: .trailing)
                         Text(String(format: "%.1f%%", holding.percentage))
                             .font(AppTheme.number(12))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                             .frame(width: 45, alignment: .trailing)
                     }
                     .padding(.horizontal, 14)

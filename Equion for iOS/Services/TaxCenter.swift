@@ -109,7 +109,7 @@ struct TaxAssistantCard: View {
                 HStack(spacing: 12) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                         .frame(width: 34, height: 34)
                         .background(Circle().fill(AppTheme.accent.opacity(0.12)))
                     VStack(alignment: .leading, spacing: 2) {

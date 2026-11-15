@@ -35,7 +35,7 @@ struct InterestsSelectionView: View {
                             .frame(width: 80, height: 80)
                         Image(systemName: "sparkles")
                             .font(.system(size: 32, weight: .light))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(AppTheme.accentText)
                     }
                     .padding(.top, 20)
                 }
@@ -54,7 +54,7 @@ struct InterestsSelectionView: View {
                 if !localSelection.isEmpty {
                     Text("\(localSelection.count) \(L("selected"))")
                         .font(AppTheme.caption(12))
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
                         .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
@@ -93,7 +93,7 @@ struct InterestsSelectionView: View {
                                 .font(.system(size: 14, weight: .semibold))
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
@@ -122,7 +122,7 @@ struct InterestsSelectionView: View {
             if !isOnboarding {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Done")) { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                        .foregroundColor(AppTheme.accentText)
                 }
             }
         }
