@@ -399,7 +399,7 @@ struct StockDetailView: View {
                     ForEach(items, id: \.0) { label, value in
                         HStack(spacing: 4) {
                             Text(label)
-                                .font(.system(size: 12))
+                                .font(.system(.caption))
                                 .foregroundColor(AppTheme.secondaryText)
                             Spacer()
                             Text(value)
@@ -591,7 +591,7 @@ struct StockDetailView: View {
     private func peerCard(_ peer: PeerStock) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(peer.symbol)
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
             Text(peer.name)
                 .font(AppTheme.caption(11))
@@ -809,7 +809,7 @@ struct StockDetailView: View {
                 HStack(spacing: 12) {
                     // Rating badge
                     Text(L(d.rating))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
@@ -834,7 +834,7 @@ struct StockDetailView: View {
 
                     // Summary
                     Text(d.summary)
-                        .font(.system(size: 13))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.primaryText)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -864,11 +864,11 @@ struct StockDetailView: View {
                 VStack(spacing: 6) {
                     HStack {
                         Text(L("Market Sentiment"))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(.caption))
                             .foregroundColor(AppTheme.secondaryText)
                         Spacer()
                         Text(L(d.sentimentLabel))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(.caption, weight: .semibold))
                             .foregroundColor(sentimentColor(d.sentiment))
                     }
                     GeometryReader { geo in
@@ -902,19 +902,19 @@ struct StockDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 10, weight: .black))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.positive)
                             Text(L("Bullish Factors"))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.positive)
                         }
                         ForEach(d.bullPoints, id: \.self) { point in
                             HStack(alignment: .top, spacing: 4) {
                                 Text("•")
-                                    .font(.system(size: 10))
+                                    .font(.system(.caption2))
                                     .foregroundColor(AppTheme.positive)
                                 Text(point)
-                                    .font(.system(size: 11))
+                                    .font(.system(.caption2))
                                     .foregroundColor(AppTheme.primaryText)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -932,19 +932,19 @@ struct StockDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.down.right")
-                                .font(.system(size: 10, weight: .black))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.negative)
                             Text(L("Bearish Factors"))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.negative)
                         }
                         ForEach(d.bearPoints, id: \.self) { point in
                             HStack(alignment: .top, spacing: 4) {
                                 Text("•")
-                                    .font(.system(size: 10))
+                                    .font(.system(.caption2))
                                     .foregroundColor(AppTheme.negative)
                                 Text(point)
-                                    .font(.system(size: 11))
+                                    .font(.system(.caption2))
                                     .foregroundColor(AppTheme.primaryText)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -958,14 +958,14 @@ struct StockDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 6) {
                             Image(systemName: "figure.walk")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.accentText)
                             Text(L("What to Watch"))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(.caption, weight: .semibold))
                                 .foregroundColor(AppTheme.accentText)
                         }
                         Text(d.actionGuide)
-                            .font(.system(size: 13))
+                            .font(.system(.footnote))
                             .foregroundColor(AppTheme.primaryText)
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
@@ -990,12 +990,12 @@ struct StockDetailView: View {
                 NavigationLink(destination: AIAnalysisView(symbol: symbol, name: name)) {
                     HStack {
                         Image(systemName: "bubble.left.and.text.bubble.right")
-                            .font(.system(size: 12))
+                            .font(.system(.caption))
                         Text(L("Ask Orion for deeper analysis"))
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(.footnote))
                         Spacer()
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(.caption2, weight: .semibold))
                     }
                     .foregroundColor(AppTheme.accentText)
                     .padding(.vertical, 10)
@@ -1023,7 +1023,7 @@ struct StockDetailView: View {
                     HStack(spacing: 10) {
                         ProgressView()
                         Text(L("Generating AI analysis..."))
-                            .font(.system(size: 13))
+                            .font(.system(.footnote))
                             .foregroundColor(AppTheme.secondaryText)
                     }
                     // Skeleton preview
@@ -1081,7 +1081,7 @@ struct StockDetailView: View {
     private func priceTargetItem(_ label: String, value: Double, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(.caption2))
                 .foregroundColor(AppTheme.secondaryText)
             Text(String(format: "$%.2f", value))
                 .font(AppTheme.number(15, weight: .bold))
@@ -1132,10 +1132,10 @@ struct StockDetailView: View {
         } label: {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(.system(size: 12))
+                    .font(.system(.caption))
                     .foregroundColor(AppTheme.secondaryText)
                 Image(systemName: "questionmark.circle")
-                    .font(.system(size: 10))
+                    .font(.system(.caption2))
                     .foregroundColor(AppTheme.accent.opacity(0.6))
                 Spacer()
                 Text(value)
@@ -1168,13 +1168,13 @@ struct StockDetailView: View {
                                 .font(AppTheme.number(18, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                             Text(L("Shares"))
-                                .font(.system(size: 11))
+                                .font(.system(.caption2))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(HoldingsManager.shared.snapshot.format(agg.averageCost))
                                 .font(AppTheme.number(12, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(L("Avg Cost"))
-                                .font(.system(size: 10))
+                                .font(.system(.caption2))
                                 .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
@@ -1187,7 +1187,7 @@ struct StockDetailView: View {
                                 .font(AppTheme.number(18, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                             Text(L("Market Value"))
-                                .font(.system(size: 11))
+                                .font(.system(.caption2))
                                 .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
@@ -1203,7 +1203,7 @@ struct StockDetailView: View {
                                 .font(AppTheme.number(12, weight: .semibold))
                                 .foregroundColor(agg.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative)
                             Text(L("Total P&L"))
-                                .font(.system(size: 10))
+                                .font(.system(.caption2))
                                 .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
@@ -1212,7 +1212,7 @@ struct StockDetailView: View {
                     // Day P&L
                     HStack {
                         Text(L("Today"))
-                            .font(.system(size: 12))
+                            .font(.system(.caption))
                             .foregroundColor(AppTheme.secondaryText)
                         Spacer()
                         Text(String(format: "%@%@ (%@%.2f%%)",
@@ -1233,21 +1233,21 @@ struct StockDetailView: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L("Transaction History"))
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(.caption, weight: .semibold))
                                 .foregroundColor(AppTheme.secondaryText)
 
                             ForEach(holdingTransactions.suffix(5).reversed()) { tx in
                                 HStack(spacing: 8) {
                                     Image(systemName: tx.action == .buy ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                                        .font(.system(size: 14))
+                                        .font(.system(.subheadline))
                                         .foregroundColor(tx.action == .buy ? AppTheme.positive : AppTheme.negative)
 
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(tx.action == .buy ? L("Buy") : L("Sell"))
-                                            .font(.system(size: 12, weight: .semibold))
+                                            .font(.system(.caption, weight: .semibold))
                                             .foregroundColor(AppTheme.primaryText)
                                         Text(txDateString(tx.date))
-                                            .font(.system(size: 10))
+                                            .font(.system(.caption2))
                                             .foregroundColor(AppTheme.secondaryText)
                                     }
 
@@ -1290,7 +1290,7 @@ struct StockDetailView: View {
                         // Date badge
                         VStack(spacing: 0) {
                             Text(earningsMonth(event.date))
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.onAccent)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 2)
@@ -1308,11 +1308,11 @@ struct StockDetailView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
                                 Text(L("Earnings Report"))
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.system(.footnote, weight: .semibold))
                                     .foregroundColor(AppTheme.primaryText)
                                 if !event.hour.isEmpty {
                                     Text(event.hour == "bmo" ? L("Before Open") : L("After Close"))
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(.system(.caption2))
                                         .foregroundColor(AppTheme.accentText)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -1321,7 +1321,7 @@ struct StockDetailView: View {
                             }
                             if let est = event.epsEstimate {
                                 Text(String(format: "EPS %@: $%.2f", L("Estimate"), est))
-                                    .font(.system(size: 11))
+                                    .font(.system(.caption2))
                                     .foregroundColor(AppTheme.secondaryText)
                             }
                         }
@@ -1334,11 +1334,11 @@ struct StockDetailView: View {
                 // Beginner tip
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.accentText)
                         .padding(.top, 1)
                     Text(L("Prices often move more than usual around an earnings report."))
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                         .lineSpacing(2)
                 }
@@ -1380,7 +1380,7 @@ struct StockDetailView: View {
                     showMarker = false
                     Task { await loadChart() }
                 }
-                .font(.system(size: 13, weight: selectedInterval == interval ? .bold : .medium))
+                .font(.system(.footnote, weight: selectedInterval == interval ? .semibold : .regular))
                 .foregroundColor(selectedInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -1442,31 +1442,14 @@ struct StockDetailView: View {
                             .animation(.easeInOut(duration: 0.3), value: currentPrice)
                     }
                     if let ch = intervalChange {
-                        Text("\(AppTheme.changeArrow(ch.amount)) \(ch.amount >= 0 ? "+" : "")\(String(format: "%.2f", ch.amount)) (\(ch.percent >= 0 ? "+" : "")\(String(format: "%.2f%%", ch.percent)))")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white)
-                            .contentTransition(.numericText())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule().fill(
-                                    LinearGradient(
-                                        colors: ch.amount >= 0
-                                            ? [AppTheme.positive, AppTheme.positive.opacity(0.85)]
-                                            : [AppTheme.negative, AppTheme.negative.opacity(0.85)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                            )
-                            .shadow(color: (ch.amount >= 0 ? AppTheme.positive : AppTheme.negative).opacity(0.3), radius: 4, y: 2)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.6), value: ch.percent)
+                        ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
+                            .contentTransition(.numericText(value: ch.percent))
                     }
                 }
                 HStack(spacing: 6) {
                     if marketSession == .closed || marketSession == .holiday {
                         Image(systemName: "moon.zzz.fill")
-                            .font(.system(size: 9))
+                            .font(.system(.caption2))
                             .foregroundColor(AppTheme.accentText)
                     }
                     Text(marketStatusText).font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText)
@@ -1499,8 +1482,7 @@ struct StockDetailView: View {
             Text("$\(priceString)").font(AppTheme.number()).foregroundColor(AppTheme.secondaryText)
                 .redacted(reason: priceLoaded ? [] : .placeholder)
             if let ch = intervalChange {
-                Text("\(ch.percent >= 0 ? "+" : "")\(String(format: "%.2f%%", ch.percent))")
-                    .font(AppTheme.caption()).foregroundColor(ch.amount >= 0 ? AppTheme.positive : AppTheme.negative)
+                ChangeBadge(value: ch.percent, size: .compact)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
@@ -1672,9 +1654,9 @@ struct StockDetailView: View {
                 // Floating label below the dot
                 HStack(spacing: 4) {
                     Image(systemName: "hand.draw")
-                        .font(.system(size: 10))
+                        .font(.system(.caption2))
                     Text(L("Touch to explore"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(.caption2))
                 }
                 .foregroundColor(AppTheme.secondaryText)
                 .padding(.horizontal, 10)
@@ -1955,7 +1937,7 @@ struct AIAnalysisView: View {
                     withAnimation(.easeInOut(duration: 0.2)) { currentTone = tone }
                     Task { await loadAnalysis() }
                 }
-                .font(.system(size: 13, weight: currentTone == tone ? .bold : .medium))
+                .font(.system(.footnote, weight: currentTone == tone ? .semibold : .regular))
                 .foregroundColor(currentTone == tone ? AppTheme.onAccent : AppTheme.secondaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
@@ -1965,7 +1947,7 @@ struct AIAnalysisView: View {
             Spacer()
             Button(action: { Task { await loadAnalysis() } }) {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.accentText)
                     .padding(8)
                     .background(Circle().fill(AppTheme.accent.opacity(0.1)))
@@ -2001,7 +1983,7 @@ struct AIAnalysisView: View {
     @ViewBuilder private var inputBar: some View {
         HStack(spacing: 6) {
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                Image(systemName: "photo").font(.system(size: 20)).foregroundColor(AppTheme.secondaryText)
+                Image(systemName: "photo").font(.system(.title3)).foregroundColor(AppTheme.secondaryText)
             }
             TextField(L("Ask about") + " \(symbol)...", text: $userInput).textFieldStyle(.roundedBorder)
             Button(action: sendChat) {
@@ -2085,7 +2067,7 @@ struct TransactionEntrySheet: View {
                     // Symbol header
                     VStack(spacing: 4) {
                         Text(symbol)
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(.title2, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
                         Text(name)
                             .font(.subheadline)
@@ -2109,7 +2091,7 @@ struct TransactionEntrySheet: View {
                         // Shares
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L("Number of Shares"))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(.footnote))
                                 .foregroundColor(AppTheme.secondaryText)
                             TextField("0", text: $sharesText)
                                 .keyboardType(.decimalPad)
@@ -2124,13 +2106,13 @@ struct TransactionEntrySheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text(L("Price per Share"))
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(.footnote))
                                     .foregroundColor(AppTheme.secondaryText)
                                 Spacer()
                                 Button(L("Use Current")) {
                                     priceText = String(format: "%.2f", currentPrice)
                                 }
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(.caption))
                                 .foregroundColor(AppTheme.accentText)
                             }
                             HStack {
@@ -2150,7 +2132,7 @@ struct TransactionEntrySheet: View {
                         // Date
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L("Transaction Date"))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(.footnote))
                                 .foregroundColor(AppTheme.secondaryText)
                             DatePicker("", selection: $date, in: ...Date(), displayedComponents: [.date])
                                 .datePickerStyle(.compact)
@@ -2163,7 +2145,7 @@ struct TransactionEntrySheet: View {
                     if let shares = Double(sharesText), let price = Double(priceText), shares > 0, price > 0 {
                         HStack {
                             Text(L("Total"))
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(.subheadline))
                                 .foregroundColor(AppTheme.secondaryText)
                             Spacer()
                             Text(String(format: "$%.2f", shares * price))
@@ -2182,7 +2164,7 @@ struct TransactionEntrySheet: View {
                         save()
                     } label: {
                         Text(action == .buy ? L("Record Purchase") : L("Record Sale"))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(.callout, weight: .semibold))
                             .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)

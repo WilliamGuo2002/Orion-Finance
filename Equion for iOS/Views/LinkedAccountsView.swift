@@ -110,7 +110,7 @@ struct LinkedAccountsView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 15))
+                                .font(.system(.subheadline))
                                 .foregroundColor(AppTheme.secondaryText)
                         }
                     }
@@ -179,7 +179,7 @@ struct LinkedAccountsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "building.columns.fill")
-                        .font(.system(size: 22))
+                        .font(.system(.title2))
                         .foregroundColor(AppTheme.accentText)
                     Text(L("See your real holdings"))
                         .font(AppTheme.serifHeadline(18))
@@ -246,7 +246,7 @@ struct LinkedAccountsView: View {
             Text(connection.brokerageName)
             if connection.disabled {
                 Text(L("Needs reconnect"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.warning)
             }
             Spacer()
@@ -258,7 +258,7 @@ struct LinkedAccountsView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 15))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.secondaryText)
             }
         }
@@ -269,7 +269,7 @@ struct LinkedAccountsView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(account.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text([account.institution, account.maskedNumber].compactMap { $0 }.joined(separator: " · "))
                         .font(AppTheme.caption(11))
@@ -321,7 +321,7 @@ struct LinkedAccountsView: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Text([account.subtype?.capitalized, account.maskedNumber].compactMap { $0 }.joined(separator: " · "))
                     .font(AppTheme.caption(11))

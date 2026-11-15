@@ -38,7 +38,7 @@ struct LoginView: View {
                             .opacity(logoAppeared ? 1 : 0)
 
                         Image(systemName: "sparkle")
-                            .font(.system(size: 36, weight: .light))
+                            .font(.system(.largeTitle, weight: .light))
                             .foregroundColor(AppTheme.accentText)
                             .scaleEffect(logoAppeared ? 1 : 0.3)
                             .opacity(logoAppeared ? 1 : 0)
@@ -83,7 +83,7 @@ struct LoginView: View {
                         if !errorMessage.isEmpty {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 12))
+                                    .font(.system(.caption))
                                 Text(errorMessage)
                                     .font(.caption)
                             }
@@ -237,7 +237,7 @@ struct GoogleSignInButton: View {
         Button(action: signInWithGoogle) {
             HStack(spacing: 12) {
                 Image(systemName: "globe")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(.title3))
                 Text(L("Continue with Google"))
                     .fontWeight(.medium)
             }

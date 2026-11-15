@@ -17,36 +17,16 @@ struct NewsView: View {
         return [GridItem(.flexible())]
     }
 
-    private let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMMM d"
-        f.locale = Locale(identifier: "en_US")
-        return f
-    }()
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L("News"))
-                        .font(AppTheme.serifTitle(26))
-                        .foregroundColor(AppTheme.primaryText)
-                    Spacer()
-                    Button(action: { Task { await loadNews() } }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppTheme.accentText)
-                            .padding(8)
-                            .background(Circle().fill(.ultraThinMaterial))
-                    }
+            // Header — pull to refresh does the same as the button; the button stays for discoverability.
+            PageHeader(title: L("News"),
+                       subtitle: Date.now.formatted(.dateTime.month(.wide).day().locale(AppLocale.current))) {
+                HeaderIconButton(systemImage: "arrow.clockwise", label: L("Refresh")) {
+                    Task { await loadNews() }
                 }
-                Text(dateFormatter.string(from: Date()))
-                    .font(AppTheme.caption(12))
-                    .foregroundColor(AppTheme.secondaryText)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
 
             // News list — card style matching watchlist
             if isLoading && newsList.isEmpty {
@@ -159,7 +139,7 @@ struct NewsCardView: View {
             // Title & source
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.headline)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.primaryText)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
@@ -177,7 +157,7 @@ struct NewsCardView: View {
 
             // Chevron
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(.caption))
                 .foregroundColor(AppTheme.tertiaryText)
         }
         .padding(.horizontal, 14)
@@ -191,7 +171,7 @@ struct NewsCardView: View {
             .frame(width: 80, height: 64)
             .overlay {
                 Image(systemName: "newspaper")
-                    .font(.system(size: 20))
+                    .font(.system(.title3))
                     .foregroundColor(AppTheme.tertiaryText)
             }
     }
@@ -248,7 +228,7 @@ struct OrionSummarySheet: View {
                         // AI icon + summary
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 14))
+                                .font(.system(.subheadline))
                                 .foregroundColor(AppTheme.accentText)
                                 .padding(.top, 2)
                             Text(summary)

@@ -101,14 +101,14 @@ struct AIConsentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 34))
+                    .font(.system(.largeTitle))
                     .foregroundColor(AppTheme.accentText)
                     .padding(.top, 24)
                 Text(L("Before you use Orion AI"))
                     .font(AppTheme.serifHeadline(24))
                     .foregroundColor(AppTheme.primaryText)
                 Text(L("Orion's AI features are powered by Google Gemini, a third-party service. To answer you, Orion sends Google:"))
-                    .font(.system(size: 15))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.primaryText)
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -132,7 +132,7 @@ struct AIConsentView: View {
                 VStack(spacing: 10) {
                     Button(action: onAllow) {
                         Text(L("Allow and continue"))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(.callout, weight: .semibold))
                             .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -140,7 +140,7 @@ struct AIConsentView: View {
                     }
                     Button(action: onDecline) {
                         Text(L("Not now"))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.system(.subheadline))
                             .foregroundColor(AppTheme.secondaryText)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
@@ -157,11 +157,11 @@ struct AIConsentView: View {
     private func bullet(_ icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(.subheadline))
                 .foregroundColor(AppTheme.accentText)
                 .frame(width: 20)
             Text(text)
-                .font(.system(size: 14))
+                .font(.system(.subheadline))
                 .foregroundColor(AppTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }

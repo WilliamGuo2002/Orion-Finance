@@ -92,37 +92,73 @@ struct AppTheme {
         }
     }
 
+    // ---------------------------------------------------------------
+    // Type scale. Every helper maps its size onto one of 9 iOS text styles, so all text follows
+    // Dynamic Type and the app uses one consistent scale instead of 21 ad-hoc sizes:
+    //   largeTitle 34 · title 28 · title2 22 · title3 20 · body 17 · callout 16 · subheadline 15
+    //   footnote 13 · caption 12 · caption2 11
+    // Weights collapse to regular / semibold, with bold kept only for hero-sized text.
+    // ---------------------------------------------------------------
+
+    /// The text style a legacy point size belongs to.
+    static func textStyle(for size: CGFloat) -> Font.TextStyle {
+        switch size {
+        case ..<11.5: return .caption2
+        case ..<12.5: return .caption
+        case ..<13.5: return .footnote
+        case ..<15.5: return .subheadline
+        case ..<16.5: return .callout
+        case ..<17.5: return .body
+        case ..<21.5: return .title3
+        case ..<25.5: return .title2
+        case ..<31.5: return .title
+        default:      return .largeTitle
+        }
+    }
+
+    /// Regular / semibold / bold (hero only). Light weights are avoided for text.
+    static func normalizedWeight(_ weight: Font.Weight, size: CGFloat) -> Font.Weight {
+        switch weight {
+        case .ultraLight, .thin, .light, .regular, .medium: return .regular
+        case .semibold: return .semibold
+        default: return size >= 28 ? .bold : .semibold   // bold, heavy, black
+        }
+    }
+
     /// Serif title font
     /// - CJK languages: appropriate serif/mincho font + New York fallback
     /// - Others: New York (system serif)
     static func serifTitle(_ size: CGFloat = 22, weight: Font.Weight = .bold) -> Font {
+        let style = textStyle(for: size)
         if cjkScript != .none {
-            return serifCJKFont(size: size, bold: true)
+            return serifCJKFont(style: style, bold: true)
         }
-        return .system(size: size, weight: weight, design: .serif)
+        return .system(style, design: .serif, weight: weight == .bold ? .semibold : normalizedWeight(weight, size: size))
     }
 
     /// Serif headline
     static func serifHeadline(_ size: CGFloat = 17, weight: Font.Weight = .semibold) -> Font {
+        let style = textStyle(for: size)
         if cjkScript != .none {
-            return serifCJKFont(size: size, bold: weight == .bold || weight == .heavy || weight == .black || weight == .semibold)
+            return serifCJKFont(style: style, bold: weight == .bold || weight == .heavy || weight == .black || weight == .semibold)
         }
-        return .system(size: size, weight: weight, design: .serif)
+        return .system(style, design: .serif, weight: normalizedWeight(weight, size: size))
     }
 
     /// Default body text
     static func body(_ size: CGFloat = 15) -> Font {
-        .system(size: size, design: .default)
+        .system(textStyle(for: size))
     }
 
-    /// Monospaced for numbers / prices
+    /// Numbers and prices: SF Pro with tabular (fixed-width) digits, so columns align and values
+    /// don't jitter when they change. (Was SF Mono — slashed zeros, wide punctuation.)
     static func number(_ size: CGFloat = 15, weight: Font.Weight = .medium) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+        .system(textStyle(for: size), weight: normalizedWeight(weight, size: size)).monospacedDigit()
     }
 
     /// Caption text
     static func caption(_ size: CGFloat = 12) -> Font {
-        .system(size: size, design: .default)
+        .system(textStyle(for: size))
     }
 
     /// Build a CJK serif font with Latin serif fallback using UIKit font descriptor cascade
@@ -130,7 +166,12 @@ struct AppTheme {
     /// - Japanese: Hiragino Mincho ProN (ヒラギノ明朝)
     /// - Korean: Apple Myungjo (애플명조) or Nanum Myeongjo
     /// - Latin/numbers: New York (system serif)
-    private static func serifCJKFont(size: CGFloat, bold: Bool) -> Font {
+    private static func serifCJKFont(style: Font.TextStyle, bold: Bool) -> Font {
+        let uiStyle = uiTextStyle(style)
+        // Base size at the default content size, then scaled for the user's Dynamic Type setting.
+        let size = UIFontDescriptor.preferredFontDescriptor(withTextStyle: uiStyle,
+                                                            compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)).pointSize
+
         // Primary: New York (system serif) for Latin characters
         let nyDescriptor = UIFontDescriptor
             .preferredFontDescriptor(withTextStyle: .body)
@@ -145,7 +186,7 @@ struct AppTheme {
         case .japanese:
             cjkFontName = bold ? "HiraMinProN-W6" : "HiraMinProN-W3"
         case .korean:
-            cjkFontName = bold ? "AppleMyungjo" : "AppleMyungjo"
+            cjkFontName = "AppleMyungjo"
         case .none:
             cjkFontName = bold ? "STSongti-SC-Bold" : "STSongti-SC-Regular"
         }
@@ -156,13 +197,28 @@ struct AppTheme {
             .cascadeList: [cjkDescriptor]
         ])
 
-        // Apply bold trait if needed
         var traits = cascadeDescriptor.symbolicTraits
         if bold { traits.insert(.traitBold) }
         let finalDescriptor = cascadeDescriptor.withSymbolicTraits(traits) ?? cascadeDescriptor
 
-        let uiFont = UIFont(descriptor: finalDescriptor, size: size)
-        return Font(uiFont)
+        let base = UIFont(descriptor: finalDescriptor, size: size)
+        return Font(UIFontMetrics(forTextStyle: uiStyle).scaledFont(for: base))
+    }
+
+    private static func uiTextStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {
+        switch style {
+        case .largeTitle: return .largeTitle
+        case .title: return .title1
+        case .title2: return .title2
+        case .title3: return .title3
+        case .headline: return .headline
+        case .subheadline: return .subheadline
+        case .callout: return .callout
+        case .footnote: return .footnote
+        case .caption: return .caption1
+        case .caption2: return .caption2
+        default: return .body
+        }
     }
 
     // =====================
@@ -415,38 +471,89 @@ struct LivePulseDot: View {
     }
 }
 
-// MARK: - Section Label (e.g. "WATCHLIST · 5 items")
+// MARK: - Page header (tab roots)
+/// The same title treatment on every tab root: 28pt serif, 20pt margins, optional subtitle and a
+/// trailing control slot.
+struct PageHeader<Trailing: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(AppTheme.serifTitle(28))
+                    .foregroundColor(AppTheme.primaryText)
+                    .accessibilityAddTraits(.isHeader)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+            }
+            Spacer(minLength: 8)
+            trailing()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+}
+
+extension PageHeader where Trailing == EmptyView {
+    init(title: String, subtitle: String? = nil) {
+        self.init(title: title, subtitle: subtitle) { EmptyView() }
+    }
+}
+
+/// A plain icon button for page headers: 44pt hit target, accent ink, labelled for VoiceOver.
+struct HeaderIconButton: View {
+    let systemImage: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.title3)
+                .foregroundColor(AppTheme.accentText)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(label)
+    }
+}
+
+// MARK: - Section Label (e.g. "Watchlist  2")
+/// Section heading for lists on a page background. Hierarchy comes from the serif type, not from
+/// accent bars, caps and tracking.
 struct SectionLabel: View {
     let title: String
     var count: Int? = nil
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Accent vertical bar — thick & vivid
-            RoundedRectangle(cornerRadius: 2)
-                .fill(AppTheme.accent)
-                .frame(width: 4, height: 16)
-
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(AppTheme.secondaryText)
-                .tracking(1.2)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(title)
+                .font(AppTheme.serifHeadline(17))
+                .foregroundColor(AppTheme.primaryText)
             if let count {
-                Text("·")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.accentText)
                 Text("\(count)")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.accentText)
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundColor(AppTheme.secondaryText)
             }
             Spacer()
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 4)
+        .padding(.top, 8)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
-// MARK: - Accent Section Header (for card module titles)
+// MARK: - Module title (inside cards)
+/// Card/module heading: serif headline in primary ink. The `icon` parameter is kept for call-site
+/// compatibility but no longer drawn — a bar + icon + title on every card competed for attention.
 struct AccentSectionTitle: View {
     let icon: String?
     let title: String
@@ -457,100 +564,73 @@ struct AccentSectionTitle: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Accent bar — bold and vivid
-            RoundedRectangle(cornerRadius: 2)
-                .fill(AppTheme.accent)
-                .frame(width: 4, height: 20)
-
-            if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppTheme.accentText)
-            }
-
-            Text(title)
-                .font(AppTheme.serifHeadline())
-                .foregroundColor(AppTheme.primaryText)
-        }
+        Text(title)
+            .font(AppTheme.serifHeadline(17))
+            .foregroundColor(AppTheme.primaryText)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
-// MARK: - Change Badge (SF Symbol arrow + percentage pill)
-/// A rich badge showing change direction with icon + percentage
+// MARK: - Change label (the one way to show a price change)
+/// Arrow + signed percentage, coloured text only (optionally on a faint tint). Tabular digits,
+/// sized by text style, read by VoiceOver as one phrase ("Down 2.01 percent").
+/// Every change on every screen uses this — the app previously had four different treatments.
 struct ChangeBadge: View {
     let value: Double
-    var showBackground: Bool = true
+    /// Optional absolute change, shown as "−3.34 (−2.01%)".
+    var amount: Double? = nil
+    var showBackground: Bool = false
     var size: ChangeBadgeSize = .regular
 
     enum ChangeBadgeSize {
-        case compact    // for lists, tight spaces
+        case compact    // lists, tight spaces
         case regular    // standard
-        case large      // for hero areas
+        case large      // hero areas
     }
 
-    private var changeColor: Color {
+    private var color: Color {
         value > 0 ? AppTheme.positive : (value < 0 ? AppTheme.negative : AppTheme.secondaryText)
     }
 
-    private var arrowIcon: String {
+    private var arrow: String {
         value > 0 ? "arrow.up.right" : (value < 0 ? "arrow.down.right" : "minus")
     }
 
-    private var changeText: String {
-        let sign = value >= 0 ? "+" : ""
-        return "\(sign)\(String(format: "%.2f", value))%"
-    }
-
-    private var iconSize: CGFloat {
+    private var font: Font {
         switch size {
-        case .compact: return 8
-        case .regular:  return 9
-        case .large:    return 11
-        }
-    }
-
-    private var fontSize: CGFloat {
-        switch size {
-        case .compact: return 11
-        case .regular:  return 12
-        case .large:    return 14
-        }
-    }
-
-    private var circleSize: CGFloat {
-        switch size {
-        case .compact: return 18
-        case .regular:  return 22
-        case .large:    return 26
+        case .compact: return .footnote.weight(.semibold).monospacedDigit()
+        case .regular: return .subheadline.weight(.semibold).monospacedDigit()
+        case .large:   return .body.weight(.semibold).monospacedDigit()
         }
     }
 
     var body: some View {
-        HStack(spacing: 5) {
-            // Arrow icon in vivid tinted circle
-            ZStack {
-                Circle()
-                    .fill(changeColor.opacity(0.18))
-                    .frame(width: circleSize, height: circleSize)
-                Image(systemName: arrowIcon)
-                    .font(.system(size: iconSize, weight: .black))
-                    .foregroundColor(changeColor)
+        HStack(spacing: 3) {
+            Image(systemName: arrow)
+                .imageScale(.small)
+                .fontWeight(.semibold)
+            if let amount {
+                Text(String(format: "%@%.2f (%@%.2f%%)", amount >= 0 ? "+" : "−", abs(amount), value >= 0 ? "+" : "−", abs(value)))
+            } else {
+                Text(String(format: "%@%.2f%%", value >= 0 ? "+" : "−", abs(value)))
             }
-
-            Text(changeText)
-                .font(.system(size: fontSize, weight: .bold, design: .monospaced))
-                .foregroundColor(changeColor)
         }
+        .font(font)
+        .foregroundColor(color)
         .padding(.horizontal, showBackground ? 8 : 0)
-        .padding(.vertical, showBackground ? 4 : 0)
-        .background(
-            Group {
-                if showBackground {
-                    Capsule().fill(changeColor.opacity(0.1))
-                }
-            }
-        )
+        .padding(.vertical, showBackground ? 3 : 0)
+        .background {
+            if showBackground { Capsule().fill(color.opacity(0.1)) }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.spoken(value))
+    }
+
+    static func spoken(_ value: Double) -> String {
+        let pct = String(format: "%.2f", abs(value))
+        if value > 0 { return String(format: L("Up %@ percent"), pct) }
+        if value < 0 { return String(format: L("Down %@ percent"), pct) }
+        return L("Unchanged")
     }
 }
 

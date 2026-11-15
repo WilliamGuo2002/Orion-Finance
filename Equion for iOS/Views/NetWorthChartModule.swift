@@ -71,7 +71,7 @@ struct NetWorthChartModule: View {
             VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(L("Net Worth"))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(.caption2))
                     .foregroundColor(AppTheme.secondaryText)
                 Spacer()
                 CurrencyToggle(selected: snap.displayCurrency)
@@ -304,7 +304,7 @@ struct NetWorthChartModule: View {
                     range = r
                 } label: {
                     Text(r)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundColor(range == r ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
@@ -320,9 +320,9 @@ struct NetWorthChartModule: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: split ? "chart.line.uptrend.xyaxis" : "square.stack.3d.up")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                     Text(split ? L("Total") : L("By institution"))
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                 }
                 .foregroundColor(split ? AppTheme.onAccent : AppTheme.accentText)
                 .padding(.horizontal, 10)
@@ -349,7 +349,7 @@ struct NetWorthChartModule: View {
                         .fill(line.color)
                         .frame(width: 14, height: 3)
                     Text(line.name)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.primaryText)
                         .lineLimit(1)
                     Spacer()

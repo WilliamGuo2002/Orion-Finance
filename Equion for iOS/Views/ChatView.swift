@@ -22,19 +22,9 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(L("Orion AI"))
-                    .font(AppTheme.serifTitle(22))
-                    .foregroundColor(AppTheme.primaryText)
-                Spacer()
-                Button(action: createNewChat) {
-                    Image(systemName: "square.and.pencil")
-                        .font(.title3)
-                        .foregroundColor(AppTheme.primaryText)
-                }
+            PageHeader(title: L("Orion AI")) {
+                HeaderIconButton(systemImage: "square.and.pencil", label: L("New conversation"), action: createNewChat)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
 
             if isLoading && sessions.isEmpty {
                 Spacer()
@@ -51,7 +41,7 @@ struct ChatView: View {
                             .fill(AppTheme.accent.opacity(0.12))
                             .frame(width: 80, height: 80)
                         Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 32, weight: .light))
+                            .font(.system(.largeTitle, weight: .light))
                             .foregroundColor(AppTheme.accentText)
                     }
 
@@ -68,9 +58,9 @@ struct ChatView: View {
                     Button(action: createNewChat) {
                         HStack(spacing: 8) {
                             Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(.subheadline, weight: .semibold))
                             Text(L("Start a new chat"))
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(.subheadline, weight: .semibold))
                         }
                         .foregroundColor(AppTheme.onAccent)
                         .padding(.horizontal, 28)
@@ -254,14 +244,14 @@ struct ChatDetailView: View {
                 // Photo picker
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Image(systemName: "photo")
-                        .font(.system(size: 20))
+                        .font(.system(.title3))
                         .foregroundColor(AppTheme.secondaryText)
                 }
 
                 // File picker
                 Button(action: { showFilePicker = true }) {
                     Image(systemName: "doc")
-                        .font(.system(size: 20))
+                        .font(.system(.title3))
                         .foregroundColor(AppTheme.secondaryText)
                 }
 
@@ -271,14 +261,14 @@ struct ChatDetailView: View {
                 // Voice chat (Gemini Live)
                 Button(action: { Task { if await AIConsent.shared.request() { showVoiceChat = true } } }) {
                     Image(systemName: "mic.fill")
-                        .font(.system(size: 20))
+                        .font(.system(.title3))
                         .foregroundColor(AppTheme.secondaryText)
                 }
 
                 // Video chat (Gemini Live)
                 Button(action: { Task { if await AIConsent.shared.request() { showVideoChat = true } } }) {
                     Image(systemName: "video.fill")
-                        .font(.system(size: 18))
+                        .font(.system(.title3))
                         .foregroundColor(AppTheme.secondaryText)
                 }
 
@@ -531,7 +521,7 @@ struct ChatBubble: View {
                         .fill(AppTheme.accent.opacity(0.12))
                         .frame(width: 28, height: 28)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.accentText)
                 }
             }
@@ -567,7 +557,7 @@ struct ChatBubble: View {
                             MarkdownText(text: message.content)
                         }
                     }
-                    .font(.system(size: 15))
+                    .font(.system(.subheadline))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(isUser ? AppTheme.accent.opacity(0.12) : AppTheme.cardBackground)
@@ -669,7 +659,7 @@ struct GeminiVoiceChatView: View {
                         .frame(width: 120, height: 120)
 
                     Image(systemName: live.isAISpeaking ? "waveform" : "mic.fill")
-                        .font(.system(size: 36))
+                        .font(.system(.largeTitle))
                         .foregroundColor(.white)
                         .symbolEffect(.variableColor.iterative, isActive: live.isAISpeaking)
                 }

@@ -281,11 +281,11 @@ struct MainTabView: View {
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: selectedTab == tab ? tab.activeIcon : tab.icon)
-                    .font(.system(size: 18, weight: selectedTab == tab ? .semibold : .regular))
+                    .font(.system(.title3, weight: selectedTab == tab ? .semibold : .regular))
                     .frame(height: 22)
                     .symbolRenderingMode(.hierarchical)
                 Text(tab.label())
-                    .font(.system(size: 9, weight: selectedTab == tab ? .semibold : .regular))
+                    .font(.system(.caption2, weight: selectedTab == tab ? .semibold : .regular))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
@@ -391,12 +391,12 @@ struct PhoneTabBar: View {
         }) {
             VStack(spacing: tabBar.collapsed ? 0 : 3) {
                 Image(systemName: selectedTab == tab ? tab.activeIcon : tab.icon)
-                    .font(.system(size: 18, weight: selectedTab == tab ? .semibold : .regular))
+                    .font(.system(.title3, weight: selectedTab == tab ? .semibold : .regular))
                     .frame(height: 22)
                     .symbolRenderingMode(.hierarchical)
                 // Label collapses to zero height (icons only) when scrolling up
                 Text(tab.label())
-                    .font(.system(size: 10, weight: selectedTab == tab ? .semibold : .regular))
+                    .font(.system(.caption2, weight: selectedTab == tab ? .semibold : .regular))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .opacity(tabBar.collapsed ? 0 : 1)

@@ -151,7 +151,7 @@ struct MyHoldingView: View {
             // Floating add button
             Button(action: { Haptic.tap(); showAddDialog = true }) {
                 Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(.title3, weight: .semibold))
                     .foregroundColor(AppTheme.onAccent)
                     .frame(width: 52, height: 52)
                     .background(
@@ -385,7 +385,7 @@ struct MyHoldingView: View {
                 ConstellationView()
                     .frame(width: 88, height: 88)
                 Image(systemName: "sparkle")
-                    .font(.system(size: 22, weight: .light))
+                    .font(.system(.title2))
                     .foregroundColor(AppTheme.accentText)
             }
             .accessibilityHidden(true)
@@ -404,9 +404,9 @@ struct MyHoldingView: View {
             Button(action: { Haptic.tap(); showAddDialog = true }) {
                 HStack(spacing: 8) {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                     Text(L("Add Stock"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .padding(.horizontal, 28)
@@ -418,9 +418,9 @@ struct MyHoldingView: View {
             Button(action: { Haptic.tap(); showPortfolioWizard = true }) {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                     Text(L("Help Me Pick Stocks"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.accentText)
                 .padding(.horizontal, 28)
@@ -461,13 +461,13 @@ struct MyHoldingView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "building.columns.fill")
-                    .font(.system(size: 18))
+                    .font(.system(.title3))
                     .foregroundColor(AppTheme.accentText)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(AppTheme.accent.opacity(0.12)))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("See your net worth"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text(L("Link your brokerage and bank accounts · read-only"))
                         .font(AppTheme.caption(11))
@@ -475,7 +475,7 @@ struct MyHoldingView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.secondaryText)
             }
             .padding(14)
@@ -744,7 +744,7 @@ struct MyHoldingView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("My Net Worth"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
 
                     // Hidden → asterisks; else touched value; else current total
@@ -862,7 +862,7 @@ struct MyHoldingView: View {
                             }
                         } label: {
                             Text(interval)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(portfolioInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
@@ -916,9 +916,9 @@ struct MyHoldingView: View {
                     } label: {
                         HStack(spacing: 3) {
                             Image(systemName: tab.icon)
-                                .font(.system(size: 9))
+                                .font(.system(.caption2))
                             Text(tab.label)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(.caption2))
                         }
                         .foregroundColor(todayTab == tab ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 9)
@@ -995,10 +995,10 @@ struct MyHoldingView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.positive)
                                 Text(L("Gainers"))
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.positive)
                             }
                             ForEach(cachedGainers) { stock in
@@ -1024,10 +1024,10 @@ struct MyHoldingView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.down.right")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.negative)
                                 Text(L("Losers"))
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.negative)
                             }
                             ForEach(cachedLosers) { stock in
@@ -1053,7 +1053,7 @@ struct MyHoldingView: View {
     private func myMoverRow(symbol: String, name: String, changePercent: Double) -> some View {
         HStack(spacing: 6) {
             Text(symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
                 .lineLimit(1)
             Spacer()
@@ -1214,7 +1214,7 @@ struct HideValuesButton: View {
             withAnimation(.easeInOut(duration: 0.2)) { hideValues.toggle() }
         } label: {
             Image(systemName: hideValues ? "eye.slash" : "eye")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
                 .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 34, height: 27)
                 .background(Capsule().fill(AppTheme.subtleFill))
@@ -1238,7 +1238,7 @@ struct CurrencyToggle: View {
                     Task { await HoldingsManager.shared.setDisplayCurrency(currency) }
                 } label: {
                     Text(currency)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundColor(currency == selected ? AppTheme.onAccent : AppTheme.secondaryText)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -1268,11 +1268,11 @@ struct PortfolioHeaderControls: View {
             NavigationLink(destination: HoldingsListPage()) {
                 HStack(spacing: 4) {
                     Image(systemName: "building.columns.fill")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                     Text(L("Accounts"))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(.caption2, weight: .semibold))
                         .opacity(0.6)
                 }
                 .foregroundColor(AppTheme.accentText)
@@ -1403,7 +1403,7 @@ struct HoldingsListPage: View {
                 ForEach(bankItems) { item in
                     VStack(alignment: .leading, spacing: 6) {
                         Label(item.institution, systemImage: "building.columns.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(.caption, weight: .semibold))
                             .foregroundColor(AppTheme.accentText)
                         if let error = item.error {
                             Text(L(error))
@@ -1450,17 +1450,17 @@ struct HoldingsListPage: View {
         let value = manager.snapshot.accountValues[HoldingsSnapshot.bankKey(account.id)] ?? 0
         return HStack(spacing: 10) {
             Image(systemName: account.icon)
-                .font(.system(size: 12))
+                .font(.system(.caption))
                 .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.name)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                     .lineLimit(1)
                 if let masked = account.maskedNumber {
                     Text(masked)
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                 }
             }
@@ -1487,7 +1487,7 @@ struct HoldingsListPage: View {
         return VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Label("\(account.institution) · \(account.name)", systemImage: accountIcon(account))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .lineLimit(1)
                 Spacer()
@@ -1520,11 +1520,11 @@ struct HoldingsListPage: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "building.columns")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(brokerage.connections.isEmpty && bank.currentItems.isEmpty ? L("Link your accounts") : L("Manage linked accounts"))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text(L("Wealthsimple, banks and more · read-only"))
                         .font(AppTheme.caption(11))
@@ -1532,7 +1532,7 @@ struct HoldingsListPage: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.secondaryText)
             }
             .padding(14)
@@ -1546,10 +1546,10 @@ struct HoldingsListPage: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(holding.symbol)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Text(hideValues ? "\(PortfolioPrivacy.shortMask) \(L("shares"))" : String(format: "%.4g %@", holding.totalShares, L("shares")))
-                    .font(.system(size: 11))
+                    .font(.system(.caption2))
                     .foregroundColor(AppTheme.secondaryText)
             }
 
@@ -1680,7 +1680,7 @@ struct MarketTickerView: View {
         HStack(spacing: 6) {
             Text(index.symbol)
                 .foregroundColor(AppTheme.secondaryText)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(.caption))
             Text(String(format: "%.2f", index.price))
                 .foregroundColor(AppTheme.primaryText)
                 .font(AppTheme.number(12))
@@ -1725,11 +1725,11 @@ struct StockRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(displaySymbol)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(.callout, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     if assetType != .stock {
                         Text(assetType.label)
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(.caption2, weight: .semibold))
                             .foregroundColor(assetTypeColor)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -1781,7 +1781,7 @@ struct StockRowView: View {
             .frame(width: 40, height: 40)
             .overlay(
                 Image(systemName: assetType.icon)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(.body, weight: .semibold))
                     .foregroundColor(assetTypeColor)
             )
             .overlay(
@@ -1897,11 +1897,11 @@ struct AddAssetSheet: View {
                                 Image(systemName: "plus.circle.fill")
                                     .foregroundColor(AppTheme.accentText)
                                 Text(L("Add") + " \"\(sym)\"")
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(.subheadline))
                                     .foregroundColor(AppTheme.primaryText)
                                 Spacer()
                                 Image(systemName: "arrow.right")
-                                    .font(.system(size: 12))
+                                    .font(.system(.caption))
                                     .foregroundColor(AppTheme.secondaryText)
                             }
                             .padding(.horizontal, 16)
@@ -1941,13 +1941,13 @@ struct AddAssetSheet: View {
                                             .fill(iconColor(for: asset.type).opacity(0.1))
                                             .frame(width: 40, height: 40)
                                         Image(systemName: asset.type.icon)
-                                            .font(.system(size: 16, weight: .semibold))
+                                            .font(.system(.callout, weight: .semibold))
                                             .foregroundColor(iconColor(for: asset.type))
                                     }
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(asset.name)
-                                            .font(.system(size: 15, weight: .medium))
+                                            .font(.system(.subheadline))
                                             .foregroundColor(AppTheme.primaryText)
                                         Text(asset.symbol)
                                             .font(AppTheme.caption(12))
@@ -1962,7 +1962,7 @@ struct AddAssetSheet: View {
                                     } else {
                                         Image(systemName: "plus.circle")
                                             .foregroundColor(AppTheme.accentText)
-                                            .font(.system(size: 20))
+                                            .font(.system(.title3))
                                     }
                                 }
                                 .padding(.horizontal, 16)
@@ -2027,9 +2027,9 @@ struct AddAssetSheet: View {
         Button(action: { withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = type } }) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 13))
+                    .font(.system(.footnote))
                 Text(type.label)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(.footnote))
             }
             .foregroundColor(selectedTab == type ? AppTheme.onAccent : AppTheme.primaryText)
             .padding(.horizontal, 14)
@@ -2074,11 +2074,11 @@ struct MoverChip: View {
             // Symbol & name
             VStack(alignment: .leading, spacing: 1) {
                 Text(symbol)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(.footnote, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                     .lineLimit(1)
                 Text(name)
-                    .font(.system(size: 10))
+                    .font(.system(.caption2))
                     .foregroundColor(AppTheme.secondaryText)
                     .lineLimit(1)
             }
@@ -2125,7 +2125,7 @@ struct RecommendationCard: View {
             // Top: category badge
             HStack {
                 Text(L(stock.categoryName))
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
@@ -2134,7 +2134,7 @@ struct RecommendationCard: View {
                 // Add button
                 Button(action: onAdd) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20))
+                        .font(.system(.title3))
                         .foregroundColor(AppTheme.accentText)
                 }
             }
@@ -2142,7 +2142,7 @@ struct RecommendationCard: View {
             // Symbol & Name
             VStack(alignment: .leading, spacing: 2) {
                 Text(displaySymbol)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Text(stock.name)
                     .font(AppTheme.caption(11))
@@ -2275,7 +2275,7 @@ struct StockContextPreview: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stock.symbol)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text(stock.name)
                         .font(AppTheme.caption(12))

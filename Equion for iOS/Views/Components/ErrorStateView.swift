@@ -15,7 +15,7 @@ struct ErrorStateView: View {
                     .fill(AppTheme.warning.opacity(0.08))
                     .frame(width: 64, height: 64)
                 Image(systemName: icon)
-                    .font(.system(size: 24, weight: .light))
+                    .font(.system(.title2))
                     .foregroundColor(AppTheme.warning.opacity(0.7))
             }
 
@@ -37,9 +37,9 @@ struct ErrorStateView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(.caption, weight: .semibold))
                         Text(L("Try Again"))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(.subheadline, weight: .semibold))
                     }
                     .foregroundColor(AppTheme.onAccent)
                     .padding(.horizontal, 20)

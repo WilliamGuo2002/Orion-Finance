@@ -93,7 +93,7 @@ struct StockCompareView: View {
                     .fill(AppTheme.subtleFill)
                     .frame(width: 36, height: 36)
                 Text("VS")
-                    .font(.system(size: 11, weight: .black))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.secondaryText)
             }
 
@@ -109,17 +109,17 @@ struct StockCompareView: View {
             VStack(spacing: 4) {
                 if symbol.isEmpty {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28))
+                        .font(.system(.title))
                         .foregroundColor(AppTheme.accent.opacity(0.5))
                     Text(placeholder)
-                        .font(.system(size: 13))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.secondaryText)
                 } else {
                     Text(symbol)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text(name)
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                         .lineLimit(1)
                 }
@@ -157,7 +157,7 @@ struct StockCompareView: View {
     private func priceColumn(symbol: String, price: Double, change: Double) -> some View {
         VStack(spacing: 4) {
             Text(symbol)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(.footnote, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
             Text(String(format: "$%.2f", price))
                 .font(AppTheme.number(20, weight: .bold))
@@ -196,7 +196,7 @@ struct StockCompareView: View {
                             .foregroundColor(AppTheme.primaryText)
                             .frame(maxWidth: .infinity)
                         Text(L(row.0))
-                            .font(.system(size: 12))
+                            .font(.system(.caption))
                             .foregroundColor(AppTheme.secondaryText)
                             .frame(width: 80)
                         Text(valB ?? "—")
@@ -214,13 +214,13 @@ struct StockCompareView: View {
             // Column headers
             HStack {
                 Text(symbolA)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .frame(maxWidth: .infinity)
                 Text("")
                     .frame(width: 80)
                 Text(symbolB)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .frame(maxWidth: .infinity)
             }
@@ -237,7 +237,7 @@ struct StockCompareView: View {
                 Image(systemName: "sparkles")
                     .foregroundColor(AppTheme.accentText)
                 Text(L("AI Verdict"))
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
             }
 
@@ -250,7 +250,7 @@ struct StockCompareView: View {
                 }
             } else if !aiVerdict.isEmpty {
                 Text(aiVerdict)
-                    .font(.system(size: 14))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.primaryText)
                     .lineSpacing(4)
             }
@@ -398,7 +398,7 @@ struct StockPickerSheet: View {
                             HStack {
                                 Image(systemName: "plus.circle.fill").foregroundColor(AppTheme.accentText)
                                 Text("\(L("Select")) \"\(sym)\"")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(.subheadline))
                                     .foregroundColor(AppTheme.primaryText)
                                 Spacer()
                             }
@@ -418,10 +418,10 @@ struct StockPickerSheet: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(asset.symbol)
-                                            .font(.system(size: 15, weight: .bold))
+                                            .font(.system(.subheadline, weight: .semibold))
                                             .foregroundColor(AppTheme.primaryText)
                                         Text(asset.name)
-                                            .font(.system(size: 12))
+                                            .font(.system(.caption))
                                             .foregroundColor(AppTheme.secondaryText)
                                     }
                                     Spacer()

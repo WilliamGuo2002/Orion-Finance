@@ -18,18 +18,7 @@ struct InvestorsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header — matching watchlist style
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L("Guru Portfolios"))
-                    .font(AppTheme.serifTitle(26))
-                    .foregroundColor(AppTheme.primaryText)
-                Text(L("SEC 13F filings from top investors"))
-                    .font(AppTheme.caption(12))
-                    .foregroundColor(AppTheme.secondaryText)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            PageHeader(title: L("Guru Portfolios"), subtitle: L("SEC 13F filings from top investors"))
 
             // Investor list — card style
             ScrollView {
@@ -63,7 +52,7 @@ struct InvestorCardView: View {
                     .fill(AppTheme.accent.opacity(0.12))
                     .frame(width: 48, height: 48)
                 Text(initials(investor.name))
-                    .font(.system(size: 16, weight: .bold, design: .serif))
+                    .font(.system(.callout, design: .serif, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
             }
 
@@ -87,7 +76,7 @@ struct InvestorCardView: View {
             // SEC badge + chevron
             VStack(spacing: 6) {
                 Text("13F")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -95,7 +84,7 @@ struct InvestorCardView: View {
                         Capsule().fill(AppTheme.accent.opacity(0.1))
                     )
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(.caption))
                     .foregroundColor(AppTheme.tertiaryText)
             }
         }
@@ -145,7 +134,7 @@ struct InvestorDetailView: View {
                             .fill(AppTheme.accent.opacity(0.12))
                             .frame(width: 56, height: 56)
                         Text(initials(investor.name))
-                            .font(.system(size: 20, weight: .bold, design: .serif))
+                            .font(.system(.title3, design: .serif, weight: .semibold))
                             .foregroundColor(AppTheme.accentText)
                     }
                     VStack(alignment: .leading, spacing: 4) {
@@ -235,7 +224,7 @@ struct InvestorDetailView: View {
             }
             Spacer()
             Text("SEC 13F")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundColor(AppTheme.accentText)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -267,7 +256,7 @@ struct InvestorDetailView: View {
                     .annotation(position: .overlay) {
                         if holding.percentage > 5 {
                             Text(String(format: "%.0f%%", holding.percentage))
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(.white)
                         }
                     }
@@ -291,7 +280,7 @@ struct InvestorDetailView: View {
                             .fill(chartColors[idx % chartColors.count])
                             .frame(width: 8, height: 8)
                         Text(holding.name)
-                            .font(.system(size: 11))
+                            .font(.system(.caption2))
                             .foregroundColor(AppTheme.primaryText)
                             .lineLimit(1)
                         Spacer()
@@ -303,7 +292,7 @@ struct InvestorDetailView: View {
                             .fill(AppTheme.secondaryText.opacity(0.4))
                             .frame(width: 8, height: 8)
                         Text(L("Other"))
-                            .font(.system(size: 11))
+                            .font(.system(.caption2))
                             .foregroundColor(AppTheme.primaryText)
                         Spacer()
                     }
@@ -342,7 +331,7 @@ struct InvestorDetailView: View {
                 ForEach(Array(portfolio.holdings.enumerated()), id: \.element.id) { idx, holding in
                     HStack {
                         Text(holding.name)
-                            .font(.system(size: 13))
+                            .font(.system(.footnote))
                             .foregroundColor(AppTheme.primaryText)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)

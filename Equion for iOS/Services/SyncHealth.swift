@@ -157,12 +157,12 @@ struct SyncHealthBanner: View {
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 16))
+                        .font(.system(.callout))
                         .foregroundColor(AppTheme.warning)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(issues.count == 1 ? issues[0].message
                              : String(format: L("%d connections need attention"), issues.count))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(.subheadline, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
                             .multilineTextAlignment(.leading)
                         Text(L("Your net worth may be out of date. Tap to fix."))
@@ -171,7 +171,7 @@ struct SyncHealthBanner: View {
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundColor(AppTheme.secondaryText)
                 }
                 .padding(14)

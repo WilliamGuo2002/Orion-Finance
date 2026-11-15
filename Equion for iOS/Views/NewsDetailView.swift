@@ -43,7 +43,7 @@ struct NewsDetailView: View {
                 if let linkURL = URL(string: url) {
                     ShareLink(item: linkURL) {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14))
+                            .font(.system(.subheadline))
                             .foregroundColor(AppTheme.accentText)
                     }
                 }

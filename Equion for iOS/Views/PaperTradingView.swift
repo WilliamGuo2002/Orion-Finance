@@ -220,7 +220,7 @@ struct PaperTradingView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L("Total Value"))
-                        .font(.system(size: 13))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.secondaryText)
                     Text(String(format: "$%.2f", totalValue))
                         .font(AppTheme.number(28, weight: .bold))
@@ -229,7 +229,7 @@ struct PaperTradingView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(L("P&L"))
-                        .font(.system(size: 13))
+                        .font(.system(.footnote))
                         .foregroundColor(AppTheme.secondaryText)
                     Text(String(format: "%@$%.2f (%.1f%%)",
                                 totalPnL >= 0 ? "+" : "",
@@ -245,7 +245,7 @@ struct PaperTradingView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("Cash"))
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                     Text(String(format: "$%.2f", portfolio.cash))
                         .font(AppTheme.number(15, weight: .semibold))
@@ -254,7 +254,7 @@ struct PaperTradingView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(L("Invested"))
-                        .font(.system(size: 11))
+                        .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                     Text(String(format: "$%.2f", totalValue - portfolio.cash))
                         .font(AppTheme.number(15, weight: .semibold))
@@ -267,7 +267,7 @@ struct PaperTradingView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
                     Text(L("Buy Stock"))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
@@ -301,10 +301,10 @@ struct PaperTradingView: View {
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(holding.symbol)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Text(holding.name)
-                    .font(.system(size: 12))
+                    .font(.system(.caption))
                     .foregroundColor(AppTheme.secondaryText)
                     .lineLimit(1)
                 Text(String(format: "%.2f %@ × $%.2f", holding.shares, L("shares"), holding.buyPrice))
@@ -329,7 +329,7 @@ struct PaperTradingView: View {
                 portfolio.sell(symbol: holding.symbol, shares: holding.shares, price: currentPrice)
             } label: {
                 Text(L("Sell"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.negative)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -359,7 +359,7 @@ struct PaperTradingView: View {
             ForEach(portfolio.tradeHistory.prefix(20)) { record in
                 HStack(spacing: 10) {
                     Image(systemName: record.action == "buy" ? "arrow.down.left" : "arrow.up.right")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundColor(record.action == "buy" ? AppTheme.positive : AppTheme.negative)
                         .frame(width: 28, height: 28)
                         .background(
@@ -370,10 +370,10 @@ struct PaperTradingView: View {
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text("\(record.action == "buy" ? L("Bought") : L("Sold")) \(record.symbol)")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(.footnote))
                             .foregroundColor(AppTheme.primaryText)
                         Text(record.date, style: .date)
-                            .font(.system(size: 11))
+                            .font(.system(.caption2))
                             .foregroundColor(AppTheme.secondaryText)
                     }
 
@@ -417,7 +417,7 @@ struct PaperTradingView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
                     Text(L("Buy Your First Stock"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .padding(.horizontal, 24)
@@ -536,7 +536,7 @@ struct PaperTradeSheet: View {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundColor(AppTheme.accentText)
                             Text(L("Buy") + " \"\(sym)\"")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(.subheadline))
                                 .foregroundColor(AppTheme.primaryText)
                             Spacer()
                             Image(systemName: "arrow.right")
@@ -564,10 +564,10 @@ struct PaperTradeSheet: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(asset.symbol)
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.system(.subheadline, weight: .semibold))
                                         .foregroundColor(AppTheme.primaryText)
                                     Text(asset.name)
-                                        .font(.system(size: 12))
+                                        .font(.system(.caption))
                                         .foregroundColor(AppTheme.secondaryText)
                                         .lineLimit(1)
                                 }
@@ -593,10 +593,10 @@ struct PaperTradeSheet: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(selectedSymbol)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                     Text(selectedName)
-                        .font(.system(size: 14))
+                        .font(.system(.subheadline))
                         .foregroundColor(AppTheme.secondaryText)
                 }
                 Spacer()
@@ -615,17 +615,17 @@ struct PaperTradeSheet: View {
                 searchText = ""
             } label: {
                 Text(L("Change stock"))
-                    .font(.system(size: 13))
+                    .font(.system(.footnote))
                     .foregroundColor(AppTheme.accentText)
             }
 
             // Shares input
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Number of shares"))
-                    .font(.system(size: 13))
+                    .font(.system(.footnote))
                     .foregroundColor(AppTheme.secondaryText)
                 TextField("0", text: $sharesText)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(.title2, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                     .keyboardType(.decimalPad)
                     .padding(12)
@@ -648,7 +648,7 @@ struct PaperTradeSheet: View {
 
                 HStack {
                     Text(L("Cash available"))
-                        .font(.system(size: 12))
+                        .font(.system(.caption))
                         .foregroundColor(AppTheme.secondaryText)
                     Spacer()
                     Text(String(format: "$%.2f", PaperPortfolioManager.shared.cash))
@@ -669,7 +669,7 @@ struct PaperTradeSheet: View {
                              mode == .buy ? L("Buy") : L("Sell"),
                              sharesText.isEmpty ? "" : sharesText,
                              selectedSymbol))
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(.callout, weight: .semibold))
                     .foregroundColor(AppTheme.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

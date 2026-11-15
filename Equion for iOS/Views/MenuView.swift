@@ -17,6 +17,8 @@ struct MenuView: View {
     @State private var showStockCompare = false
 
     var body: some View {
+        VStack(spacing: 0) {
+        PageHeader(title: L("More"))
         List {
             // Profile section
             Section {
@@ -177,8 +179,9 @@ struct MenuView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(AppTheme.background)
         .tracksTabBarCollapse()
+        }
+        .background(AppTheme.background)
         .sheet(isPresented: $showAppearance) {
             AppearanceSheet(selected: $settings.appearanceMode)
                 .presentationDetents([.medium])
@@ -293,7 +296,7 @@ struct DisclaimerSheet: View {
                     Text(L("Tax features are estimates to help you spot issues. Confirm your contribution room in CRA My Account and talk to a qualified professional before making decisions."))
                     Text(L("Orion only reads your accounts. It cannot trade, move money or change anything at your institutions."))
                 }
-                .font(.system(size: 14))
+                .font(.system(.subheadline))
                 .foregroundColor(AppTheme.primaryText)
                 .padding(20)
             }

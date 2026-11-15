@@ -108,13 +108,13 @@ struct TaxAssistantCard: View {
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(.callout, weight: .semibold))
                         .foregroundColor(AppTheme.accentText)
                         .frame(width: 34, height: 34)
                         .background(Circle().fill(AppTheme.accent.opacity(0.12)))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L("Tax Assistant"))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(.subheadline, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
                         Text(L("TFSA · RRSP · FHSA room and superficial loss watch"))
                             .font(AppTheme.caption(11))
@@ -124,12 +124,12 @@ struct TaxAssistantCard: View {
                     let count = tax.attentionCount
                     if count > 0 {
                         Label("\(count)", systemImage: "exclamationmark.triangle.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(.caption2, weight: .semibold))
                             .foregroundColor(AppTheme.warning)
                             .accessibilityLabel(String(format: L("%d items need attention"), count))
                     }
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundColor(AppTheme.secondaryText)
                 }
                 .padding(14)

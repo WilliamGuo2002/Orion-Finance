@@ -76,14 +76,14 @@ struct TaxCenterView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(s.type.title)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(.callout, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Spacer()
                 Button {
                     editingType = s.type
                 } label: {
                     Text(s.roomCAD == nil ? L("Set room") : L("Edit room"))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundColor(AppTheme.accentText)
                 }
                 .buttonStyle(.borderless)
@@ -94,7 +94,7 @@ struct TaxCenterView: View {
                 Spacer()
                 Text(money(s.contributedCAD)).font(AppTheme.number(13, weight: .semibold))
             }
-            .font(.system(size: 13))
+            .font(.system(.footnote))
             .foregroundColor(AppTheme.secondaryText)
 
             if let room = s.roomCAD, let remaining = s.remainingCAD {
@@ -107,7 +107,7 @@ struct TaxCenterView: View {
                         .font(AppTheme.number(15, weight: .bold))
                         .foregroundColor(remaining < 0 ? AppTheme.warning : AppTheme.primaryText)
                 }
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(.footnote))
                 .foregroundColor(AppTheme.primaryText)
 
                 if s.overContributedCAD > 0 {
@@ -147,7 +147,7 @@ struct TaxCenterView: View {
                     .listRowBackground(AppTheme.cardBackground)
             } else if alerts.isEmpty {
                 Label(L("No recent losses to watch."), systemImage: "checkmark.circle")
-                    .font(.system(size: 13))
+                    .font(.system(.footnote))
                     .foregroundColor(AppTheme.secondaryText)
                     .listRowBackground(AppTheme.cardBackground)
             }
@@ -167,7 +167,7 @@ struct TaxCenterView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(a.symbol)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 Spacer()
                 Text(hideValues ? PortfolioPrivacy.shortMask : "-" + Money.format(a.loss, currency: a.currency))
@@ -184,12 +184,12 @@ struct TaxCenterView: View {
                 Label(String(format: L("Don't buy %@ in any account until %@ to keep this loss."),
                              a.symbol, a.windowEnds.formatted(date: .abbreviated, time: .omitted)),
                       systemImage: "clock.badge.exclamationmark")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(.caption))
                     .foregroundColor(AppTheme.accentText)
             case .likelyDenied:
                 Label(L("Likely a superficial loss — you bought it again within 30 days and still hold it."),
                       systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(.caption))
                     .foregroundColor(AppTheme.warning)
                 ForEach(Array(a.repurchases.enumerated()), id: \.offset) { _, r in
                     Text("· " + String(format: L("Bought on %@ in %@"),

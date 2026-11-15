@@ -9,6 +9,11 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Refresh": "刷新",
+        "New conversation": "新对话",
+        "Unchanged": "持平",
+        "Down %@ percent": "下跌 %@%",
+        "Up %@ percent": "上涨 %@%",
         "Data sources": "数据来源",
         "AI features: Google Gemini, only if you turn them on.": "AI 功能：Google Gemini，仅在你开启后使用。",
         "Bank accounts: Plaid (read-only).": "银行账户：Plaid（只读）。",

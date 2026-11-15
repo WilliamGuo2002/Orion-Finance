@@ -224,9 +224,9 @@ struct RiskProfileView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(.footnote, weight: .semibold))
                             Text(L("Back"))
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(.subheadline))
                         }
                         .foregroundColor(AppTheme.primaryText)
                         .padding(.vertical, 14)
@@ -242,9 +242,9 @@ struct RiskProfileView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(currentPage < questions.count - 1 ? L("Next") : L("See Result"))
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(.subheadline, weight: .semibold))
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(.footnote, weight: .semibold))
                     }
                     .foregroundColor(AppTheme.onAccent)
                     .padding(.vertical, 14)
@@ -315,7 +315,7 @@ struct RiskProfileView: View {
 
             // Icon
             Image(systemName: result.icon)
-                .font(.system(size: 36, weight: .light))
+                .font(.system(.largeTitle, weight: .light))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundColor(AppTheme.accentText)
                 .frame(width: 88, height: 88)
@@ -365,9 +365,9 @@ struct RiskProfileView: View {
             Button(action: saveProfile) {
                 HStack(spacing: 8) {
                     Text(isOnboarding ? L("Get Started") : L("Save"))
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(.callout, weight: .semibold))
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
@@ -385,7 +385,7 @@ struct RiskProfileView: View {
                 }
             } label: {
                 Text(L("Retake Quiz"))
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(.subheadline))
                     .foregroundColor(AppTheme.secondaryText)
             }
             .padding(.bottom, 24)

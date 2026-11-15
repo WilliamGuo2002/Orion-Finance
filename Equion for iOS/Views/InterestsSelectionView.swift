@@ -34,7 +34,7 @@ struct InterestsSelectionView: View {
                             .fill(AppTheme.accent.opacity(0.1))
                             .frame(width: 80, height: 80)
                         Image(systemName: "sparkles")
-                            .font(.system(size: 32, weight: .light))
+                            .font(.system(.largeTitle, weight: .light))
                             .foregroundColor(AppTheme.accentText)
                     }
                     .padding(.top, 20)
@@ -83,14 +83,14 @@ struct InterestsSelectionView: View {
                     HStack(spacing: 8) {
                         if isOnboarding {
                             Text(localSelection.isEmpty ? L("Skip for now") : L("Continue"))
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(.callout, weight: .semibold))
                         } else {
                             Text(L("Save"))
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(.callout, weight: .semibold))
                         }
                         if !localSelection.isEmpty {
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(.subheadline, weight: .semibold))
                         }
                     }
                     .foregroundColor(AppTheme.onAccent)
@@ -183,18 +183,18 @@ struct InterestCard: View {
                         .fill(isSelected ? accentColor : accentColor.opacity(0.12))
                         .frame(width: 44, height: 44)
                     Image(systemName: category.icon)
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(.title3))
                         .foregroundColor(isSelected ? .white : accentColor)
                 }
 
                 Text(L(category.name))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(.footnote))
                     .foregroundColor(AppTheme.primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Text(category.description)
-                    .font(.system(size: 10))
+                    .font(.system(.caption2))
                     .foregroundColor(AppTheme.secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
