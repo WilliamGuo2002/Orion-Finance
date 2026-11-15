@@ -9,6 +9,8 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Investment style: %@": "投资风格：%@",
+        "Question %d of %d": "第 %d 题，共 %d 题",
         "You're comfortable with bigger swings in pursuit of growth. Orion will explain growth companies and newer trends — including their risks.": "为了增长，你能接受更大的波动。Orion 会讲解成长型公司和新兴趋势，也会讲清楚其中的风险。",
         "You balance growth with stability. Orion will explain both growth companies and steadier investments, and how they fit together.": "你在增长与稳定之间寻求平衡。Orion 会同时讲解成长型公司和更稳健的投资，以及两者如何搭配。",
         "You put stability first. When Orion explains things, it will spend more time on diversification, income investments and protecting what you have.": "你更看重稳定。Orion 在讲解时会多介绍分散配置、收益型投资以及如何保护已有资产。",
