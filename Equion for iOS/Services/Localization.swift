@@ -9,6 +9,12 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Add stocks to your watchlist to see news about them here.": "把股票加入自选后，这里会显示相关新闻。",
+        "No stories right now": "暂时没有新闻",
+        "No recent stories for your watchlist": "你的自选最近没有相关新闻",
+        "Deals": "并购",
+        "Your watchlist": "我的自选",
+        "Top stories": "要闻",
         "Haptics": "触感反馈",
         "%@ price chart, %@: from %@ to %@, %@": "%@ 价格图表，%@：从 %@ 到 %@，%@",
         "Price chart": "价格图表",

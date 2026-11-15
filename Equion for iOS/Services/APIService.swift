@@ -513,8 +513,9 @@ class APIService {
     // MARK: - News (Finnhub)
     // =========================================
 
-    func fetchNews() async throws -> [NewsItem] {
-        let url = URL(string: "https://finnhub.io/api/v1/news?category=general&token=\(APIKeys.finnhub)")!
+    /// Finnhub market news. Categories: general, crypto, merger, forex.
+    func fetchNews(category: String = "general") async throws -> [NewsItem] {
+        let url = URL(string: "https://finnhub.io/api/v1/news?category=\(category)&token=\(APIKeys.finnhub)")!
         let (data, _) = try await session.data(from: url)
         return try JSONDecoder().decode([NewsItem].self, from: data)
     }

@@ -1,6 +1,21 @@
 import SwiftUI
 
 struct NewsView: View {
+    /// What the feed shows. "Your watchlist" pulls company news for the symbols you follow.
+    enum Feed: String, CaseIterable, Identifiable {
+        case top, watchlist, deals, crypto
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .top: return L("Top stories")
+            case .watchlist: return L("Your watchlist")
+            case .deals: return L("Deals")
+            case .crypto: return L("Crypto")
+            }
+        }
+    }
+
+    @State private var feed: Feed = .top
     @State private var newsList: [NewsItem] = []
     @State private var isLoading = false
     @State private var loadError: String?
@@ -27,6 +42,8 @@ struct NewsView: View {
                     Task { await loadNews() }
                 }
             }
+            feedPicker
+                .padding(.bottom, 4)
 
             // News list — card style matching watchlist
             if isLoading && newsList.isEmpty {
@@ -47,10 +64,25 @@ struct NewsView: View {
                 )
                 .padding(.horizontal, 32)
                 Spacer()
+            } else if newsList.isEmpty && !isLoading {
+                Spacer()
+                VStack(spacing: 8) {
+                    Text(feed == .watchlist ? L("No recent stories for your watchlist") : L("No stories right now"))
+                        .font(AppTheme.serifHeadline(17))
+                        .foregroundColor(AppTheme.primaryText)
+                    if feed == .watchlist {
+                        Text(L("Add stocks to your watchlist to see news about them here."))
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.horizontal, 32)
+                Spacer()
             } else {
                 ScrollView {
                     LazyVGrid(columns: gridColumns, spacing: 12) {
-                        ForEach(Array(newsList.enumerated()), id: \.element.id) { index, item in
+                        ForEach(newsList) { item in
                             NavigationLink(destination: NewsDetailView(url: item.url)) {
                                 NewsCardView(item: item)
                             }
@@ -101,7 +133,13 @@ struct NewsView: View {
         isLoading = true
         loadError = nil
         do {
-            let items = try await APIService.shared.fetchNews()
+            let items: [NewsItem]
+            switch feed {
+            case .top: items = try await APIService.shared.fetchNews(category: "general")
+            case .deals: items = try await APIService.shared.fetchNews(category: "merger")
+            case .crypto: items = try await APIService.shared.fetchNews(category: "crypto")
+            case .watchlist: items = await watchlistNews()
+            }
             await MainActor.run {
                 newsList = items
                 isLoading = false
@@ -111,6 +149,55 @@ struct NewsView: View {
                 loadError = error.localizedDescription
                 isLoading = false
             }
+        }
+    }
+}
+
+extension NewsView {
+    /// Company news for up to 8 followed symbols, newest first, de-duplicated by headline.
+    func watchlistNews() async -> [NewsItem] {
+        let symbols = Array(await FirebaseController.shared.getWatchlistSymbols().prefix(8))
+        guard !symbols.isEmpty else { return [] }
+        let batches = await withTaskGroup(of: [NewsItem].self, returning: [[NewsItem]].self) { group in
+            for sym in symbols {
+                group.addTask { (try? await APIService.shared.fetchCompanyNews(symbol: sym))?.prefix(6).map { $0 } ?? [] }
+            }
+            var all: [[NewsItem]] = []
+            for await b in group { all.append(b) }
+            return all
+        }
+        var seen = Set<String>()
+        return batches.flatMap { $0 }
+            .sorted { ($0.datetime ?? 0) > ($1.datetime ?? 0) }
+            .filter { seen.insert($0.headline).inserted }
+    }
+
+    /// Feed chooser — neutral selection, same style as Market Overview.
+    var feedPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(Feed.allCases) { f in
+                    let selected = feed == f
+                    Button {
+                        guard !selected else { return }
+                        withAnimation(Motion.tap) { feed = f }
+                        newsList = []
+                        Task { await loadNews() }
+                    } label: {
+                        Text(f.label)
+                            .font(.subheadline.weight(selected ? .semibold : .regular))
+                            .foregroundColor(selected ? AppTheme.primaryText : AppTheme.secondaryText)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(selected ? AppTheme.subtleFill : Color.clear))
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
         }
     }
 }
@@ -136,10 +223,19 @@ struct NewsCardView: View {
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    if let source = item.source, !source.isEmpty {
+                        Text(source)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .lineLimit(1)
+                        Text("·")
+                            .font(.footnote)
+                            .foregroundColor(AppTheme.secondaryText)
+                    }
                     if let ts = item.datetime {
                         Text(timeString(from: ts))
-                            .font(AppTheme.caption(11))
+                            .font(.footnote)
                             .foregroundColor(AppTheme.secondaryText)
                     }
                 }
