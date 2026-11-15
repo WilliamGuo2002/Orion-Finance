@@ -11,9 +11,8 @@ import Combine
 final class ChartParallax {
     var scrollOffset: CGFloat = 0
 
-    /// 0 → 1 as the cards cover the chart. Blur holds off until ~1/3 is covered, then ramps in.
-    /// Quantized to 1/40 steps: re-blurring the chart is the expensive part of a scroll frame,
-    /// and identical values let SwiftUI skip it (steps are 0.15pt of blur, 0.5pt of sink).
+    /// 0 → 1 as the cards cover the chart (holds off until ~1/3 is covered). Quantized to 1/40
+    /// steps so identical values let SwiftUI skip redundant updates while scrolling.
     static func progress(offset: CGFloat, chartHeight: CGFloat) -> CGFloat {
         let threshold = chartHeight / 3
         let ramp = max(chartHeight * 0.45, 1)
@@ -1129,15 +1128,14 @@ struct ParallaxChartLayer<Content: View>: View {
     var parallax: ChartParallax
     var chartHeight: CGFloat
     @ViewBuilder var content: Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let progress = ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
-
+        // Cards scrolling over the pinned chart only dim it slightly. No blur, sink or scale —
+        // depth effects under moving content are what Reduce Motion asks apps to avoid.
+        let progress = reduceMotion ? 0 : ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
         content
-            .offset(y: progress * 20)              // gentle sink
-            .blur(radius: progress * 6)            // soft blur — stays readable, never opaque
-            .opacity(1.0 - progress * 0.3)         // fades only to 0.7
-            .scaleEffect(1.0 - progress * 0.03, anchor: .top)
+            .opacity(1.0 - progress * 0.3)
             .allowsHitTesting(false)               // gestures go to the scroll spacer
     }
 }
@@ -1153,13 +1151,11 @@ struct PinnedHeaderTapLayer<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        // Same ramp as ParallaxChartLayer so it sinks in lockstep with the visible header.
         let progress = ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
-
         content
-            // Cancel the scroll translation (pin), then add the same gentle sink as the chart.
-            .offset(y: parallax.scrollOffset + progress * 20)
-            // Stop catching taps once the header is mostly blurred / covered by cards.
+            // Cancel the scroll translation so it stays over the (unmoving) visible header.
+            .offset(y: parallax.scrollOffset)
+            // Stop catching taps once the header is mostly covered by cards.
             .allowsHitTesting(progress < 0.85)
     }
 }
