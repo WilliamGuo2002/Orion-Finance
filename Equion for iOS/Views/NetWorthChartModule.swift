@@ -297,25 +297,9 @@ struct NetWorthChartModule: View {
 
     private var controls: some View {
         HStack(spacing: 4) {
-            ForEach(Self.ranges, id: \.self) { r in
-                Button {
-                    guard r != range else { return }
-                    Haptic.selection()
-                    range = r
-                } label: {
-                    Text(r)
-                        .font(.system(.caption2, weight: .semibold))
-                        .foregroundColor(range == r ? AppTheme.onAccent : AppTheme.secondaryText)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(range == r ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
-                        .cornerRadius(4)
-                }
-                .buttonStyle(.plain)
-            }
+            RangePicker(options: Self.ranges, selection: $range, fillsWidth: false)
             Spacer()
             Button {
-                Haptic.selection()
                 withAnimation(Motion.tap) { split.toggle() }
             } label: {
                 HStack(spacing: 4) {
@@ -326,10 +310,13 @@ struct NetWorthChartModule: View {
                 }
                 .foregroundColor(split ? AppTheme.onAccent : AppTheme.accentText)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 4)
+                .padding(.vertical, 6)
                 .background(Capsule().fill(split ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.accent.opacity(0.12))))
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: split)
             .disabled(series.count < 2 && !split)
             .opacity(series.count < 2 && !split ? 0.4 : 1)
             .accessibilityLabel(split ? L("Show total") : L("Split by institution"))

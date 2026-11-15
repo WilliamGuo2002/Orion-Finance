@@ -1273,9 +1273,7 @@ struct StockDetailView: View {
     }
 
     private func txDateString(_ date: Date) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MMM d, yyyy"
-        return fmt.string(from: date)
+        date.formatted(.dateTime.year().month(.abbreviated).day().locale(AppLocale.current))
     }
 
     @ViewBuilder
@@ -1366,35 +1364,12 @@ struct StockDetailView: View {
     // =============================
     @ViewBuilder
     private var intervalSelector: some View {
-        HStack(spacing: 8) {
-            ForEach(intervals, id: \.self) { interval in
-                Button(interval) {
-                    Haptic.light()
-                    withAnimation(Motion.standard) {
-                        selectedInterval = interval
-                    }
-                    selectedEntry = nil
-                    showMarker = false
-                    Task { await loadChart() }
-                }
-                .font(.system(.footnote, weight: selectedInterval == interval ? .semibold : .regular))
-                .foregroundColor(selectedInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    ZStack {
-                        if selectedInterval == interval {
-                            Capsule()
-                                .fill(AppTheme.accent)
-                                .matchedGeometryEffect(id: "intervalCapsule", in: intervalAnimation)
-                        }
-                    }
-                )
-                .contentShape(Capsule())
-            }
+        RangePicker(options: intervals, selection: $selectedInterval) { _ in
+            selectedEntry = nil
+            showMarker = false
+            Task { await loadChart() }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
     }
 
     /// Splits a price string into (currency symbol, number) for typographic contrast

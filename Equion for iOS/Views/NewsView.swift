@@ -122,11 +122,6 @@ struct NewsView: View {
 struct NewsCardView: View {
     let item: NewsItem
 
-    private let timeFormatter: RelativeDateTimeFormatter = {
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .abbreviated
-        return f
-    }()
 
     var body: some View {
         HStack(spacing: 12) {
@@ -176,18 +171,16 @@ struct NewsCardView: View {
             }
     }
 
+    /// "2 hr ago" / "Nov 13" in the app's language.
     private func timeString(from timestamp: Int) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let interval = Date().timeIntervalSince(date)
-        if interval < 3600 {
-            return "\(Int(interval / 60))m ago"
-        } else if interval < 86400 {
-            return "\(Int(interval / 3600))h ago"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d"
-            return formatter.string(from: date)
+        if Date().timeIntervalSince(date) < 86_400 {
+            let f = RelativeDateTimeFormatter()
+            f.unitsStyle = .short
+            f.locale = AppLocale.current
+            return f.localizedString(for: date, relativeTo: Date())
         }
+        return date.formatted(.dateTime.month(.abbreviated).day().locale(AppLocale.current))
     }
 }
 

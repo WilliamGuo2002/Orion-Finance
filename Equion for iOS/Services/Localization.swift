@@ -9,6 +9,14 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Add to watchlist": "加入自选",
+        "All time": "全部",
+        "1 year": "1 年",
+        "Year to date": "年初至今",
+        "6 months": "6 个月",
+        "1 month": "1 个月",
+        "5 days": "5 天",
+        "1 day": "1 天",
         "Refresh": "刷新",
         "New conversation": "新对话",
         "Unchanged": "持平",

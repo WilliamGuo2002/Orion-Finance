@@ -135,14 +135,11 @@ struct ChatSessionRow: View {
     let session: ChatSession
 
     private var dateString: String {
-        let formatter = DateFormatter()
-        let calendar = Calendar.current
-        if calendar.isDateInToday(session.timestamp) {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.dateFormat = "MM/dd"
+        let locale = AppLocale.current
+        if Calendar.current.isDateInToday(session.timestamp) {
+            return session.timestamp.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale))
         }
-        return formatter.string(from: session.timestamp)
+        return session.timestamp.formatted(.dateTime.month(.abbreviated).day().locale(locale))
     }
 
     var body: some View {

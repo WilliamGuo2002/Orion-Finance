@@ -534,11 +534,13 @@ class HoldingsManager: ObservableObject {
 
         // Anything not attributed to an institution still belongs in the total.
         let unattributed = snap.totalValue - totals.values.reduce(0, +)
+        // Unambiguous, localized labels for the scrub readout (HIG Charts: "Jun 6", not "6/6").
         let displayFmt = DateFormatter()
+        displayFmt.locale = AppLocale.current
         switch range {
-        case "1D":  displayFmt.dateFormat = "h:mm a"
-        case "5D":  displayFmt.dateFormat = "EEE h:mm a"
-        default:    displayFmt.dateFormat = "MMM d, yyyy"
+        case "1D":  displayFmt.setLocalizedDateFormatFromTemplate("jmm")
+        case "5D":  displayFmt.setLocalizedDateFormatFromTemplate("EEEjmm")
+        default:    displayFmt.setLocalizedDateFormatFromTemplate("yMMMd")
         }
         // Cost line chosen so value − cost at the last point equals the header's P&L.
         let costLine = snap.totalValue - snap.totalPnL

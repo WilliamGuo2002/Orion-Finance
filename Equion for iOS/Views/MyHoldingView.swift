@@ -97,9 +97,10 @@ struct MyHoldingView: View {
         return [GridItem(.flexible())]
     }
 
-    /// Height reserved for the portfolio chart background area
+    /// Height reserved for the portfolio chart background area (header + chart; the range picker
+    /// sits in the scroll layer just below it)
     private var portfolioChartHeight: CGFloat {
-        holdingsSnapshot.hasHoldings ? 220 : 0
+        holdingsSnapshot.hasHoldings ? 184 : 0
     }
 
     var body: some View {
@@ -159,6 +160,7 @@ struct MyHoldingView: View {
                             .fill(AppTheme.accent)
                     )
             }
+            .accessibilityLabel(L("Add to watchlist"))
             .padding(.trailing, 20)
             .padding(.bottom, 80)
         }
@@ -198,6 +200,19 @@ struct MyHoldingView: View {
             VStack(spacing: 12) {
                 // Chart area spacer — transparent gap so chart shows through; handles chart touch
                 chartTouchSpacer
+
+                // Range picker lives in the scrolling layer (the pinned chart behind it doesn't take
+                // taps), directly under the chart.
+                if holdingsSnapshot.hasHoldings && !portfolioChartData.isEmpty && !hideValues {
+                    RangePicker(options: ["1D", "5D", "1M", "6M", "1Y"], selection: $portfolioInterval) { interval in
+                        Task {
+                            await HoldingsManager.shared.loadPortfolioChart(range: interval)
+                            portfolioChartData = HoldingsManager.shared.portfolioChart
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, -12)
+                }
 
                 // Nothing linked yet → invite to link accounts (net worth needs them)
                 if holdingsLoaded && !holdingsSnapshot.hasHoldings {
@@ -849,33 +864,6 @@ struct MyHoldingView: View {
                 }
                 .frame(height: 110)
 
-                // Interval selector
-                HStack(spacing: 4) {
-                    ForEach(["1D", "5D", "1M", "6M", "1Y"], id: \.self) { interval in
-                        Button {
-                            portfolioInterval = interval
-                            Task {
-                                await HoldingsManager.shared.loadPortfolioChart(range: interval)
-                                portfolioChartData = HoldingsManager.shared.portfolioChart
-                            }
-                        } label: {
-                            Text(interval)
-                                .font(.system(.caption2, weight: .semibold))
-                                .foregroundColor(portfolioInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    portfolioInterval == interval
-                                        ? AnyShapeStyle(AppTheme.accent)
-                                        : AnyShapeStyle(AppTheme.subtleFill)
-                                )
-                                .cornerRadius(4)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
             }
         }
     }
@@ -924,6 +912,7 @@ struct MyHoldingView: View {
                         .background(
                             Capsule().fill(todayTab == tab ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
                         )
+                        .expandedHitArea(10)
                     }
                 }
                 Spacer()
@@ -1216,7 +1205,7 @@ struct HideValuesButton: View {
                 .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 34, height: 27)
                 .background(Capsule().fill(AppTheme.subtleFill))
-                .contentShape(Capsule())
+                .expandedHitArea()
         }
         .buttonStyle(.plain)
         .accessibilityLabel(hideValues ? L("Show amounts") : L("Hide amounts"))
@@ -1243,7 +1232,7 @@ struct CurrencyToggle: View {
                         .background(
                             Capsule().fill(currency == selected ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(Color.clear))
                         )
-                        .contentShape(Capsule())
+                        .expandedHitArea(10)
                 }
                 .buttonStyle(.plain)
             }

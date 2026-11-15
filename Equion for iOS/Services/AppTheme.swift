@@ -653,3 +653,11 @@ struct AdaptiveMaterialBackground<S: Shape>: View {
         }
     }
 }
+
+extension View {
+    /// Grows the tappable area by 8pt on every side without changing layout — for compact controls
+    /// whose visual size must stay small (HIG: 44×44pt targets).
+    func expandedHitArea(_ inset: CGFloat = 8) -> some View {
+        contentShape(Rectangle().inset(by: -inset))
+    }
+}
