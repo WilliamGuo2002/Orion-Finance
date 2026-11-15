@@ -32,9 +32,8 @@ struct InvestorsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
-                .padding(.bottom, 80)
+                .padding(.bottom, 24)
             }
-            .tracksTabBarCollapse()
         }
         .background(AppTheme.background)
     }

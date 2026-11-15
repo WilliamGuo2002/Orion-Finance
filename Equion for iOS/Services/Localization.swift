@@ -9,6 +9,7 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Home": "首页",
         "Explore example portfolios": "浏览示例组合",
         "Add the stocks and funds you want to follow.": "添加你想关注的股票和基金。",
         "Market Overview": "市场概览",

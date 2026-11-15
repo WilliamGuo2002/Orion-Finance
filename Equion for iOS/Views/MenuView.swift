@@ -179,7 +179,6 @@ struct MenuView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .tracksTabBarCollapse()
         }
         .background(AppTheme.background)
         .sheet(isPresented: $showAppearance) {

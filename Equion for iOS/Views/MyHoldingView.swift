@@ -208,7 +208,7 @@ struct MyHoldingView: View {
                 content()
             }
             .padding(.top, 4)
-            .padding(.bottom, 80)
+            .padding(.bottom, 24)
         }
         // iOS 18 first-class scroll observation — fires reliably on every scroll.
         // contentOffset.y + contentInsets.top == 0 at rest, grows positive scrolling up.
@@ -216,11 +216,9 @@ struct MyHoldingView: View {
         // (not view @State), so only the chart layer re-renders — the body stays put.
         .onScrollGeometryChange(for: CGFloat.self) { geo in
             (geo.contentOffset.y + geo.contentInsets.top).rounded()
-        } action: { oldValue, newValue in
+        } action: { _, newValue in
             let clamped = max(0, newValue)
             parallax.scrollOffset = clamped
-            // Collapse the bottom bar to icons-only when scrolling up, expand scrolling down.
-            TabBarVisibility.shared.update(offset: clamped, delta: newValue - oldValue)
         }
     }
 

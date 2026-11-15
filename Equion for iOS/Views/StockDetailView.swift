@@ -321,7 +321,7 @@ struct StockDetailView: View {
                 companyInfoModule
                     .padding(.top, 8)
 
-                Spacer(minLength: 80)
+                Spacer(minLength: 24)
             }
             .padding(.top, 8)
         }
@@ -362,7 +362,7 @@ struct StockDetailView: View {
                 }
                 .padding(.horizontal, 16)
 
-                Spacer(minLength: 80)
+                Spacer(minLength: 24)
             }
             .padding(.top, 8)
         }
