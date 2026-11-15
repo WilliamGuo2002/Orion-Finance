@@ -50,7 +50,7 @@ struct MyHoldingView: View {
     @State private var todayGainers: [MarketMover] = []
     @State private var todayLosers: [MarketMover] = []
     @State private var todayActive: [MarketMover] = []
-    @State private var todayTab: TodayTab = .active
+    @State private var todayTab: TodayTab = .active  // neutral default: most active, not a gainers list
     @State private var isLoadingToday = false
     @ObservedObject private var interests = InterestsManager.shared
     // Watchlist add feedback
@@ -69,9 +69,9 @@ struct MyHoldingView: View {
         case active, gainers, losers
         var label: String {
             switch self {
-            case .active:  return L("Hot")
-            case .gainers: return L("Gainers")
-            case .losers:  return L("Losers")
+            case .active:  return L("Most active")
+            case .gainers: return L("Up")
+            case .losers:  return L("Down")
             }
         }
         var icon: String {
@@ -148,22 +148,6 @@ struct MyHoldingView: View {
             }
         }
         .background(AppTheme.background)
-        .overlay(alignment: .bottomTrailing) {
-            // Floating add button
-            Button(action: { Haptic.tap(); showAddDialog = true }) {
-                Image(systemName: "plus")
-                    .font(.system(.title3, weight: .semibold))
-                    .foregroundColor(AppTheme.onAccent)
-                    .frame(width: 52, height: 52)
-                    .background(
-                        Circle()
-                            .fill(AppTheme.accent)
-                    )
-            }
-            .accessibilityLabel(L("Add to watchlist"))
-            .padding(.trailing, 20)
-            .padding(.bottom, 80)
-        }
         .sheet(isPresented: $showPortfolioWizard) {
             PortfolioWizardView()
         }
@@ -299,34 +283,31 @@ struct MyHoldingView: View {
     private var scrollContent: some View {
         if isLoading && stockList.isEmpty {
             trackedScrollView {
-                todayMarketCard
+                watchlistHeader
                 SkeletonWatchlist()
-                    .padding(.top, 4)
+                todayMarketCard
+                    .padding(.top, 12)
             }
         } else if stockList.isEmpty {
             trackedScrollView {
-                todayMarketCard
-                myMoversCard
-
+                watchlistHeader
                 watchlistStatus
 
                 emptyStateView
+                    .padding(.vertical, 12)
+
+                todayMarketCard
                     .padding(.top, 12)
 
                 if !interests.selectedInterests.isEmpty {
                     recommendationsSection
+                        .padding(.top, 12)
                 }
             }
             .refreshable { await loadAll() }
         } else {
             trackedScrollView {
-                todayMarketCard
-                myMoversCard
-
-                // Section label
-                SectionLabel(title: L("Watchlist"), count: stockList.count)
-                    .padding(.top, 4)
-
+                watchlistHeader
                 watchlistStatus
 
                 // Watchlist
@@ -337,14 +318,8 @@ struct MyHoldingView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button {
-                            } label: {
-                                Label(L("View Details"), systemImage: "chart.xyaxis.line")
-                            }
-
                             if index > 0 {
                                 Button {
-                                    Haptic.light()
                                     withAnimation(Motion.standard) {
                                         let item = stockList.remove(at: index)
                                         stockList.insert(item, at: 0)
@@ -354,14 +329,6 @@ struct MyHoldingView: View {
                                 }
                             }
 
-                            Button {
-                                let text = "\(stock.symbol) - \(stock.name): $\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))"
-                                UIPasteboard.general.string = text
-                                Haptic.tap()
-                            } label: {
-                                Label(L("Copy Info"), systemImage: "doc.on.doc")
-                            }
-
                             ShareLink(item: "\(stock.symbol) - \(stock.name)\n$\(String(format: "%.2f", stock.price)) (\(AppTheme.formattedChange(stock.changePercent)))") {
                                 Label(L("Share"), systemImage: "square.and.arrow.up")
                             }
@@ -369,7 +336,6 @@ struct MyHoldingView: View {
                             Divider()
 
                             Button(role: .destructive) {
-                                Haptic.warning()
                                 deleteStock(at: IndexSet(integer: index))
                             } label: {
                                 Label(L("Remove from Watchlist"), systemImage: "trash")
@@ -381,70 +347,90 @@ struct MyHoldingView: View {
                 }
                 .padding(.horizontal, 16)
 
+                myMoversCard
+                    .padding(.top, 12)
+
+                todayMarketCard
+                    .padding(.top, 12)
+
                 if !interests.selectedInterests.isEmpty {
                     recommendationsSection
-                        .padding(.top, 8)
+                        .padding(.top, 12)
                 }
             }
             .refreshable { await loadAll() }
         }
     }
 
+    /// "Watchlist  3" with the add button where it belongs — next to the list it adds to.
+    private var watchlistHeader: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(L("Watchlist"))
+                .font(AppTheme.serifHeadline(17))
+                .foregroundColor(AppTheme.primaryText)
+                .accessibilityAddTraits(.isHeader)
+            if !stockList.isEmpty {
+                Text("\(stockList.count)")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            Spacer()
+            Button { showAddDialog = true } label: {
+                Image(systemName: "plus")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(AppTheme.accentText)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel(L("Add to watchlist"))
+        }
+        .padding(.leading, 20)
+        .padding(.trailing, 8)
+        .padding(.top, 4)
+    }
+
     // MARK: - Empty State
+    /// One sentence and one button. The example-portfolio wizard stays available as a quiet link.
     @ViewBuilder
     private var emptyStateView: some View {
-        VStack(spacing: 24) {
-            // Orion constellation illustration (still)
+        VStack(spacing: 16) {
             ZStack {
                 ConstellationView()
-                    .frame(width: 88, height: 88)
+                    .frame(width: 64, height: 64)
                 Image(systemName: "sparkle")
-                    .font(.system(.title2))
+                    .font(.title3.weight(.light))
                     .foregroundColor(AppTheme.accentText)
             }
             .accessibilityHidden(true)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text(L("Your watchlist is empty"))
                     .font(AppTheme.serifHeadline(20))
                     .foregroundColor(AppTheme.primaryText)
-                Text(L("Start building your constellation of investments"))
+                Text(L("Add the stocks and funds you want to follow."))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.secondaryText)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(3)
             }
 
-            Button(action: { Haptic.tap(); showAddDialog = true }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.system(.subheadline, weight: .semibold))
-                    Text(L("Add Stock"))
-                        .font(.system(.subheadline, weight: .semibold))
-                }
-                .foregroundColor(AppTheme.onAccent)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 12)
-                .background(Capsule().fill(AppTheme.accent))
+            Button { showAddDialog = true } label: {
+                Label(L("Add Stock"), systemImage: "plus")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(AppTheme.onAccent)
+                    .padding(.horizontal, 24)
+                    .frame(minHeight: 48)
+                    .background(Capsule().fill(AppTheme.accent))
             }
 
-            Button(action: { Haptic.tap(); showPortfolioWizard = true }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(.system(.subheadline, weight: .semibold))
-                    Text(L("Help Me Pick Stocks"))
-                        .font(.system(.subheadline, weight: .semibold))
-                }
-                .foregroundColor(AppTheme.accentText)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .stroke(AppTheme.accent, lineWidth: 1.5)
-                )
+            Button { showPortfolioWizard = true } label: {
+                Text(L("Explore example portfolios"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppTheme.accentText)
+                    .frame(minHeight: 44)
             }
         }
-        .padding(.horizontal, 48)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 32)
     }
 
     // MARK: - Load All
@@ -886,37 +872,35 @@ struct MyHoldingView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header row
             HStack(spacing: 0) {
-                AccentSectionTitle(L("Today's Market"), icon: "chart.bar.xaxis")
+                AccentSectionTitle(L("Market Overview"))
                 Spacer()
                 if isLoadingToday {
-                    ProgressView().scaleEffect(0.6)
+                    ProgressView().controlSize(.small)
                 }
             }
 
-            // Tab pills
-            HStack(spacing: 8) {
+            // Neutral views of the market — no flame, no "hot" list, selection isn't a call to action
+            HStack(spacing: 4) {
                 ForEach([TodayTab.active, .gainers, .losers], id: \.self) { tab in
+                    let selected = todayTab == tab
                     Button {
-                        Haptic.light()
                         withAnimation(Motion.tap) { todayTab = tab }
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: tab.icon)
-                                .font(.system(.caption2))
-                            Text(tab.label)
-                                .font(.system(.caption2))
-                        }
-                        .foregroundColor(todayTab == tab ? AppTheme.onAccent : AppTheme.secondaryText)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(todayTab == tab ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
-                        )
-                        .expandedHitArea(10)
+                        Text(tab.label)
+                            .font(.subheadline.weight(selected ? .semibold : .regular))
+                            .foregroundColor(selected ? AppTheme.primaryText : AppTheme.secondaryText)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(selected ? AppTheme.subtleFill : Color.clear))
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
                 Spacer()
             }
+            .padding(.vertical, -8)
 
             // Scrollable movers with fade edge
             let movers: [MarketMover] = {
@@ -948,7 +932,7 @@ struct MyHoldingView: View {
                     }
                     .padding(.vertical, 8)   // room for the chips' outline
                 }
-                .padding(.vertical, -6)
+                .padding(.vertical, -8)
                 .mask(
                     LinearGradient(stops: [.init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
                                    startPoint: .leading, endPoint: .trailing)

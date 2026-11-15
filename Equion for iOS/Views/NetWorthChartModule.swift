@@ -310,7 +310,7 @@ struct NetWorthChartModule: View {
                 }
                 .foregroundColor(split ? AppTheme.onAccent : AppTheme.accentText)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .background(Capsule().fill(split ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.accent.opacity(0.12))))
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())

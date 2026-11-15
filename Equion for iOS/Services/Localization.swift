@@ -9,6 +9,12 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Explore example portfolios": "浏览示例组合",
+        "Add the stocks and funds you want to follow.": "添加你想关注的股票和基金。",
+        "Market Overview": "市场概览",
+        "Down": "下跌",
+        "Up": "上涨",
+        "Most active": "成交最活跃",
         "Add to watchlist": "加入自选",
         "All time": "全部",
         "1 year": "1 年",
@@ -268,7 +274,7 @@ private let translations: [String: [String: String]] = [
         "Add more to see movers": "添加更多以查看涨跌",
         "Today": "今日",
         "Touch to explore": "触摸查看详情",
-        "Watchlist": "自选列表",
+        "Watchlist": "自选",
         "Something went wrong": "出了点问题",
         "Try Again": "重试",
         // Interest categories
