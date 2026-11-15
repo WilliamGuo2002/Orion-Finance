@@ -9,6 +9,15 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "You're comfortable with bigger swings in pursuit of growth. Orion will explain growth companies and newer trends — including their risks.": "为了增长，你能接受更大的波动。Orion 会讲解成长型公司和新兴趋势，也会讲清楚其中的风险。",
+        "You balance growth with stability. Orion will explain both growth companies and steadier investments, and how they fit together.": "你在增长与稳定之间寻求平衡。Orion 会同时讲解成长型公司和更稳健的投资，以及两者如何搭配。",
+        "You put stability first. When Orion explains things, it will spend more time on diversification, income investments and protecting what you have.": "你更看重稳定。Orion 在讲解时会多介绍分散配置、收益型投资以及如何保护已有资产。",
+        "Prices often move more than usual around an earnings report.": "财报发布前后，股价波动通常比平时更大。",
+        "Markets are closed for the weekend": "美股周末休市",
+        "Markets have closed for the day": "美股今日已收盘",
+        "Markets open at 9:30 AM ET": "美股美东时间 9:30 AM 开盘",
+        "Markets are open · close at 4:00 PM ET": "美股交易中 · 美东时间 4:00 PM 收盘",
+        "As of %@ ET": "截至美东时间 %@",
         "Add %@ to watchlist": "将 %@ 加入自选",
         "%@ added to watchlist": "%@ 已加入自选",
         "Added": "已添加",
@@ -418,7 +427,7 @@ private let translations: [String: [String: String]] = [
         "Orion is reading the article...": "Orion 正在阅读文章...",
         "Markets are closed today — enjoy your Sunday": "今天休市 — 享受你的周日",
         "Markets are closed today — enjoy your Saturday": "今天休市 — 享受你的周六",
-        "Markets are closed today for a holiday": "今天假日休市",
+        "Markets are closed today for a holiday": "美股今日因假日休市",
         "Holiday": "假日",
         "Chart Unavailable": "图表不可用",
         "Unable to Load News": "无法加载新闻",

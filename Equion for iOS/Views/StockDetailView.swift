@@ -64,7 +64,6 @@ struct StockDetailView: View {
     @State private var holdingTransactions: [HoldingTransaction] = []
 
     private let intervals = ["1D", "5D", "1M", "6M", "YTD", "1Y", "ALL"]
-    private let etZone = TimeZone(identifier: "America/New_York")!
 
     // MARK: - Computed properties
     /// Latest price: the quote when loaded, else the last chart bar.
@@ -85,25 +84,13 @@ struct StockDetailView: View {
     }
 
     private var marketSession: MarketSession {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = etZone
-        let now = Date()
-        let weekday = cal.component(.weekday, from: now)
-
-        // Weekend or holiday → closed
-        if weekday == 1 || weekday == 7 { return .closed }
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = etZone
-        if AppTheme.marketHolidays.contains(fmt.string(from: now)) { return .holiday }
-
-        let hour = cal.component(.hour, from: now)
-        let minute = cal.component(.minute, from: now)
-        let timeVal = hour * 60 + minute
-        if timeVal >= 570 && timeVal < 960 { return .open }
-        if timeVal >= 240 && timeVal < 570 { return .preMarket }
-        if timeVal >= 960 && timeVal < 1200 { return .afterHours }
-        return .closed
+        switch MarketClock.session() {
+        case .open: return .open
+        case .preMarket: return .preMarket
+        case .afterHours: return .afterHours
+        case .holiday: return .holiday
+        case .closed, .weekend: return .closed
+        }
     }
 
     private enum MarketSession { case open, preMarket, afterHours, closed, holiday }
@@ -140,7 +127,7 @@ struct StockDetailView: View {
     }
 
     private var priceString: String {
-        priceLoaded ? String(format: "%.2f", currentPrice) : L("Loading...")
+        priceLoaded ? String(format: "%.2f", currentPrice) : "000.00"
     }
 
     @Environment(\.horizontalSizeClass) private var hSize
@@ -311,7 +298,6 @@ struct StockDetailView: View {
                     predictionsModule
                 }
 
-                BannerAdView().padding(.horizontal, 16).padding(.top, 20)
 
                 moduleDivider
                     .padding(.vertical, 14)
@@ -319,10 +305,8 @@ struct StockDetailView: View {
                 // ── News & Activity group ──
                 VStack(spacing: 16) {
                     newsModule
-                    optionsModule
                 }
 
-                BannerAdView().padding(.horizontal, 16).padding(.top, 20)
 
                 moduleDivider
                     .padding(.vertical, 14)
@@ -333,7 +317,6 @@ struct StockDetailView: View {
                     commentsModule
                 }
 
-                BannerAdView().padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 8)
 
                 companyInfoModule
                     .padding(.top, 8)
@@ -366,17 +349,14 @@ struct StockDetailView: View {
                         keyDataModule
                         predictionsModule
                         newsModule
-                        BannerAdView().padding(.horizontal, 16)
                     }
                     .frame(maxWidth: .infinity)
 
                     // Right column
                     VStack(spacing: AppTheme.moduleSpacing) {
                         peersModule
-                        optionsModule
-                        commentsModule
+                            commentsModule
                         companyInfoModule
-                        BannerAdView().padding(.horizontal, 16)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -413,8 +393,7 @@ struct StockDetailView: View {
                     (L("Open Price"), String(format: "$%.2f", q.open)),
                     (L("Previous Close"), String(format: "$%.2f", q.previousClose)),
                     (L("Day High"), String(format: "$%.2f", q.high)),
-                    (L("Day Low"), String(format: "$%.2f", q.low)),
-                    (L("Volume"), formatVolume(q.timestamp))
+                    (L("Day Low"), String(format: "$%.2f", q.low))
                 ]
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(items, id: \.0) { label, value in
@@ -514,13 +493,6 @@ struct StockDetailView: View {
         }
     }
 
-    // Helper: format volume from timestamp (we'll use quote change as proxy or fetch separately)
-    private func formatVolume(_ ts: Int) -> String {
-        // Finnhub free tier doesn't return volume in quote endpoint
-        // Show "N/A" or use change as proxy indicator
-        return "—"
-    }
-
     // ================================
     // MARK: - Module 2: Predictions
     // ================================
@@ -595,59 +567,6 @@ struct StockDetailView: View {
                             .padding(.leading, 28)
                     }
                 }
-            }
-        }
-    }
-
-    // ===========================
-    // MARK: - Module 4: Options
-    // ===========================
-    @ViewBuilder
-    private var optionsModule: some View {
-        moduleCard("Options Activity", icon: "arrow.left.arrow.right") {
-            Text(L("Options data requires a premium data subscription."))
-                .font(.caption)
-                .foregroundColor(AppTheme.secondaryText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-
-            // Placeholder layout showing concept
-            HStack(spacing: 0) {
-                // Calls side
-                VStack(spacing: 6) {
-                    Text(L("Calls"))
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppTheme.positive)
-                    ForEach(0..<3, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(AppTheme.positive.opacity(0.08))
-                            .frame(height: 28)
-                            .overlay(
-                                Text("—").font(.caption).foregroundColor(AppTheme.secondaryText)
-                            )
-                    }
-                }
-                .frame(maxWidth: .infinity)
-
-                Divider().frame(height: 100).padding(.horizontal, 8)
-
-                // Puts side
-                VStack(spacing: 6) {
-                    Text(L("Puts"))
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppTheme.negative)
-                    ForEach(0..<3, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(AppTheme.negative.opacity(0.08))
-                            .frame(height: 28)
-                            .overlay(
-                                Text("—").font(.caption).foregroundColor(AppTheme.secondaryText)
-                            )
-                    }
-                }
-                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -1420,7 +1339,7 @@ struct StockDetailView: View {
                         .font(.system(size: 11))
                         .foregroundColor(AppTheme.accent)
                         .padding(.top, 1)
-                    Text(L("Stock prices often move sharply around earnings dates. If you're new to investing, consider waiting until after the report to make decisions."))
+                    Text(L("Prices often move more than usual around an earnings report."))
                         .font(.system(size: 11))
                         .foregroundColor(AppTheme.secondaryText)
                         .lineSpacing(2)
@@ -1520,6 +1439,7 @@ struct StockDetailView: View {
                         Text(priceString)
                             .font(AppTheme.number(32, weight: .bold))
                             .foregroundColor(AppTheme.primaryText)
+                            .redacted(reason: priceLoaded ? [] : .placeholder)
                             .contentTransition(.numericText())
                             .animation(.easeInOut(duration: 0.3), value: currentPrice)
                     }
@@ -1579,6 +1499,7 @@ struct StockDetailView: View {
         HStack(spacing: 6) {
             Text(symbol).font(.headline).foregroundColor(AppTheme.primaryText)
             Text("$\(priceString)").font(AppTheme.number()).foregroundColor(AppTheme.secondaryText)
+                .redacted(reason: priceLoaded ? [] : .placeholder)
             if let ch = intervalChange {
                 Text("\(ch.percent >= 0 ? "+" : "")\(String(format: "%.2f%%", ch.percent))")
                     .font(AppTheme.caption()).foregroundColor(ch.amount >= 0 ? AppTheme.positive : AppTheme.negative)

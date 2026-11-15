@@ -99,11 +99,6 @@ struct NewsView: View {
                                 }
                             }
 
-                            // Insert ad every 5 news items (full width on iPad)
-                            if (index + 1) % 5 == 0 && index < newsList.count - 1 {
-                                BannerAdView()
-                                    .padding(.vertical, 4)
-                            }
                         }
                     }
                     .padding(.horizontal, 16)

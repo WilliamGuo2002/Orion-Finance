@@ -100,13 +100,13 @@ struct RiskProfileView: View {
         let score = totalScore
         if score <= 7 {
             return ("conservative", "Conservative", "shield.checkered", .blue,
-                    "You prefer stability and capital preservation. We'll focus on blue-chip stocks, bonds, and dividend-paying investments.")
+                    "You put stability first. When Orion explains things, it will spend more time on diversification, income investments and protecting what you have.")
         } else if score <= 11 {
             return ("moderate", "Moderate", "scale.3d", .orange,
-                    "You balance growth with safety. We'll suggest a mix of growth stocks and stable investments.")
+                    "You balance growth with stability. Orion will explain both growth companies and steadier investments, and how they fit together.")
         } else {
             return ("aggressive", "Aggressive", "flame", .red,
-                    "You chase high returns and can handle volatility. We'll highlight high-growth opportunities and emerging trends.")
+                    "You're comfortable with bigger swings in pursuit of growth. Orion will explain growth companies and newer trends — including their risks.")
         }
     }
 

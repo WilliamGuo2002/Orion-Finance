@@ -46,9 +46,6 @@ struct AppTheme {
     /// Subtle fill for interval selectors, tag backgrounds etc.
     static let subtleFill = Color("ThemeSubtleFill")
 
-    /// Ad placeholder background
-    static let adBackground = Color("ThemeAdBackground")
-
     // =====================
     // MARK: - Design Tokens
     // =====================
@@ -179,39 +176,6 @@ struct AppTheme {
         return greet
     }
 
-    /// Random subtitle for the greeting
-    static func greetingSubtitle() -> String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let subs: [String]
-        switch hour {
-        case 5..<10:
-            subs = [
-                L("Let's see how the market opens today"),
-                L("A fresh start for your portfolio"),
-                L("Ready for a new trading day?")
-            ]
-        case 10..<16:
-            subs = [
-                L("Markets are moving — stay informed"),
-                L("Here's what's happening today"),
-                L("Keep an eye on your investments")
-            ]
-        case 16..<22:
-            subs = [
-                L("How did your portfolio do today?"),
-                L("Time to review today's moves"),
-                L("Markets are winding down")
-            ]
-        default:
-            subs = [
-                L("Rest well, markets will be here tomorrow"),
-                L("Planning ahead for tomorrow?"),
-                L("Take it easy tonight")
-            ]
-        }
-        return subs.randomElement() ?? subs[0]
-    }
-
     // =====================
     // MARK: - Animation Tokens
     // =====================
@@ -303,7 +267,6 @@ struct AppTheme {
         return fmt.string(from: date)
     }
 
-    /// Returns a closure reason if market is closed today, or nil if it's a normal trading day.
     private static let etDayFormatter: DateFormatter = {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
@@ -311,24 +274,6 @@ struct AppTheme {
         return fmt
     }()
 
-    static func marketClosedReason() -> String? {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = etZone
-        let now = Date()
-        let weekday = cal.component(.weekday, from: now)
-
-        // Weekend
-        if weekday == 1 { return L("Markets are closed today — enjoy your Sunday") }
-        if weekday == 7 { return L("Markets are closed today — enjoy your Saturday") }
-
-        // Holiday
-        let today = etDayFormatter.string(from: now)
-        if marketHolidays.contains(today) {
-            return L("Markets are closed today for a holiday")
-        }
-
-        return nil
-    }
 }
 
 // MARK: - Shared card background builder
@@ -447,26 +392,17 @@ struct BubbleShape: Shape {
     }
 }
 
-// MARK: - Live Pulse Dot (breathing dot at chart end / live indicator)
+// MARK: - Live Dot (marks the latest point while the market is open)
+/// Static on purpose: a pulse that never stops competes with the chart for attention.
 struct LivePulseDot: View {
     let color: Color
-    @State private var pulse = false
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(color.opacity(0.2))
-                .frame(width: pulse ? 16 : 8, height: pulse ? 16 : 8)
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-                .shadow(color: color.opacity(0.5), radius: 3)
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
+        Circle()
+            .fill(color)
+            .frame(width: 7, height: 7)
+            .overlay(Circle().stroke(AppTheme.background, lineWidth: 2))
+            .accessibilityHidden(true)
     }
 }
 

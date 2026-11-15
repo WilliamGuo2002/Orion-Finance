@@ -28,7 +28,6 @@ struct MyHoldingView: View {
     @State private var showAddDialog = false
     @State private var showPortfolioWizard = false
     @State private var isLoading = false
-    @State private var greetingSub = AppTheme.greetingSubtitle()
     @State private var recommendedStocks: [RecommendedStock] = []
     @State private var isLoadingRecommendations = false
     // Holdings — use @State snapshots instead of @ObservedObject to avoid cascade redraws
@@ -89,12 +88,6 @@ struct MyHoldingView: View {
     /// Wide layout: iPad OR iPhone landscape
     private var isWide: Bool { hSize == .regular || vSize == .compact }
 
-    private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE, MMMM d"
-        f.locale = Locale(identifier: "en_US")
-        return f
-    }()
 
     /// Adaptive grid: 2 columns on iPad/wide, single column on phone
     private var gridColumns: [GridItem] {
@@ -120,31 +113,16 @@ struct MyHoldingView: View {
                     .font(AppTheme.serifTitle(26))
                     .foregroundColor(AppTheme.primaryText)
 
-                HStack(spacing: 0) {
-                    Text(greetingSub)
+                // One status line from the trading calendar — it can't contradict itself.
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(MarketClock.statusLine())
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
-                    Spacer()
-                    Text(Self.dateFormatter.string(from: Date()))
-                        .font(AppTheme.caption(11))
-                        .foregroundColor(AppTheme.secondaryText.opacity(0.7))
-                }
-
-                // Market closed reminder
-                if let reason = AppTheme.marketClosedReason() {
-                    HStack(spacing: 6) {
-                        Image(systemName: "moon.zzz.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(AppTheme.accent)
-                        Text(reason)
-                            .font(AppTheme.caption(12))
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule().fill(AppTheme.accent.opacity(0.08))
-                    )
+                    Spacer(minLength: 8)
+                    Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day().locale(AppLocale.current)))
+                        .font(.footnote)
+                        .foregroundColor(AppTheme.secondaryText)
+                        .lineLimit(1)
                 }
             }
             .padding(.horizontal, 20)
@@ -402,30 +380,15 @@ struct MyHoldingView: View {
     @ViewBuilder
     private var emptyStateView: some View {
         VStack(spacing: 24) {
-            // Orion constellation illustration
+            // Orion constellation illustration (still)
             ZStack {
-                // Outer glow
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [AppTheme.accent.opacity(0.08), AppTheme.accent.opacity(0.0)],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 80
-                        )
-                    )
-                    .frame(width: 160, height: 160)
-
-                // Constellation dots
                 ConstellationView()
-                    .frame(width: 120, height: 120)
-
-                // Center star
+                    .frame(width: 88, height: 88)
                 Image(systemName: "sparkle")
-                    .font(.system(size: 28, weight: .light))
+                    .font(.system(size: 22, weight: .light))
                     .foregroundColor(AppTheme.accent)
-                    .shadow(color: AppTheme.accent.opacity(0.4), radius: 8)
             }
+            .accessibilityHidden(true)
 
             VStack(spacing: 8) {
                 Text(L("Your watchlist is empty"))
@@ -1687,56 +1650,33 @@ struct PortfolioChartView: View {
 }
 
 // MARK: - Market Ticker View
+/// A still row of market gauges. Nothing moves on its own — peripheral motion at the top of the
+/// home screen is the most attention-grabbing thing an app can do, and auto-updating prices must be
+/// pausable (WCAG 2.2.2). If it doesn't fit, the user scrolls it.
 struct MarketTickerView: View {
     let indices: [MarketIndex]
 
-    @State private var offset: CGFloat = 0
-    @State private var itemsWidth: CGFloat = 0
-
-    private let speed: CGFloat = 40
-
     var body: some View {
-        GeometryReader { geo in
-            let repeats = max(3, Int(ceil(geo.size.width * 3 / max(itemsWidth, 1))) + 1)
-
-            ZStack(alignment: .leading) {
-                HStack(spacing: 32) {
-                    ForEach(0..<repeats, id: \.self) { _ in
-                        ForEach(indices) { index in
-                            tickerLabel(index)
-                        }
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 20) {
+                ForEach(indices) { index in
+                    tickerLabel(index)
                 }
-                .fixedSize()
-                .background(
-                    GeometryReader { inner in
-                        Color.clear.onAppear {
-                            itemsWidth = inner.size.width / CGFloat(repeats)
-                        }
-                    }
-                )
-                .offset(x: -offset)
+                if let asOf = indices.compactMap(\.asOf).max() {
+                    Text(Self.asOfText(asOf))
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
             }
-            .frame(width: geo.size.width, alignment: .leading)
-            .clipped()
+            .padding(.horizontal, 20)
+            .frame(height: 36)
         }
         .frame(height: 36)
-        .background(.ultraThinMaterial)
-        .onChange(of: indices.count) { _, newCount in
-            if newCount > 0 {
-                // Wait for layout to compute itemsWidth
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    startScrolling()
-                }
-            }
+        .background(AppTheme.background)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(AppTheme.border.opacity(0.6)).frame(height: 0.5)
         }
-        .onAppear {
-            if !indices.isEmpty {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    startScrolling()
-                }
-            }
-        }
+        .opacity(indices.isEmpty ? 0 : 1)
     }
 
     @ViewBuilder
@@ -1745,21 +1685,24 @@ struct MarketTickerView: View {
             Text(index.symbol)
                 .foregroundColor(AppTheme.secondaryText)
                 .font(.system(size: 12, weight: .medium))
-                .accessibilityLabel(index.name)
             Text(String(format: "%.2f", index.price))
                 .foregroundColor(AppTheme.primaryText)
                 .font(AppTheme.number(12))
             ChangeBadge(value: index.changePercent, showBackground: false, size: .compact)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(index.name), \(String(format: "%.2f", index.price)), \(AppTheme.formattedChange(index.changePercent))")
     }
 
-    private func startScrolling() {
-        guard itemsWidth > 0, !indices.isEmpty else { return }
-        offset = 0
-        let duration = Double(itemsWidth) / Double(speed)
-        withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
-            offset = itemsWidth
-        }
+    /// "As of 4:00 PM ET", with the weekday when it isn't today.
+    static func asOfText(_ date: Date) -> String {
+        var et = Calendar(identifier: .gregorian)
+        et.timeZone = AppLocale.easternTime
+        let sameDay = et.isDate(date, inSameDayAs: Date())
+        let style: Date.FormatStyle = sameDay
+            ? Date.FormatStyle(date: .omitted, time: .shortened, locale: AppLocale.current, timeZone: AppLocale.easternTime)
+            : Date.FormatStyle(locale: AppLocale.current, timeZone: AppLocale.easternTime).weekday(.abbreviated).hour().minute()
+        return String(format: L("As of %@ ET"), date.formatted(style))
     }
 }
 
@@ -2285,8 +2228,6 @@ struct RecommendationCard: View {
 
 // MARK: - Orion Constellation View
 struct ConstellationView: View {
-    @State private var glow = false
-
     // Star positions (normalized 0-1) to form a simple constellation shape
     private let stars: [(x: CGFloat, y: CGFloat, size: CGFloat)] = [
         (0.2, 0.15, 3), (0.45, 0.1, 4), (0.7, 0.18, 3),
@@ -2301,35 +2242,23 @@ struct ConstellationView: View {
         (5, 6), (6, 7), (5, 8), (7, 9), (8, 9)
     ]
 
+    /// A still illustration — no breathing loop, no glow.
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // Connecting lines
-                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    let s1 = stars[line.0]
-                    let s2 = stars[line.1]
-                    Path { path in
-                        path.move(to: CGPoint(x: s1.x * geo.size.width, y: s1.y * geo.size.height))
-                        path.addLine(to: CGPoint(x: s2.x * geo.size.width, y: s2.y * geo.size.height))
-                    }
-                    .stroke(AppTheme.accent.opacity(glow ? 0.25 : 0.12), lineWidth: 0.8)
-                }
-
-                // Stars
-                ForEach(Array(stars.enumerated()), id: \.offset) { _, star in
-                    Circle()
-                        .fill(AppTheme.accent.opacity(glow ? 0.8 : 0.4))
-                        .frame(width: star.size, height: star.size)
-                        .shadow(color: AppTheme.accent.opacity(0.5), radius: star.size)
-                        .position(x: star.x * geo.size.width, y: star.y * geo.size.height)
-                }
+        Canvas { context, size in
+            var path = Path()
+            for line in lines {
+                let a = stars[line.0], b = stars[line.1]
+                path.move(to: CGPoint(x: a.x * size.width, y: a.y * size.height))
+                path.addLine(to: CGPoint(x: b.x * size.width, y: b.y * size.height))
+            }
+            context.stroke(path, with: .color(AppTheme.accent.opacity(0.25)), lineWidth: 0.8)
+            for star in stars {
+                let rect = CGRect(x: star.x * size.width - star.size / 2, y: star.y * size.height - star.size / 2,
+                                  width: star.size, height: star.size)
+                context.fill(Path(ellipseIn: rect), with: .color(AppTheme.accent.opacity(0.6)))
             }
         }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                glow = true
-            }
-        }
+        .accessibilityHidden(true)
     }
 }
 
