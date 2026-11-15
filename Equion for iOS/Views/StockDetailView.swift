@@ -1370,7 +1370,7 @@ struct StockDetailView: View {
             ForEach(intervals, id: \.self) { interval in
                 Button(interval) {
                     Haptic.light()
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    withAnimation(Motion.standard) {
                         selectedInterval = interval
                     }
                     selectedEntry = nil
@@ -1436,7 +1436,7 @@ struct StockDetailView: View {
                             .foregroundColor(AppTheme.primaryText)
                             .redacted(reason: priceLoaded ? [] : .placeholder)
                             .contentTransition(.numericText())
-                            .animation(.easeInOut(duration: 0.3), value: currentPrice)
+                            .animation(Motion.standard, value: currentPrice)
                     }
                     if let ch = intervalChange {
                         ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
@@ -1465,7 +1465,7 @@ struct StockDetailView: View {
                 Color.clear.onChange(of: geo.frame(in: .named("scroll")).maxY) { _, newVal in
                     let isNowVisible = newVal > 0
                     if isNowVisible != headerVisible {
-                        withAnimation(.easeInOut(duration: 0.2)) { headerVisible = isNowVisible }
+                        withAnimation(Motion.tap) { headerVisible = isNowVisible }
                     }
                 }
             }
@@ -1561,7 +1561,7 @@ struct StockDetailView: View {
                                         // Dismiss hint on first touch
                                         if !hasUsedChartTouch {
                                             hasUsedChartTouch = true
-                                            withAnimation(.easeOut(duration: 0.3)) { showChartHint = false }
+                                            withAnimation(Motion.standard) { showChartHint = false }
                                         }
                                         if let index: Int = proxy.value(atX: value.location.x) {
                                             let previousEntry = selectedEntry
@@ -1905,7 +1905,7 @@ struct AIAnalysisView: View {
                     }
                 }
                 .onChange(of: chatMessages.count) { _, _ in
-                    withAnimation { if let last = chatMessages.last { proxy.scrollTo(last.id, anchor: .bottom) } }
+                    withAnimation(Motion.standard) { if let last = chatMessages.last { proxy.scrollTo(last.id, anchor: .bottom) } }
                 }
             }
 
@@ -1930,7 +1930,7 @@ struct AIAnalysisView: View {
         HStack(spacing: 8) {
             ForEach(["conservative", "moderate", "aggressive"], id: \.self) { tone in
                 Button(L(tone.capitalized)) {
-                    withAnimation(.easeInOut(duration: 0.2)) { currentTone = tone }
+                    withAnimation(Motion.tap) { currentTone = tone }
                     Task { await loadAnalysis() }
                 }
                 .font(.system(.footnote, weight: currentTone == tone ? .semibold : .regular))

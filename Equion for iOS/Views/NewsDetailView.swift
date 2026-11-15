@@ -80,7 +80,7 @@ struct WebViewRepresentable: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(Motion.standard) {
                 parent.isLoading = false
             }
         }

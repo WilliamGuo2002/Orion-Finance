@@ -128,7 +128,7 @@ struct InterestsSelectionView: View {
 
     private func toggleCategory(_ id: String) {
         Haptic.light()
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        withAnimation(Motion.tap) {
             if localSelection.contains(id) {
                 localSelection.remove(id)
             } else {

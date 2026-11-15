@@ -150,7 +150,7 @@ struct RiskProfileView: View {
 
     private func goTo(_ page: Int) {
         movingForward = page > currentPage
-        withAnimation(.smooth(duration: 0.35)) { currentPage = page }
+        withAnimation(Motion.standard) { currentPage = page }
     }
 
     private func questionView(_ q: RiskQuestion) -> some View {
@@ -267,7 +267,7 @@ struct RiskProfileView: View {
     private func optionCard(_ option: RiskOption, questionId: Int) -> some View {
         let isSelected = answers[questionId] == option.id
         return Button {
-            withAnimation(.smooth(duration: 0.2)) {
+            withAnimation(Motion.tap) {
                 answers[questionId] = option.id
             }
         } label: {
@@ -379,7 +379,7 @@ struct RiskProfileView: View {
             // Retake
             Button {
                 movingForward = false
-                withAnimation(.smooth(duration: 0.35)) {
+                withAnimation(Motion.standard) {
                     currentPage = 0
                     answers.removeAll()
                 }

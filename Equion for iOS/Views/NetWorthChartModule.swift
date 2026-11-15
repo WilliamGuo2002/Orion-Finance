@@ -201,7 +201,7 @@ struct NetWorthChartModule: View {
                                         }
                                     }
                                     .onEnded { _ in
-                                        withAnimation(.easeOut(duration: 0.15)) { selectedIndex = nil }
+                                        withAnimation(Motion.tap) { selectedIndex = nil }
                                     }
                             )
                     }
@@ -283,7 +283,7 @@ struct NetWorthChartModule: View {
         .chartLegend(.hidden)
         .chartYScale(domain: (minY - pad)...(maxY + pad))
         .chartXScale(range: .plotDimension)
-        .animation(.easeInOut(duration: 0.25), value: split)
+        .animation(Motion.tap, value: split)
     }
 
     private func ringedDot(_ color: Color) -> some View {
@@ -316,7 +316,7 @@ struct NetWorthChartModule: View {
             Spacer()
             Button {
                 Haptic.selection()
-                withAnimation(.easeInOut(duration: 0.25)) { split.toggle() }
+                withAnimation(Motion.tap) { split.toggle() }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: split ? "chart.line.uptrend.xyaxis" : "square.stack.3d.up")

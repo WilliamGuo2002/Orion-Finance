@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = -1.5
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
@@ -25,7 +26,9 @@ struct ShimmerModifier: ViewModifier {
                 .allowsHitTesting(false)
             )
             .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                // Slow sweep (2.4 s); static placeholder when Reduce Motion is on.
+                guard !reduceMotion else { return }
+                withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
                     phase = 1.5
                 }
             }

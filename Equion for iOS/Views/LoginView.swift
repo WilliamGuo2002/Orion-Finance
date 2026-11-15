@@ -205,7 +205,7 @@ struct LoginView: View {
     private func login() {
         guard !email.isEmpty, !password.isEmpty else {
             Haptic.warning()
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(Motion.standard) {
                 errorMessage = L("Email and password are required")
             }
             return
@@ -219,7 +219,7 @@ struct LoginView: View {
             } catch {
                 await MainActor.run {
                     Haptic.error()
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                    withAnimation(Motion.standard) {
                         errorMessage = L("Authentication failed.")
                     }
                     isLoading = false

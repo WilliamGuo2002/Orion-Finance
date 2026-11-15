@@ -226,7 +226,7 @@ struct ChatDetailView: View {
                 }
                 .onChange(of: messages.count) { _, _ in
                     if let last = messages.last {
-                        withAnimation {
+                        withAnimation(Motion.standard) {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
@@ -280,7 +280,7 @@ struct ChatDetailView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
+            .background(AdaptiveMaterialBackground(shape: Rectangle()).ignoresSafeArea(edges: .bottom))
             .overlay(alignment: .top) {
                 Divider().opacity(0.3)
             }
@@ -452,7 +452,7 @@ struct ChatDetailView: View {
             fileName: fileName,
             fileText: fileText
         )
-        withAnimation(AppTheme.gentleSpring) {
+        withAnimation(Motion.standard) {
             messages.append(userMsg)
         }
         userInput = ""
@@ -476,7 +476,7 @@ struct ChatDetailView: View {
                 }
                 let aiMsg = ChatMessage(role: "ai", content: reply)
                 await MainActor.run {
-                    withAnimation(AppTheme.gentleSpring) {
+                    withAnimation(Motion.standard) {
                         messages.append(aiMsg)
                     }
                     isLoading = false

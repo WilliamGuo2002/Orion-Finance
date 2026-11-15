@@ -251,17 +251,6 @@ struct AppTheme {
     }
 
     // =====================
-    // MARK: - Animation Tokens
-    // =====================
-    static let quickDuration: Double = 0.2
-    static let standardDuration: Double = 0.35
-    static let slowDuration: Double = 0.5
-
-    static var quickEase: Animation { .easeInOut(duration: quickDuration) }
-    static var standardEase: Animation { .easeOut(duration: standardDuration) }
-    static var gentleSpring: Animation { .spring(response: 0.4, dampingFraction: 0.75) }
-
-    // =====================
     // MARK: - Accessibility Helpers
     // =====================
 
@@ -625,4 +614,42 @@ enum AppColors {
     static var warningColor: Color { AppTheme.warning }
     static var positiveColor: Color { AppTheme.positive }
     static var negativeColor: Color { AppTheme.negative }
+}
+
+// MARK: - Motion tokens
+/// The app's five animations. Durations follow NN/g (100–300 ms for in-place changes; entrances a
+/// little longer than exits) and WWDC23 spring guidance (bounce 0 by default, never above ~0.15).
+/// With Reduce Motion on, everything becomes a short cross-fade.
+enum Motion {
+    static var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
+    /// Cross-fade used in place of movement when Reduce Motion is on.
+    static let fade: Animation = .easeInOut(duration: 0.2)
+
+    /// Press states, selection, toggles.
+    static var tap: Animation { reduceMotion ? fade : .snappy(duration: 0.2) }
+    /// In-place state changes, expand/collapse.
+    static var standard: Animation { reduceMotion ? fade : .smooth(duration: 0.35) }
+    /// Page-level changes (entrances); exits use `standard`.
+    static var screen: Animation { reduceMotion ? fade : .smooth(duration: 0.45) }
+    /// Price and balance changes — no bounce, no colour flash.
+    static var number: Animation { reduceMotion ? fade : .smooth(duration: 0.3) }
+    /// Release of a momentum gesture.
+    static var gesture: Animation { reduceMotion ? fade : .spring(duration: 0.4, bounce: 0.1) }
+}
+
+// MARK: - Materials that respect Reduce Transparency
+/// `.ultraThinMaterial`, or a solid surface when the user turned on Reduce Transparency
+/// (custom materials don't adapt on their own).
+struct AdaptiveMaterialBackground<S: Shape>: View {
+    let shape: S
+    var fallback: Color = AppTheme.cardBackground
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if reduceTransparency {
+            shape.fill(fallback)
+        } else {
+            shape.fill(.ultraThinMaterial)
+        }
+    }
 }

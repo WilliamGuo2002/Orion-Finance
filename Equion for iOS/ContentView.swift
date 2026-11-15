@@ -14,7 +14,7 @@ struct ContentView: View {
                 if showRiskProfile {
                     NavigationStack {
                         RiskProfileView(isOnboarding: true, onComplete: {
-                            withAnimation {
+                            withAnimation(Motion.standard) {
                                 showRiskProfile = false
                             }
                         })
@@ -23,7 +23,7 @@ struct ContentView: View {
                 } else if showOnboarding {
                     NavigationStack {
                         InterestsSelectionView(isOnboarding: true, onComplete: {
-                            withAnimation {
+                            withAnimation(Motion.standard) {
                                 showOnboarding = false
                                 showRiskProfile = true
                             }
@@ -277,7 +277,7 @@ struct MainTabView: View {
     private func sideRailButton(_ tab: AppTab) -> some View {
         Button {
             Haptic.light()
-            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+            withAnimation(Motion.tap) { selectedTab = tab }
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: selectedTab == tab ? tab.activeIcon : tab.icon)
@@ -386,7 +386,7 @@ struct PhoneTabBar: View {
     private func tabButton(_ tab: AppTab) -> some View {
         Button(action: {
             Haptic.light()
-            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+            withAnimation(Motion.tap) { selectedTab = tab }
             tabBar.expand()
         }) {
             VStack(spacing: tabBar.collapsed ? 0 : 3) {
@@ -440,13 +440,13 @@ final class TabBarVisibility: ObservableObject {
             next = collapsed        // negligible movement: hold current state
         }
         guard next != collapsed else { return }
-        withAnimation(.easeInOut(duration: 0.25)) { collapsed = next }
+        withAnimation(Motion.tap) { collapsed = next }
     }
 
     /// Force the bar back to full size (e.g. when switching tabs).
     func expand() {
         guard collapsed else { return }
-        withAnimation(.easeInOut(duration: 0.25)) { collapsed = false }
+        withAnimation(Motion.tap) { collapsed = false }
     }
 }
 

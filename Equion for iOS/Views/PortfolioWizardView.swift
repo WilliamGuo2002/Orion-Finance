@@ -179,7 +179,7 @@ struct PortfolioWizardView: View {
                     let isSelected = selection.wrappedValue == option.id
                     Button {
                         Haptic.light()
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        withAnimation(Motion.tap) {
                             selection.wrappedValue = option.id
                         }
                     } label: {
@@ -222,7 +222,7 @@ struct PortfolioWizardView: View {
             HStack(spacing: 16) {
                 Button {
                     Haptic.light()
-                    withAnimation { currentStep -= 1 }
+                    withAnimation(Motion.standard) { currentStep -= 1 }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -330,7 +330,7 @@ struct PortfolioWizardView: View {
                     // Redo button
                     Button {
                         Haptic.light()
-                        withAnimation {
+                        withAnimation(Motion.standard) {
                             currentStep = 0
                             budget = ""
                             horizon = ""
@@ -435,7 +435,7 @@ struct PortfolioWizardView: View {
     private func nextButton(enabled: Bool, action: @escaping () -> Void) -> some View {
         Button {
             Haptic.light()
-            withAnimation(.easeInOut(duration: 0.3)) { action() }
+            withAnimation(Motion.standard) { action() }
         } label: {
             HStack(spacing: 4) {
                 Text(L("Next"))

@@ -256,7 +256,7 @@ struct MyHoldingView: View {
                         }
                         .onEnded { _ in
                             guard showPortfolioMarker else { return }
-                            withAnimation(.easeInOut(duration: 0.15)) {
+                            withAnimation(Motion.tap) {
                                 showPortfolioMarker = false
                                 selectedPortfolioEntry = nil
                             }
@@ -330,7 +330,7 @@ struct MyHoldingView: View {
                             if index > 0 {
                                 Button {
                                     Haptic.light()
-                                    withAnimation {
+                                    withAnimation(Motion.standard) {
                                         let item = stockList.remove(at: index)
                                         stockList.insert(item, at: 0)
                                     }
@@ -582,8 +582,8 @@ struct MyHoldingView: View {
         }
         guard !pendingAdds.contains(key) else { return }
         watchlistNotice = nil
-        withAnimation(.smooth(duration: 0.3)) { pendingAdds.append(key) }
-        defer { withAnimation(.smooth(duration: 0.3)) { pendingAdds.removeAll { $0 == key } } }
+        withAnimation(Motion.standard) { pendingAdds.append(key) }
+        defer { withAnimation(Motion.standard) { pendingAdds.removeAll { $0 == key } } }
 
         do {
             async let chartQuote = APIService.shared.fetchChartAndQuote(symbol: symbol)
@@ -592,7 +592,7 @@ struct MyHoldingView: View {
             let stock = StockInfo(symbol: symbol, name: prof?.name ?? symbol, price: cq.price,
                                   changePercent: PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose),
                                   chartData: cq.chartData, logoURL: prof?.logoURL)
-            withAnimation(.smooth(duration: 0.3)) { stockList.append(stock) }
+            withAnimation(Motion.standard) { stockList.append(stock) }
             updateCachedMovers()
         } catch {
             print("[Add] Failed to add \(symbol): \(error.localizedDescription)")
@@ -642,7 +642,7 @@ struct MyHoldingView: View {
                             .foregroundColor(AppTheme.accentText)
                     }
                     Button {
-                        withAnimation(.smooth(duration: 0.25)) { watchlistNotice = nil }
+                        withAnimation(Motion.tap) { watchlistNotice = nil }
                     } label: {
                         Image(systemName: "xmark")
                             .font(.footnote.weight(.semibold))
@@ -661,7 +661,7 @@ struct MyHoldingView: View {
                     guard notice.kind == .info else { return }
                     try? await Task.sleep(for: .seconds(6))
                     if watchlistNotice?.id == notice.id {
-                        withAnimation(.smooth(duration: 0.3)) { watchlistNotice = nil }
+                        withAnimation(Motion.standard) { watchlistNotice = nil }
                     }
                 }
             }
@@ -910,7 +910,7 @@ struct MyHoldingView: View {
                 ForEach([TodayTab.active, .gainers, .losers], id: \.self) { tab in
                     Button {
                         Haptic.light()
-                        withAnimation(.easeInOut(duration: 0.2)) { todayTab = tab }
+                        withAnimation(Motion.tap) { todayTab = tab }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: tab.icon)
@@ -1056,7 +1056,7 @@ struct MyHoldingView: View {
                 .lineLimit(1)
             Spacer()
             ChangeBadge(value: changePercent, showBackground: false, size: .compact)
-                .animation(.easeInOut(duration: 0.3), value: changePercent)
+                .animation(Motion.standard, value: changePercent)
         }
         .padding(.vertical, 1)
     }
@@ -1209,7 +1209,7 @@ struct HideValuesButton: View {
     var body: some View {
         Button {
             Haptic.selection()
-            withAnimation(.easeInOut(duration: 0.2)) { hideValues.toggle() }
+            withAnimation(Motion.tap) { hideValues.toggle() }
         } label: {
             Image(systemName: hideValues ? "eye.slash" : "eye")
                 .font(.system(.caption, weight: .semibold))
@@ -1759,10 +1759,10 @@ struct StockRowView: View {
                         .font(AppTheme.number(15, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                         .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.3), value: priceNumber)
+                        .animation(Motion.standard, value: priceNumber)
                 }
                 ChangeBadge(value: stock.changePercent, size: .compact)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.6), value: stock.changePercent)
+                    .animation(Motion.number, value: stock.changePercent)
             }
             .frame(width: 100, alignment: .trailing)
         }
@@ -2022,7 +2022,7 @@ struct AddAssetSheet: View {
     }
 
     private func categoryTab(_ type: AssetType, icon: String) -> some View {
-        Button(action: { withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = type } }) {
+        Button(action: { withAnimation(Motion.standard) { selectedTab = type } }) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(.footnote))
@@ -2084,7 +2084,7 @@ struct MoverChip: View {
 
             // Change badge
             ChangeBadge(value: changePercent, size: .compact)
-                .animation(.spring(response: 0.35, dampingFraction: 0.6), value: changePercent)
+                .animation(Motion.number, value: changePercent)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
