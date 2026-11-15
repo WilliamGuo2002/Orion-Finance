@@ -9,6 +9,17 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "How do index ETFs work?": "指数 ETF 是怎么运作的？",
+        "How do a TFSA and an RRSP differ?": "TFSA 和 RRSP 有什么区别？",
+        "What does a P/E ratio tell me?": "市盈率能告诉我什么？",
+        "Questions about stocks, markets or investing — answered for learning, not as advice.": "关于股票、市场或投资的问题都可以问，回答用于学习，不构成建议。",
+        "Ask Orion": "问问 Orion",
+        "Voice chat": "语音对话",
+        "Send": "发送",
+        "Add attachment": "添加附件",
+        "Video chat": "视频对话",
+        "File": "文件",
+        "Photo": "照片",
         "Add stocks to your watchlist to see news about them here.": "把股票加入自选后，这里会显示相关新闻。",
         "No stories right now": "暂时没有新闻",
         "No recent stories for your watchlist": "你的自选最近没有相关新闻",

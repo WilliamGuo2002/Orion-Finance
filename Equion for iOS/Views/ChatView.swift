@@ -19,6 +19,7 @@ struct ChatView: View {
     @State private var isLoading = false
     @State private var activeChatId: String?
     @State private var navigateToChat = false
+    @State private var pendingPrompt: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,43 +33,26 @@ struct ChatView: View {
                 Spacer()
             } else if sessions.isEmpty {
                 Spacer()
-                VStack(spacing: 20) {
-                    ZStack {
-                        Circle()
-                            .fill(AppTheme.accent.opacity(0.08))
-                            .frame(width: 120, height: 120)
-                        Circle()
-                            .fill(AppTheme.accent.opacity(0.12))
-                            .frame(width: 80, height: 80)
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(.largeTitle, weight: .light))
-                            .foregroundColor(AppTheme.accentText)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text(L("No conversations yet"))
-                            .font(AppTheme.serifHeadline(18))
+                VStack(spacing: 16) {
+                    Image(systemName: "sparkles")
+                        .font(.largeTitle.weight(.light))
+                        .foregroundColor(AppTheme.accentText)
+                        .accessibilityHidden(true)
+                    VStack(spacing: 6) {
+                        Text(L("Ask Orion"))
+                            .font(AppTheme.serifHeadline(20))
                             .foregroundColor(AppTheme.primaryText)
-                        Text(L("Ask Orion anything about stocks, markets, or investing"))
+                        Text(L("Questions about stocks, markets or investing — answered for learning, not as advice."))
                             .font(.subheadline)
                             .foregroundColor(AppTheme.secondaryText)
                             .multilineTextAlignment(.center)
                     }
-
-                    Button(action: createNewChat) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus")
-                                .font(.system(.subheadline, weight: .semibold))
-                            Text(L("Start a new chat"))
-                                .font(.system(.subheadline, weight: .semibold))
-                        }
-                        .foregroundColor(AppTheme.onAccent)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 12)
-                        .background(Capsule().fill(AppTheme.accent))
+                    ChatSuggestions { prompt in
+                        pendingPrompt = prompt
+                        createNewChat()
                     }
                 }
-                .padding(.horizontal, 48)
+                .padding(.horizontal, 32)
                 Spacer()
             } else {
                 List {
@@ -90,7 +74,8 @@ struct ChatView: View {
         .background(AppTheme.background)
         .navigationDestination(isPresented: $navigateToChat) {
             if let chatId = activeChatId {
-                ChatDetailView(chatId: chatId, initialMessages: [])
+                ChatDetailView(chatId: chatId, initialMessages: [], initialPrompt: pendingPrompt)
+                    .onDisappear { pendingPrompt = nil }
             }
         }
         .task {
@@ -172,6 +157,8 @@ struct ChatDetailView: View {
     let chatId: String
     let initialMessages: [ChatMessage]
     var isExistingChat: Bool = false
+    /// A question to send as soon as the chat opens (from a suggestion chip).
+    var initialPrompt: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var messages: [ChatMessage] = []
@@ -187,6 +174,8 @@ struct ChatDetailView: View {
     @State private var attachedFileName: String?
     @State private var attachedFileText: String?
     @State private var showFilePicker = false
+    @State private var showPhotoPicker = false
+    @FocusState private var inputFocused: Bool
 
     // Voice / Video
     @State private var showVoiceChat = false
@@ -234,53 +223,65 @@ struct ChatDetailView: View {
                 attachmentPreview
             }
 
-            // Input bar
-            HStack(spacing: 8) {
-                // Photo picker
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Image(systemName: "photo")
-                        .font(.system(.title3))
-                        .foregroundColor(AppTheme.secondaryText)
+            // Suggestions for an empty conversation — teach by example instead of a blank screen
+            if messages.isEmpty && !isLoading && initialPrompt == nil {
+                ChatSuggestions { prompt in
+                    userInput = prompt
+                    sendMessage()
                 }
-
-                // File picker
-                Button(action: { showFilePicker = true }) {
-                    Image(systemName: "doc")
-                        .font(.system(.title3))
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-
-                TextField(L("Ask Orion..."), text: $userInput)
-                    .textFieldStyle(.roundedBorder)
-
-                // Voice chat (Gemini Live)
-                Button(action: { Task { if await AIConsent.shared.request() { showVoiceChat = true } } }) {
-                    Image(systemName: "mic.fill")
-                        .font(.system(.title3))
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-
-                // Video chat (Gemini Live)
-                Button(action: { Task { if await AIConsent.shared.request() { showVideoChat = true } } }) {
-                    Image(systemName: "video.fill")
-                        .font(.system(.title3))
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-
-                // Send text
-                Button(action: sendMessage) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(canSend ? AppTheme.accent : AppTheme.secondaryText)
-                }
-                .disabled(!canSend || isLoading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+
+            // Input bar: attachments live behind one "+" menu; mic turns into send once you type.
+            HStack(alignment: .bottom, spacing: 4) {
+                Menu {
+                    Button { showPhotoPicker = true } label: { Label(L("Photo"), systemImage: "photo") }
+                    Button { showFilePicker = true } label: { Label(L("File"), systemImage: "doc") }
+                    Button {
+                        Task { if await AIConsent.shared.request() { showVideoChat = true } }
+                    } label: { Label(L("Video chat"), systemImage: "video") }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title3)
+                        .foregroundColor(AppTheme.secondaryText)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(L("Add attachment"))
+
+                TextField(L("Ask Orion..."), text: $userInput, axis: .vertical)
+                    .lineLimit(1...5)
+                    .focused($inputFocused)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(AppTheme.subtleFill))
+                    .padding(.vertical, 4)
+
+                if canSend {
+                    Button(action: sendMessage) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title)
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(width: 44, height: 44)
+                    }
+                    .disabled(isLoading)
+                    .accessibilityLabel(L("Send"))
+                } else {
+                    Button(action: { Task { if await AIConsent.shared.request() { showVoiceChat = true } } }) {
+                        Image(systemName: "mic")
+                            .font(.title3)
+                            .foregroundColor(AppTheme.secondaryText)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(L("Voice chat"))
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(AdaptiveMaterialBackground(shape: Rectangle()).ignoresSafeArea(edges: .bottom))
             .overlay(alignment: .top) {
                 Divider().opacity(0.3)
             }
-            .padding(.bottom, 64)
         }
         .background(AppTheme.background)
         .navigationBarTitleDisplayMode(.inline)
@@ -332,8 +333,13 @@ struct ChatDetailView: View {
         .fullScreenCover(isPresented: $showVideoChat) {
             GeminiVideoChatView(messages: $messages, isTemporary: isTemporary, chatId: chatId)
         }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
         .onAppear {
             messages = initialMessages
+            if let prompt = initialPrompt, messages.isEmpty {
+                userInput = prompt
+                sendMessage()
+            }
         }
         .onChange(of: selectedPhoto) { _, newItem in
             guard let newItem else { return }
@@ -997,5 +1003,43 @@ class VideoFrameDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
         let jpeg = resized?.jpegData(compressionQuality: 0.5)
         onFrame(jpeg)
+    }
+}
+
+// MARK: - Suggested questions
+/// Three neutral, educational starters. Tapping one sends it.
+struct ChatSuggestions: View {
+    let onPick: (String) -> Void
+
+    private let prompts = [
+        "What does a P/E ratio tell me?",
+        "How do a TFSA and an RRSP differ?",
+        "How do index ETFs work?",
+    ]
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ForEach(prompts, id: \.self) { prompt in
+                Button { onPick(L(prompt)) } label: {
+                    HStack {
+                        Text(L(prompt))
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.primaryText)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote)
+                            .foregroundColor(AppTheme.tertiaryText)
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 48)
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(AppTheme.cardBackground))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(AppTheme.border, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 }
