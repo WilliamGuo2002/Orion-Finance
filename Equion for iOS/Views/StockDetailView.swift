@@ -55,6 +55,9 @@ struct StockDetailView: View {
     @ObservedObject private var aiConsent = AIConsent.shared
     @State private var aiDashboardFailed = false
 
+    private enum PeerAddState { case adding, added, failed }
+    @State private var peerAddState: [String: PeerAddState] = [:]
+
     // Holdings
     @State private var showTransactionSheet = false
     @State private var holdingAgg: AggregatedHolding?
@@ -687,27 +690,50 @@ struct StockDetailView: View {
 
             Spacer(minLength: 2)
 
-            Button(action: {
-                Task {
-                    FirebaseController.shared.addStockToWatchlist(symbol: peer.symbol)
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .bold))
-                    Text(L("Add"))
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(AppTheme.accent))
-            }
+            peerAddButton(peer.symbol)
         }
         .frame(width: 128)
         .padding(12)
         .themeCardSurface()
+    }
+
+    /// Add-to-watchlist for a peer: shows progress, then a checkmark; errors stay visible on the card.
+    @ViewBuilder
+    private func peerAddButton(_ peerSymbol: String) -> some View {
+        let state = peerAddState[peerSymbol]
+        Button {
+            guard state == nil || state == .failed else { return }
+            peerAddState[peerSymbol] = .adding
+            Task {
+                do {
+                    try await FirebaseController.shared.addToWatchlist(symbol: peerSymbol)
+                    peerAddState[peerSymbol] = .added
+                    Haptic.success()
+                } catch {
+                    peerAddState[peerSymbol] = .failed
+                    Haptic.error()
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                switch state {
+                case .adding: ProgressView().controlSize(.mini)
+                case .added: Image(systemName: "checkmark")
+                case .failed: Image(systemName: "arrow.clockwise")
+                case nil: Image(systemName: "plus")
+                }
+                Text(state == .added ? L("Added") : state == .failed ? L("Retry") : L("Add"))
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundColor(state == .added ? AppTheme.secondaryText : AppTheme.accent)
+            .frame(maxWidth: .infinity, minHeight: 32)
+            .background(Capsule().fill(state == .added ? AppTheme.subtleFill : AppTheme.accent.opacity(0.12)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(state == .adding || state == .added)
+        .accessibilityLabel(state == .added ? String(format: L("%@ added to watchlist"), peerSymbol)
+                                            : String(format: L("Add %@ to watchlist"), peerSymbol))
     }
 
     // ============================

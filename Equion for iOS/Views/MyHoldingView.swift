@@ -54,6 +54,17 @@ struct MyHoldingView: View {
     @State private var todayTab: TodayTab = .active
     @State private var isLoadingToday = false
     @ObservedObject private var interests = InterestsManager.shared
+    // Watchlist add feedback
+    @State private var pendingAdds: [String] = []
+    @State private var watchlistNotice: WatchlistNotice?
+
+    struct WatchlistNotice: Equatable {
+        enum Kind { case info, error }
+        let id = UUID()
+        let kind: Kind
+        let text: String
+        var retrySymbol: String? = nil
+    }
 
     enum TodayTab: String, CaseIterable {
         case active, gainers, losers
@@ -195,6 +206,11 @@ struct MyHoldingView: View {
         // These only fire on real data updates, never per scroll frame.
         .onReceive(HoldingsManager.shared.$snapshot.dropFirst()) { holdingsSnapshot = $0 }
         .onReceive(HoldingsManager.shared.$portfolioChart.dropFirst()) { portfolioChartData = $0 }
+        .onReceive(NotificationCenter.default.publisher(for: .watchlistAdded)) { note in
+            guard let symbol = note.object as? String,
+                  !stockList.contains(where: { $0.symbol.uppercased() == symbol.uppercased() }) else { return }
+            Task { await fetchAndAddStock(symbol: symbol, persist: false) }
+        }
     }
 
     // MARK: - Scroll Content (foreground layer)
@@ -300,6 +316,8 @@ struct MyHoldingView: View {
                 todayMarketCard
                 myMoversCard
 
+                watchlistStatus
+
                 emptyStateView
                     .padding(.top, 12)
 
@@ -316,6 +334,8 @@ struct MyHoldingView: View {
                 // Section label
                 SectionLabel(title: L("Watchlist"), count: stockList.count)
                     .padding(.top, 4)
+
+                watchlistStatus
 
                 // Watchlist
                 LazyVGrid(columns: gridColumns, spacing: 10) {
@@ -548,17 +568,17 @@ struct MyHoldingView: View {
                             // One Yahoo call: chart data + price + previousClose
                             async let chartQuote = APIService.shared.fetchChartAndQuote(symbol: symbol)
                             // Finnhub profile (24h cache — usually instant after first load)
-                            async let profile = APIService.shared.fetchCompanyProfile(symbol: symbol)
-
-                            let (cq, prof) = try await (chartQuote, profile)
+                            async let profile = try? APIService.shared.fetchCompanyProfile(symbol: symbol)
+                            // A missing company name/logo must not drop the whole row.
+                            let (cq, prof) = (try await chartQuote, await profile)
                             let changePercent = PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose)
                             return StockInfo(
                                 symbol: symbol,
-                                name: prof.name,
+                                name: prof?.name ?? symbol,
                                 price: cq.price,
                                 changePercent: changePercent,
                                 chartData: cq.chartData,
-                                logoURL: prof.logoURL
+                                logoURL: prof?.logoURL
                             )
                         } catch {
                             print("[Watchlist] Failed to load \(symbol) (attempt \(attempt + 1)): \(error.localizedDescription)")
@@ -587,23 +607,118 @@ struct MyHoldingView: View {
         }
     }
 
-    private func fetchAndAddStock(symbol: String) async {
-        guard !stockList.contains(where: { $0.symbol.uppercased() == symbol.uppercased() }) else { return }
+    /// Adds a symbol to the watchlist with visible feedback for every outcome: a pending row while
+    /// it loads, a quiet inline note if it was already there, couldn't load (with Retry), or could
+    /// only be kept for this session (guest).
+    /// - Parameter persist: false when the symbol was already saved elsewhere (e.g. a peer's "Add").
+    private func fetchAndAddStock(symbol: String, persist: Bool = true) async {
+        let key = symbol.uppercased()
+        if stockList.contains(where: { $0.symbol.uppercased() == key }) {
+            if persist {
+                watchlistNotice = WatchlistNotice(kind: .info, text: String(format: L("%@ is already in your watchlist."), Self.displaySymbol(symbol)))
+            }
+            return
+        }
+        guard !pendingAdds.contains(key) else { return }
+        watchlistNotice = nil
+        withAnimation(.smooth(duration: 0.3)) { pendingAdds.append(key) }
+        defer { withAnimation(.smooth(duration: 0.3)) { pendingAdds.removeAll { $0 == key } } }
+
         do {
             async let chartQuote = APIService.shared.fetchChartAndQuote(symbol: symbol)
-            async let profile = APIService.shared.fetchCompanyProfile(symbol: symbol)
-            let (cq, prof) = try await (chartQuote, profile)
-            let changePercent = PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose)
-            let stock = StockInfo(symbol: symbol, name: prof.name, price: cq.price, changePercent: changePercent, chartData: cq.chartData, logoURL: prof.logoURL)
-            await MainActor.run {
-                stockList.append(stock)
-                Haptic.success()
-            }
-            FirebaseController.shared.addStockToWatchlist(symbol: symbol)
+            async let profile = try? APIService.shared.fetchCompanyProfile(symbol: symbol)
+            let (cq, prof) = (try await chartQuote, await profile)
+            let stock = StockInfo(symbol: symbol, name: prof?.name ?? symbol, price: cq.price,
+                                  changePercent: PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose),
+                                  chartData: cq.chartData, logoURL: prof?.logoURL)
+            withAnimation(.smooth(duration: 0.3)) { stockList.append(stock) }
+            updateCachedMovers()
         } catch {
-            await MainActor.run { Haptic.error() }
             print("[Add] Failed to add \(symbol): \(error.localizedDescription)")
+            watchlistNotice = WatchlistNotice(
+                kind: .error,
+                text: String(format: L("Couldn't add %@. Check your connection and try again."), Self.displaySymbol(symbol)),
+                retrySymbol: symbol
+            )
+            Haptic.error()
+            return
         }
+
+        guard persist else { return }
+        do {
+            if try await FirebaseController.shared.addToWatchlist(symbol: symbol) {
+                Haptic.success()
+            } else {
+                watchlistNotice = WatchlistNotice(kind: .info, text: L("Added for this session. Sign in to keep your watchlist."))
+            }
+        } catch {
+            watchlistNotice = WatchlistNotice(kind: .error, text: String(format: L("%@ was added here but couldn't be saved to your account."), Self.displaySymbol(symbol)), retrySymbol: nil)
+        }
+    }
+
+    static func displaySymbol(_ s: String) -> String {
+        if s.hasSuffix("-USD") { return String(s.dropLast(4)) }
+        if s.hasSuffix("=F") || s.hasSuffix("=X") { return String(s.dropLast(2)) }
+        return s
+    }
+
+    /// Inline status for watchlist adds — sits with the watchlist, never a banner or alert.
+    @ViewBuilder
+    private var watchlistStatus: some View {
+        VStack(spacing: 8) {
+            if let notice = watchlistNotice {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
+                        .foregroundColor(AppTheme.secondaryText)
+                    Text(notice.text)
+                        .font(.footnote)
+                        .foregroundColor(AppTheme.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    if let retry = notice.retrySymbol {
+                        Button(L("Retry")) { Task { await fetchAndAddStock(symbol: retry) } }
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppTheme.accent)
+                    }
+                    Button {
+                        withAnimation(.smooth(duration: 0.25)) { watchlistNotice = nil }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(L("Dismiss"))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(AppTheme.subtleFill))
+                .transition(.opacity)
+                .task(id: notice.id) {
+                    // Informational notes fade on their own; errors stay until dismissed or retried.
+                    guard notice.kind == .info else { return }
+                    try? await Task.sleep(for: .seconds(6))
+                    if watchlistNotice?.id == notice.id {
+                        withAnimation(.smooth(duration: 0.3)) { watchlistNotice = nil }
+                    }
+                }
+            }
+            ForEach(pendingAdds, id: \.self) { sym in
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text(String(format: L("Adding %@…"), Self.displaySymbol(sym)))
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .themeCardSurface()
+                .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 16)
     }
 
     private func deleteStock(at offsets: IndexSet) {
@@ -653,9 +768,10 @@ struct MyHoldingView: View {
             cachedLosers = []
             return
         }
+        // A rising stock is never a "loser": each column only holds moves in its direction.
         let sorted = stockList.sorted { $0.changePercent > $1.changePercent }
-        cachedGainers = Array(sorted.prefix(3))
-        cachedLosers = Array(sorted.suffix(3).reversed())
+        cachedGainers = Array(sorted.filter { $0.changePercent > 0 }.prefix(3))
+        cachedLosers = Array(sorted.reversed().filter { $0.changePercent < 0 }.prefix(3))
     }
 
     // MARK: - Portfolio Chart Background (pinned behind scroll)

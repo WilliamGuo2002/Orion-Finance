@@ -179,6 +179,21 @@ class FirebaseController: ObservableObject {
         userDocRef(uid: uid).collection("watchlist").document(symbol).setData(["addedAt": Timestamp()])
     }
 
+    /// Saves a watchlist symbol to the signed-in account.
+    /// Returns false for guests (nothing to save to); throws if Firestore rejects the write.
+    @discardableResult
+    func addToWatchlist(symbol: String) async throws -> Bool {
+        guard let uid = currentUser?.uid ?? auth.currentUser?.uid else {
+            NotificationCenter.default.post(name: .watchlistAdded, object: symbol)   // guest: session only
+            return false
+        }
+        try await userDocRef(uid: uid).collection("watchlist").document(symbol).setData(["addedAt": Timestamp()])
+        NotificationCenter.default.post(name: .watchlistAdded, object: symbol)
+        return true
+    }
+
+    var hasAccount: Bool { (currentUser?.uid ?? auth.currentUser?.uid) != nil }
+
     func removeStockFromWatchlist(symbol: String) {
         guard let uid = currentUser?.uid ?? auth.currentUser?.uid else { return }
         userDocRef(uid: uid).collection("watchlist").document(symbol).delete()
@@ -377,4 +392,10 @@ class FirebaseController: ObservableObject {
             return []
         }
     }
+}
+
+extension Notification.Name {
+    /// A symbol was added to the watchlist from somewhere other than the home screen
+    /// (object: the symbol). Home appends it without reloading everything.
+    static let watchlistAdded = Notification.Name("watchlistAdded")
 }

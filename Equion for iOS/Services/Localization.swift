@@ -9,6 +9,15 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Add %@ to watchlist": "将 %@ 加入自选",
+        "%@ added to watchlist": "%@ 已加入自选",
+        "Added": "已添加",
+        "Dismiss": "关闭",
+        "Adding %@…": "正在添加 %@…",
+        "%@ was added here but couldn't be saved to your account.": "%@ 已添加，但未能保存到你的账户。",
+        "Added for this session. Sign in to keep your watchlist.": "已在本次使用中添加。登录后才能保存自选。",
+        "Couldn't add %@. Check your connection and try again.": "未能添加 %@，请检查网络后重试。",
+        "%@ is already in your watchlist.": "%@ 已在自选中。",
         "D/E": "负债权益比",
         "ROE": "ROE",
         "Beta": "Beta",
