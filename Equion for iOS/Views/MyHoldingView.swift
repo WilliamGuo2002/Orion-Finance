@@ -116,17 +116,26 @@ struct MyHoldingView: View {
                     .foregroundColor(AppTheme.primaryText)
 
                 // One status line from the trading calendar — it can't contradict itself.
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(MarketClock.statusLine())
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                    Spacer(minLength: 8)
-                    Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day().locale(AppLocale.current)))
-                        .font(.footnote)
-                        .foregroundColor(AppTheme.secondaryText)
-                        .lineLimit(1)
+                // Side by side when it fits; stacked at large text sizes instead of truncating.
+                let status = Text(MarketClock.statusLine())
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.secondaryText)
+                let date = Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day().locale(AppLocale.current)))
+                    .font(.footnote)
+                    .foregroundColor(AppTheme.secondaryText)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        status.lineLimit(1)
+                        Spacer(minLength: 8)
+                        date.lineLimit(1)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        status
+                        date
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 12)
@@ -1626,9 +1635,9 @@ struct MarketTickerView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .frame(height: 36)
+            .padding(.vertical, 8)
         }
-        .frame(height: 36)
+        .frame(minHeight: 36)
         .background(AppTheme.background)
         .overlay(alignment: .bottom) {
             Rectangle().fill(AppTheme.border.opacity(0.6)).frame(height: 0.5)
