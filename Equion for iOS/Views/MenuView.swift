@@ -21,29 +21,44 @@ struct MenuView: View {
         VStack(spacing: 0) {
         PageHeader(title: L("More"))
         List {
-            // Profile section
+            // Profile / guest card
             Section {
-                HStack(spacing: 16) {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .frame(width: 60, height: 60)
-                        .foregroundColor(AppTheme.accentText)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(firebaseController.currentUser?.email?.components(separatedBy: "@").first ?? "User")
+                if firebaseController.hasAccount, let email = firebaseController.currentUser?.email {
+                    HStack(spacing: 16) {
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 44, weight: .light))
+                            .foregroundColor(AppTheme.accentText)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(email.components(separatedBy: "@").first ?? email)
+                                .font(AppTheme.serifHeadline(18))
+                                .foregroundColor(AppTheme.primaryText)
+                            Text(email)
+                                .font(.footnote)
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .listRowBackground(AppTheme.cardBackground)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L("Guest"))
                             .font(AppTheme.serifHeadline(18))
                             .foregroundColor(AppTheme.primaryText)
-                        Text(firebaseController.currentUser?.email ?? "")
-                            .font(.caption)
+                        Text(L("Sign in to keep your watchlist and link your accounts."))
+                            .font(.subheadline)
                             .foregroundColor(AppTheme.secondaryText)
+                        Button(L("Sign In")) { firebaseController.isLoggedIn = false }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(minHeight: 44)
                     }
+                    .padding(.top, 8)
+                    .listRowBackground(AppTheme.cardBackground)
                 }
-                .padding(.vertical, 8)
-                .listRowBackground(AppTheme.cardBackground)
             }
 
-            // Settings section
-            Section(L("Settings")) {
+            Section(L("Accounts")) {
                 // Linked brokerages (SnapTrade, read-only)
                 NavigationLink {
                     LinkedAccountsView()
@@ -62,6 +77,9 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
+            }
+
+            Section(L("Preferences")) {
                 // Display currency for portfolio amounts (USD default)
                 Menu {
                     ForEach(SettingsManager.supportedCurrencies, id: \.self) { currency in
@@ -101,6 +119,21 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
+                Toggle(isOn: $hapticsEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.tap")
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(width: 24)
+                        Text(L("Haptics"))
+                            .foregroundColor(AppTheme.primaryText)
+                    }
+                }
+                .tint(AppTheme.accent)
+                .listRowBackground(AppTheme.cardBackground)
+
+            }
+
+            Section(L("Investing")) {
                 // Interests
                 Button(action: { showInterests = true }) {
                     menuRow(icon: "star.circle", title: L("My Interests"), detail: interestsDetail)
@@ -133,6 +166,9 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
+            }
+
+            Section(L("Privacy & About")) {
                 // AI data sharing (Google Gemini) — consent can be withdrawn any time
                 Toggle(isOn: Binding(
                     get: { aiConsent.granted },
@@ -154,18 +190,6 @@ struct MenuView: View {
                 .tint(AppTheme.accent)
                 .listRowBackground(AppTheme.cardBackground)
 
-                Toggle(isOn: $hapticsEnabled) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "hand.tap")
-                            .foregroundColor(AppTheme.accentText)
-                            .frame(width: 24)
-                        Text(L("Haptics"))
-                            .foregroundColor(AppTheme.primaryText)
-                    }
-                }
-                .tint(AppTheme.accent)
-                .listRowBackground(AppTheme.cardBackground)
-
                 Button(action: { showDisclaimer = true }) {
                     menuRow(icon: "info.circle", title: L("Disclaimer"), detail: nil)
                 }
@@ -179,6 +203,7 @@ struct MenuView: View {
             }
 
             // Logout
+            if firebaseController.hasAccount {
             Section {
                 Button(action: logout) {
                     HStack {
@@ -188,6 +213,7 @@ struct MenuView: View {
                     .foregroundColor(AppTheme.warning)
                 }
                 .listRowBackground(AppTheme.cardBackground)
+            }
             }
         }
         .listStyle(.insetGrouped)

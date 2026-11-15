@@ -1796,11 +1796,8 @@ struct StockRowView: View {
 
     private var assetTypeColor: Color {
         switch assetType {
-        case .stock:     return AppTheme.accent
-        case .crypto:    return Color.orange
-        case .forex:     return Color.blue
-        case .metal:     return Color(red: 0.85, green: 0.75, blue: 0.40)
-        case .commodity: return Color(red: 0.55, green: 0.75, blue: 0.55)
+        case .stock:     return AppTheme.accentText
+        case .crypto, .forex, .metal, .commodity: return AppTheme.accentText
         }
     }
 }
@@ -2014,13 +2011,7 @@ struct AddAssetSheet: View {
     }
 
     private func iconColor(for type: AssetType) -> Color {
-        switch type {
-        case .stock:     return AppTheme.accent
-        case .crypto:    return .orange
-        case .forex:     return .blue
-        case .metal:     return Color(red: 0.85, green: 0.75, blue: 0.40)
-        case .commodity: return Color(red: 0.55, green: 0.75, blue: 0.55)
-        }
+        AppTheme.accentText   // one accent family for all asset types
     }
 }
 

@@ -113,15 +113,9 @@ struct InvestorDetailView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
-    private let chartColors: [Color] = [
-        AppTheme.accent,
-        AppTheme.positive,
-        Color.orange,
-        AppTheme.negative,
-        Color.purple,
-        Color.cyan, Color.yellow, Color.pink, Color.mint, Color.indigo,
-        AppTheme.secondaryText
-    ]
+    /// The app's validated categorical palette (colour-blind-safe, no gain/loss hues); slices past
+    /// the sixth share one neutral.
+    private let chartColors: [Color] = (0..<InstitutionPalette.slots).map(InstitutionPalette.color) + [InstitutionPalette.other]
 
     var body: some View {
         ScrollView {

@@ -9,6 +9,13 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Privacy & About": "隐私与关于",
+        "Investing": "投资",
+        "Preferences": "偏好设置",
+        "Sign In": "登录",
+        "Sign in to keep your watchlist and link your accounts.": "登录后可以保存自选并关联账户。",
+        "Guest": "访客",
+        "Continue as guest": "以访客身份继续",
         "How do index ETFs work?": "指数 ETF 是怎么运作的？",
         "How do a TFSA and an RRSP differ?": "TFSA 和 RRSP 有什么区别？",
         "What does a P/E ratio tell me?": "市盈率能告诉我什么？",

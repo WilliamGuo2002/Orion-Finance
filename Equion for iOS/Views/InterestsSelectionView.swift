@@ -155,33 +155,16 @@ struct InterestCard: View {
     let isSelected: Bool
     let onTap: () -> Void
 
-    private var accentColor: Color {
-        switch category.color {
-        case "blue":   return .blue
-        case "green":  return Color(red: 0.2, green: 0.7, blue: 0.4)
-        case "red":    return .red
-        case "orange": return .orange
-        case "purple": return .purple
-        case "brown":  return Color(red: 0.6, green: 0.4, blue: 0.2)
-        case "gray":   return .gray
-        case "teal":   return .teal
-        case "yellow": return Color(red: 0.85, green: 0.75, blue: 0.3)
-        case "indigo": return .indigo
-        default:       return AppTheme.accent
-        }
-    }
-
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? accentColor : accentColor.opacity(0.12))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: category.icon)
-                        .font(.system(.title3))
-                        .foregroundColor(isSelected ? .white : accentColor)
-                }
+                // One accent family for every category — ten hues made the grid read as a toy box.
+                Image(systemName: category.icon)
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.accentText)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(isSelected ? AppTheme.accent : AppTheme.accent.opacity(0.12)))
 
                 Text(L(category.name))
                     .font(.system(.footnote))
@@ -204,9 +187,9 @@ struct InterestCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                    .stroke(isSelected ? accentColor : AppTheme.border, lineWidth: isSelected ? 2 : 0.5)
+                    .stroke(isSelected ? AppTheme.accent : AppTheme.border, lineWidth: isSelected ? 1.5 : 0.5)
             )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .buttonStyle(.plain)
     }

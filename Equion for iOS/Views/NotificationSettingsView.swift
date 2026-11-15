@@ -55,13 +55,13 @@ struct NotificationSettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(L("Market Index Alerts"))
                                     .foregroundColor(AppTheme.primaryText)
-                                Text("S&P 500, NASDAQ, Dow Jones")
+                                Text("SPY, QQQ, DIA")
                                     .font(.caption)
                                     .foregroundColor(AppTheme.secondaryText)
                             }
                         } icon: {
                             Image(systemName: "chart.line.uptrend.xyaxis")
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.accentText)
                         }
                     }
                     .tint(AppTheme.accent)

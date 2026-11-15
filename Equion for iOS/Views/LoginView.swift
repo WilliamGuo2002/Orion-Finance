@@ -10,8 +10,6 @@ struct LoginView: View {
     @State private var showForgotPassword = false
     @State private var errorMessage = ""
     @State private var isLoading = false
-    @State private var logoAppeared = false
-    @State private var titleAppeared = false
     @State private var formAppeared = false
     @FocusState private var focusedField: LoginField?
 
@@ -25,37 +23,58 @@ struct LoginView: View {
                 VStack(spacing: 24) {
                     Spacer().frame(height: 40)
 
-                    // Animated branding
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [AppTheme.accent.opacity(0.1), AppTheme.accent.opacity(0.0)],
-                                    center: .center, startRadius: 10, endRadius: 60
-                                )
-                            )
-                            .frame(width: 100, height: 100)
-                            .scaleEffect(logoAppeared ? 1 : 0.5)
-                            .opacity(logoAppeared ? 1 : 0)
-
-                        Image(systemName: "sparkle")
-                            .font(.system(.largeTitle, weight: .light))
-                            .foregroundColor(AppTheme.accentText)
-                            .scaleEffect(logoAppeared ? 1 : 0.3)
-                            .opacity(logoAppeared ? 1 : 0)
-                    }
+                    // Branding
+                    Image(systemName: "sparkle")
+                        .font(.system(.largeTitle, weight: .light))
+                        .foregroundColor(AppTheme.accentText)
+                        .accessibilityHidden(true)
 
                     // App title
                     Text("Orion Finance")
                         .font(AppTheme.serifTitle(32))
                         .foregroundColor(AppTheme.primaryText)
-                        .opacity(titleAppeared ? 1 : 0)
-                        .offset(y: titleAppeared ? 0 : 10)
 
                     Text(L("Your investment companion"))
                         .font(AppTheme.caption(14))
                         .foregroundColor(AppTheme.secondaryText)
-                        .opacity(titleAppeared ? 1 : 0)
+
+                    // Third-party login buttons
+                    VStack(spacing: 12) {
+                        // Apple Sign-In
+                        SignInWithAppleButton(.signIn) { request in
+                            let (_, hashedNonce) = firebaseController.prepareAppleSignIn()
+                            request.requestedScopes = [.email, .fullName]
+                            request.nonce = hashedNonce
+                        } onCompletion: { result in
+                            switch result {
+                            case .success(let authorization):
+                                Task {
+                                    do {
+                                        try await firebaseController.signInWithApple(authorization: authorization)
+                                    } catch {
+                                        errorMessage = error.localizedDescription
+                                    }
+                                }
+                            case .failure(let error):
+                                errorMessage = error.localizedDescription
+                            }
+                        }
+                        .frame(height: 50)
+                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                        .clipShape(Capsule())
+
+                        // Google Sign-In
+                        GoogleSignInButton()
+                    }
+                    .padding(.horizontal, 32)
+
+                    // Divider
+                    HStack {
+                        Rectangle().fill(AppTheme.border).frame(height: 1)
+                        Text(L("or")).font(.footnote).foregroundColor(AppTheme.secondaryText)
+                        Rectangle().fill(AppTheme.border).frame(height: 1)
+                    }
+                    .padding(.horizontal, 32)
 
                     // Login card
                     VStack(spacing: 16) {
@@ -125,46 +144,6 @@ struct LoginView: View {
                             .stroke(AppTheme.border, lineWidth: 1)
                     )
                     .padding(.horizontal, 32)
-                    .opacity(formAppeared ? 1 : 0)
-                    .offset(y: formAppeared ? 0 : 20)
-
-                    // Divider
-                    HStack {
-                        Rectangle().fill(AppTheme.border).frame(height: 1)
-                        Text(L("or")).font(.footnote).foregroundColor(AppTheme.secondaryText)
-                        Rectangle().fill(AppTheme.border).frame(height: 1)
-                    }
-                    .padding(.horizontal, 32)
-
-                    // Third-party login buttons
-                    VStack(spacing: 12) {
-                        // Google Sign-In
-                        GoogleSignInButton()
-
-                        // Apple Sign-In
-                        SignInWithAppleButton(.signIn) { request in
-                            let (_, hashedNonce) = firebaseController.prepareAppleSignIn()
-                            request.requestedScopes = [.email, .fullName]
-                            request.nonce = hashedNonce
-                        } onCompletion: { result in
-                            switch result {
-                            case .success(let authorization):
-                                Task {
-                                    do {
-                                        try await firebaseController.signInWithApple(authorization: authorization)
-                                    } catch {
-                                        errorMessage = error.localizedDescription
-                                    }
-                                }
-                            case .failure(let error):
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                        .frame(height: 50)
-                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                        .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 32)
 
                     // Create account
                     Button(action: { showRegister = true }) {
@@ -178,8 +157,8 @@ struct LoginView: View {
                         .font(.footnote)
                     }
 
-                    // Beta skip button
-                    Button(L("Skip Login (Beta)")) {
+                    // Guest mode (nothing is saved to an account)
+                    Button(L("Continue as guest")) {
                         firebaseController.isLoggedIn = true
                     }
                     .font(.footnote)
@@ -195,10 +174,10 @@ struct LoginView: View {
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView()
         }
+        .opacity(formAppeared ? 1 : 0)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.7)) { logoAppeared = true }
-            withAnimation(.easeOut(duration: 0.6).delay(0.3)) { titleAppeared = true }
-            withAnimation(.easeOut(duration: 0.6).delay(0.6)) { formAppeared = true }
+            // One short fade; controls are usable immediately.
+            withAnimation(Motion.screen) { formAppeared = true }
         }
     }
 
