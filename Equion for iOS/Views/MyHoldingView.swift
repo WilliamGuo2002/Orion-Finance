@@ -504,7 +504,8 @@ struct MyHoldingView: View {
 
     // MARK: - Actions
     private func loadMarketData() async {
-        let symbols = [("SPY", "S&P 500"), ("QQQ", "NASDAQ"), ("DIA", "Dow Jones")]
+        // ETF proxies — labelled as what they are (SPY, not "S&P 500 754.37").
+        let symbols = [("SPY", "S&P 500 ETF"), ("QQQ", "Nasdaq-100 ETF"), ("DIA", "Dow Jones ETF")]
         // Load all 3 indices concurrently — don't let one slow request block the others
         let indices: [MarketIndex] = await withTaskGroup(of: MarketIndex?.self, returning: [MarketIndex].self) { group in
             for (sym, name) in symbols {
@@ -518,7 +519,7 @@ struct MyHoldingView: View {
             }
             // Preserve original order: SPY, QQQ, DIA
             return symbols.compactMap { pair in
-                results.first { $0.name == pair.1 }
+                results.first { $0.symbol == pair.0 }
             }
         }
         await MainActor.run { marketIndices = indices }
@@ -550,9 +551,7 @@ struct MyHoldingView: View {
                             async let profile = APIService.shared.fetchCompanyProfile(symbol: symbol)
 
                             let (cq, prof) = try await (chartQuote, profile)
-                            let changePercent = cq.previousClose != 0
-                                ? ((cq.price - cq.previousClose) / cq.previousClose) * 100.0
-                                : 0
+                            let changePercent = PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose)
                             return StockInfo(
                                 symbol: symbol,
                                 name: prof.name,
@@ -594,9 +593,7 @@ struct MyHoldingView: View {
             async let chartQuote = APIService.shared.fetchChartAndQuote(symbol: symbol)
             async let profile = APIService.shared.fetchCompanyProfile(symbol: symbol)
             let (cq, prof) = try await (chartQuote, profile)
-            let changePercent = cq.previousClose != 0
-                ? ((cq.price - cq.previousClose) / cq.previousClose) * 100.0
-                : 0
+            let changePercent = PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose)
             let stock = StockInfo(symbol: symbol, name: prof.name, price: cq.price, changePercent: changePercent, chartData: cq.chartData, logoURL: prof.logoURL)
             await MainActor.run {
                 stockList.append(stock)
@@ -1006,9 +1003,7 @@ struct MyHoldingView: View {
                 group.addTask {
                     do {
                         let cq = try await APIService.shared.fetchChartAndQuote(symbol: item.symbol)
-                        let changePercent = cq.previousClose != 0
-                            ? ((cq.price - cq.previousClose) / cq.previousClose) * 100.0
-                            : 0
+                        let changePercent = PriceChange.dailyPercent(price: cq.price, previousClose: cq.previousClose)
                         let catName = InterestCategory.all.first { $0.id == item.categoryId }?.name ?? ""
                         return RecommendedStock(
                             symbol: item.symbol,
@@ -1631,9 +1626,10 @@ struct MarketTickerView: View {
     @ViewBuilder
     private func tickerLabel(_ index: MarketIndex) -> some View {
         HStack(spacing: 6) {
-            Text(index.name)
+            Text(index.symbol)
                 .foregroundColor(AppTheme.secondaryText)
                 .font(.system(size: 12, weight: .medium))
+                .accessibilityLabel(index.name)
             Text(String(format: "%.2f", index.price))
                 .foregroundColor(AppTheme.primaryText)
                 .font(AppTheme.number(12))

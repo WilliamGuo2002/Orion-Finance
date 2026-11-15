@@ -344,8 +344,10 @@ class APIService {
         let prevClose = meta["previousClose"] as? Double
             ?? meta["chartPreviousClose"] as? Double ?? price
 
-        let changePercent = prevClose != 0 ? ((price - prevClose) / prevClose) * 100 : 0
-        let index = MarketIndex(name: name, price: price, changePercent: changePercent)
+        let changePercent = PriceChange.dailyPercent(price: price, previousClose: prevClose)
+        let asOf = (meta["regularMarketTime"] as? Double).map { Date(timeIntervalSince1970: $0) }
+        let index = MarketIndex(symbol: symbol.uppercased(), name: name, price: price,
+                                changePercent: changePercent, asOf: asOf)
 
         await cache.setIndex(cacheKey, index: index)
         return index

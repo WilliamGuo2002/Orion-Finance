@@ -4,8 +4,10 @@ import UIKit
 /// Explicit consent before any data goes to the third-party AI provider (Google Gemini).
 /// Required by App Store Review Guideline 5.1.2(i) and good practice under PIPEDA / Quebec Law 25.
 ///
-/// Every AI call path awaits `AIConsent.shared.ensure()`. The first time, a consent screen is
-/// presented over whatever is on screen (works from sheets and full-screen covers too).
+/// Every AI call path awaits `AIConsent.shared.ensure()` as a safety net. Screens must only reach
+/// that path from an explicit user action (send, "Generate snapshot", "Explain with Orion AI") —
+/// never on appear — so the consent sheet only ever answers something the user just asked for.
+/// It's presented over whatever is on screen (works from sheets and full-screen covers too).
 @MainActor
 final class AIConsent: ObservableObject {
     static let shared = AIConsent()
@@ -25,6 +27,8 @@ final class AIConsent: ObservableObject {
 
     private var pending: [CheckedContinuation<Bool, Never>] = []
     private weak var presented: UIViewController?
+    /// Swiping the sheet down counts as "Not now".
+    private lazy var dismissObserver = SheetDismissObserver { [weak self] in self?.finish(false, alreadyDismissed: true) }
 
     /// Returns once consent is given; throws if the user declines.
     func ensure() async throws {
@@ -45,9 +49,10 @@ final class AIConsent: ObservableObject {
         UserDefaults.standard.set(value, forKey: Self.key)
     }
 
-    private func finish(_ allowed: Bool) {
+    private func finish(_ allowed: Bool, alreadyDismissed: Bool = false) {
+        guard presented != nil || !pending.isEmpty else { return }
         setGranted(allowed)
-        presented?.dismiss(animated: true)
+        if !alreadyDismissed { presented?.dismiss(animated: true) }
         presented = nil
         let waiting = pending
         pending = []
@@ -61,8 +66,11 @@ final class AIConsent: ObservableObject {
             onDecline: { [weak self] in self?.finish(false) }
         ))
         host.modalPresentationStyle = .pageSheet
-        host.isModalInPresentation = true          // must choose; no swipe-to-dismiss limbo
-        if let sheet = host.sheetPresentationController { sheet.detents = [.large()] }
+        if let sheet = host.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        host.presentationController?.delegate = dismissObserver
         presented = host
         top.present(host, animated: true)
     }
@@ -75,6 +83,13 @@ final class AIConsent: ObservableObject {
         while let next = top?.presentedViewController, !next.isBeingDismissed { top = next }
         return top
     }
+}
+
+/// Forwards a user's swipe-to-dismiss of a sheet.
+private final class SheetDismissObserver: NSObject, UIAdaptivePresentationControllerDelegate {
+    let onDismiss: () -> Void
+    init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { onDismiss() }
 }
 
 /// What is shared, with whom, and why — in plain language.

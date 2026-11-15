@@ -45,9 +45,15 @@ struct StockDetailView: View {
 
     // Metric explanation
     @State private var showMetricExplanation = false
-    @State private var metricExplanationTitle = ""
-    @State private var metricExplanationText = ""
-    @State private var isLoadingMetricExplanation = false
+    @State private var metricKey = ""          // English key, e.g. "P/E"
+    @State private var metricValue = ""
+    @State private var metricAIText = ""
+    @State private var isLoadingMetricAI = false
+    @State private var metricAIFailed = false
+
+    // AI is opt-in: nothing is sent (and no consent sheet appears) until the user asks.
+    @ObservedObject private var aiConsent = AIConsent.shared
+    @State private var aiDashboardFailed = false
 
     // Holdings
     @State private var showTransactionSheet = false
@@ -58,12 +64,21 @@ struct StockDetailView: View {
     private let etZone = TimeZone(identifier: "America/New_York")!
 
     // MARK: - Computed properties
-    private var intervalChange: (amount: Double, percent: Double)? {
-        guard let first = chartEntries.first, let last = chartEntries.last,
-              first.close != 0 else { return nil }
-        let change = Double(last.close - first.close)
-        let pct = change / Double(first.close) * 100
-        return (change, pct)
+    /// Latest price: the quote when loaded, else the last chart bar.
+    private var latestPrice: Double? {
+        if priceLoaded, currentPrice > 0 { return currentPrice }
+        return chartEntries.last.map { Double($0.close) }
+    }
+
+    /// Change over the selected range. 1D is measured from the previous close (same as every
+    /// other screen); longer ranges from the first bar of the range.
+    private var intervalChange: PriceChange? {
+        guard let last = latestPrice else { return nil }
+        if selectedInterval == "1D", let pc = quote?.previousClose, pc > 0 {
+            return PriceChange(price: last, reference: pc)
+        }
+        guard let first = chartEntries.first else { return nil }
+        return PriceChange(price: last, reference: Double(first.close))
     }
 
     private var marketSession: MarketSession {
@@ -90,27 +105,33 @@ struct StockDetailView: View {
 
     private enum MarketSession { case open, preMarket, afterHours, closed, holiday }
 
+    /// Session label plus the time of the price shown — the last trade, not "now".
+    /// On a Sunday this reads "Closed · Fri, Nov 13, 4:00 PM ET", never a Sunday time.
     private var marketStatusText: String {
-        let fmt = DateFormatter()
-        fmt.timeZone = etZone
-        fmt.dateFormat = "M/d h:mm a"
-        let timeStr = fmt.string(from: Date()) + " ET"
+        let label: String
         switch marketSession {
-        case .open:        return "\(L("Open")) · \(timeStr)"
-        case .preMarket:   return "\(L("Pre-Market")) · \(timeStr)"
-        case .afterHours:  return "\(L("After-Hours")) · \(timeStr)"
-        case .closed:      return "\(L("Closed")) · \(timeStr)"
-        case .holiday:     return "\(L("Holiday")) · \(L("Closed")) · \(timeStr)"
+        case .open:        label = L("Open")
+        case .preMarket:   label = L("Pre-Market")
+        case .afterHours:  label = L("After-Hours")
+        case .closed:      label = L("Closed")
+        case .holiday:     label = "\(L("Holiday")) · \(L("Closed"))"
         }
+        guard let ts = quote?.timestamp, ts > 0 else { return label }
+        let date = Date(timeIntervalSince1970: TimeInterval(ts))
+        var style = Date.FormatStyle(date: .omitted, time: .shortened, locale: AppLocale.current, timeZone: AppLocale.easternTime)
+        if marketSession != .open || !Calendar.current.isDateInToday(date) {
+            style = Date.FormatStyle(locale: AppLocale.current, timeZone: AppLocale.easternTime)
+                .weekday(.abbreviated).month(.abbreviated).day().hour().minute()
+        }
+        return "\(label) · \(date.formatted(style)) ET"
     }
 
     private var extendedHoursChange: (price: Double, change: Double, percent: Double)? {
         guard let q = quote else { return nil }
         switch marketSession {
         case .preMarket, .afterHours:
-            let change = q.price - q.previousClose
-            let pct = q.previousClose != 0 ? (change / q.previousClose) * 100 : 0
-            return (q.price, change, pct)
+            guard let ch = PriceChange(price: q.price, reference: q.previousClose) else { return nil }
+            return (q.price, ch.amount, ch.percent)
         default: return nil
         }
     }
@@ -160,42 +181,92 @@ struct StockDetailView: View {
     }
 
     // MARK: - Metric Explanation Sheet
+    /// Static definition first (instant, no AI). The company-specific AI explanation is opt-in.
     private var metricExplanationSheet: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundColor(AppTheme.accent)
-                            .font(.title2)
-                        Text(metricExplanationTitle)
-                            .font(.title2.weight(.bold))
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(L(metricKey))
+                            .font(.system(.title2, design: .serif, weight: .semibold))
+                            .foregroundColor(AppTheme.primaryText)
+                        Spacer()
+                        Text(metricValue)
+                            .font(.system(.title3, weight: .semibold).monospacedDigit())
                             .foregroundColor(AppTheme.primaryText)
                     }
 
-                    if isLoadingMetricExplanation {
-                        HStack(spacing: 12) {
-                            ProgressView()
-                                .tint(AppTheme.accent)
-                            Text(L("Analyzing..."))
-                                .font(.subheadline)
-                                .foregroundColor(AppTheme.secondaryText)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 20)
-                    } else {
-                        Text(metricExplanationText)
+                    if let definition = MetricGlossary.definition(for: metricKey) {
+                        Text(definition)
                             .font(.body)
                             .foregroundColor(AppTheme.primaryText)
-                            .lineSpacing(4)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(String(format: L("For %@"), symbol), systemImage: "sparkles")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.secondaryText)
+
+                        if isLoadingMetricAI {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text(L("Asking Orion…"))
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+                        } else if !metricAIText.isEmpty {
+                            Text(metricAIText)
+                                .font(.body)
+                                .foregroundColor(AppTheme.primaryText)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else if metricAIFailed {
+                            HStack {
+                                Text(L("Couldn't load an explanation right now."))
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.secondaryText)
+                                Spacer()
+                                Button(L("Retry")) { Task { await loadMetricAI() } }
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                        } else {
+                            Button {
+                                Task {
+                                    if await aiConsent.request() { await loadMetricAI() }
+                                }
+                            } label: {
+                                Text(String(format: L("Explain %@ for %@ with Orion AI"), L(metricKey), symbol))
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(AppTheme.accent)
+                        }
                     }
                 }
                 .padding(20)
             }
             .background(AppTheme.background)
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    private func loadMetricAI() async {
+        isLoadingMetricAI = true
+        metricAIFailed = false
+        do {
+            metricAIText = try await APIService.shared.fetchMetricExplanation(
+                metric: L(metricKey), value: metricValue, symbol: symbol, name: name
+            )
+        } catch {
+            metricAIFailed = !(error is AIConsent.ConsentError)
+        }
+        isLoadingMetricAI = false
     }
 
     // MARK: - Compact (iPhone portrait)
@@ -991,6 +1062,18 @@ struct StockDetailView: View {
                             .fill(AppTheme.accent.opacity(0.08))
                     )
                 }
+            } else if !aiConsent.granted && !isLoadingDashboard {
+                aiOptInPrompt
+            } else if aiDashboardFailed && !isLoadingDashboard {
+                HStack(spacing: 10) {
+                    Text(L("Couldn't generate the snapshot right now."))
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
+                    Spacer()
+                    Button(L("Retry")) { Task { await loadAIDashboard() } }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 44)
+                }
             } else if isLoadingDashboard {
                 // Loading state
                 VStack(spacing: 12) {
@@ -1014,6 +1097,28 @@ struct StockDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
+        }
+    }
+
+    /// Shown instead of the snapshot until the user opts in to AI. Tapping is the only thing that
+    /// can bring up the consent sheet on this page.
+    private var aiOptInPrompt: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(String(format: L("A short, AI-written research summary of %@: what's driving the stock, key risks and what to watch. Not a recommendation."), symbol))
+                .font(.subheadline)
+                .foregroundColor(AppTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                Task {
+                    if await aiConsent.request() { await loadAIDashboard() }
+                }
+            } label: {
+                Label(L("Generate snapshot"), systemImage: "sparkles")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.bordered)
+            .tint(AppTheme.accent)
         }
     }
 
@@ -1052,14 +1157,14 @@ struct StockDetailView: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     if let pe = f.peRatio { fundamentalRow("P/E", value: String(format: "%.1f", pe)) }
                     if let pb = f.pbRatio { fundamentalRow("P/B", value: String(format: "%.1f", pb)) }
-                    if let eps = f.epsGrowth { fundamentalRow(L("EPS Growth"), value: String(format: "%.1f%%", eps), color: eps >= 0 ? AppTheme.positive : AppTheme.negative) }
-                    if let rev = f.revenueGrowth { fundamentalRow(L("Revenue Growth"), value: String(format: "%.1f%%", rev), color: rev >= 0 ? AppTheme.positive : AppTheme.negative) }
-                    if let dy = f.dividendYield { fundamentalRow(L("Div Yield"), value: String(format: "%.2f%%", dy)) }
+                    if let eps = f.epsGrowth { fundamentalRow("EPS Growth", value: String(format: "%.1f%%", eps), color: eps >= 0 ? AppTheme.positive : AppTheme.negative) }
+                    if let rev = f.revenueGrowth { fundamentalRow("Revenue Growth", value: String(format: "%.1f%%", rev), color: rev >= 0 ? AppTheme.positive : AppTheme.negative) }
+                    if let dy = f.dividendYield { fundamentalRow("Div Yield", value: String(format: "%.2f%%", dy)) }
                     if let beta = f.beta { fundamentalRow("Beta", value: String(format: "%.2f", beta)) }
                     if let roe = f.roe { fundamentalRow("ROE", value: String(format: "%.1f%%", roe), color: roe >= 0 ? AppTheme.positive : AppTheme.negative) }
                     if let de = f.debtToEquity { fundamentalRow("D/E", value: String(format: "%.1f", de)) }
-                    if let gm = f.grossMargin { fundamentalRow(L("Gross Margin"), value: String(format: "%.1f%%", gm)) }
-                    if let om = f.operatingMargin { fundamentalRow(L("Op Margin"), value: String(format: "%.1f%%", om)) }
+                    if let gm = f.grossMargin { fundamentalRow("Gross Margin", value: String(format: "%.1f%%", gm)) }
+                    if let om = f.operatingMargin { fundamentalRow("Op Margin", value: String(format: "%.1f%%", om)) }
                 }
             }
         }
@@ -1070,29 +1175,17 @@ struct StockDetailView: View {
         f.dividendYield != nil || f.beta != nil || f.roe != nil
     }
 
-    private func fundamentalRow(_ label: String, value: String, color: Color? = nil) -> some View {
-        Button {
-            Haptic.light()
-            metricExplanationTitle = label
-            metricExplanationText = ""
-            isLoadingMetricExplanation = true
+    private func fundamentalRow(_ key: String, value: String, color: Color? = nil) -> some View {
+        let label = L(key)
+        return Button {
+            metricKey = key
+            metricValue = value
+            metricAIText = ""
+            metricAIFailed = false
+            isLoadingMetricAI = false
             showMetricExplanation = true
-            Task {
-                do {
-                    let explanation = try await APIService.shared.fetchMetricExplanation(
-                        metric: label, value: value, symbol: symbol, name: name
-                    )
-                    await MainActor.run {
-                        metricExplanationText = explanation
-                        isLoadingMetricExplanation = false
-                    }
-                } catch {
-                    await MainActor.run {
-                        metricExplanationText = L("Unable to load explanation. Please try again.")
-                        isLoadingMetricExplanation = false
-                    }
-                }
-            }
+            // Only reach the AI if the user already opted in; otherwise the sheet offers it.
+            if aiConsent.granted { Task { await loadMetricAI() } }
         } label: {
             HStack(spacing: 4) {
                 Text(label)
@@ -1730,9 +1823,9 @@ struct StockDetailView: View {
             async let fundamentalsTask: () = loadFundamentals()
             async let earningsTask: () = loadEarnings()
             _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask, earningsTask, holdingsTask)
-            // AI dashboard loads independently — don't block other modules
-            // It starts as soon as news & fundamentals are ready
-            Task { await loadAIDashboard() }
+            // AI snapshot only runs automatically for users who already opted in; everyone else
+            // sees an opt-in button (no consent sheet on page open).
+            if aiConsent.granted { Task { await loadAIDashboard() } }
         } else {
             _ = await (newsTask, commentsTask, holdingsTask)
         }
@@ -1766,7 +1859,7 @@ struct StockDetailView: View {
         do { upcomingEarnings = try await APIService.shared.fetchEarningsCalendar(symbol: symbol) } catch {}
     }
     private func loadAIDashboard() async {
-        await MainActor.run { isLoadingDashboard = true }
+        await MainActor.run { isLoadingDashboard = true; aiDashboardFailed = false }
         do {
             _ = try await APIService.shared.streamAIDecisionDashboard(
                 symbol: symbol,
@@ -1780,7 +1873,10 @@ struct StockDetailView: View {
                 self.isLoadingDashboard = false
             }
         } catch {
-            await MainActor.run { isLoadingDashboard = false }
+            await MainActor.run {
+                isLoadingDashboard = false
+                aiDashboardFailed = aiDashboard == nil && !(error is AIConsent.ConsentError)
+            }
         }
     }
 }
