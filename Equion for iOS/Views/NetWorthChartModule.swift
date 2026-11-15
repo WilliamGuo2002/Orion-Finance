@@ -35,7 +35,7 @@ struct NetWorthChartModule: View {
     @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
     @AppStorage("netWorthSplitByInstitution") private var split = false
 
-    @State private var range = "1M"
+    @AppStorage("accountsChartRange") private var range = "1Y"
     @State private var entries: [PortfolioValueEntry] = []
     @State private var isLoading = false
     @State private var selectedIndex: Int?

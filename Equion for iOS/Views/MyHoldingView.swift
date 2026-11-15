@@ -33,7 +33,9 @@ struct MyHoldingView: View {
     // Holdings — use @State snapshots instead of @ObservedObject to avoid cascade redraws
     @State private var holdingsSnapshot = HoldingsSnapshot()
     @State private var portfolioChartData: [PortfolioValueEntry] = []
-    @State private var portfolioInterval = "1M"
+    /// Defaults to a year — looking at returns less often (and over longer windows) is calmer and
+    /// leads to less loss-averse decisions. The user's own choice is remembered.
+    @AppStorage("homeChartRange") private var portfolioInterval = "1Y"
     @State private var selectedPortfolioEntry: PortfolioValueEntry?
     @State private var showPortfolioMarker = false
     // Privacy: mask portfolio amounts and swap the chart for a gray placeholder
@@ -742,7 +744,7 @@ struct MyHoldingView: View {
                     // Hidden → asterisks; else touched value; else current total
                     if hideValues {
                         Text(PortfolioPrivacy.mask)
-                            .font(AppTheme.number(24, weight: .bold))
+                            .font(.title.weight(.semibold).monospacedDigit())
                             .foregroundColor(AppTheme.primaryText)
                             .padding(.top, 2)
                         Text("\(PortfolioPrivacy.shortMask) (\(PortfolioPrivacy.shortMask))  ·  \(L("Today")) \(PortfolioPrivacy.shortMask)")
@@ -756,7 +758,7 @@ struct MyHoldingView: View {
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(String(format: "%.2f", holdingsSnapshot.display(sel.value)))
-                                .font(AppTheme.number(24, weight: .bold))
+                                .font(.title.weight(.semibold).monospacedDigit())
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                                 .animation(.easeInOut(duration: 0.05), value: sel.value)
@@ -793,8 +795,8 @@ struct MyHoldingView: View {
                             Text(holdingsSnapshot.currencySymbol)
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
-                            Text((holdingsSnapshot.totalValue < 0 ? "-" : "") + String(format: "%.2f", abs(holdingsSnapshot.display(holdingsSnapshot.totalValue))))
-                                .font(AppTheme.number(24, weight: .bold))
+                            Text((holdingsSnapshot.totalValue < 0 ? "−" : "") + String(format: "%.2f", abs(holdingsSnapshot.display(holdingsSnapshot.totalValue))))
+                                .font(.title.weight(.semibold).monospacedDigit())
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                         }
@@ -809,12 +811,13 @@ struct MyHoldingView: View {
                             Text("·")
                                 .foregroundColor(AppTheme.tertiaryText)
 
+                            // Today's move is context, not the headline: secondary ink, no red/green.
                             Text(String(format: "%@ %@%@",
                                         L("Today"),
-                                        holdingsSnapshot.totalDayPnL >= 0 ? "+" : "-",
+                                        holdingsSnapshot.totalDayPnL >= 0 ? "+" : "−",
                                         holdingsSnapshot.format(abs(holdingsSnapshot.totalDayPnL))))
-                                .font(AppTheme.number(11, weight: .medium))
-                                .foregroundColor(holdingsSnapshot.totalDayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
+                                .font(.footnote.monospacedDigit())
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                     }
                 }
