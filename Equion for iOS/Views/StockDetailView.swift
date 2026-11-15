@@ -543,24 +543,22 @@ struct StockDetailView: View {
             moduleCard("Related News", icon: "newspaper") {
                 ForEach(companyNews.prefix(5)) { item in
                     NavigationLink(destination: NewsDetailView(url: item.url)) {
-                        HStack(spacing: 10) {
-                            AsyncImage(url: URL(string: item.image ?? "")) { phase in
-                                if case .success(let img) = phase {
-                                    img.resizable().aspectRatio(contentMode: .fill)
-                                        .frame(width: 56, height: 42).clipped().cornerRadius(6)
-                                } else {
-                                    RoundedRectangle(cornerRadius: 6).fill(AppTheme.subtleFill)
-                                        .frame(width: 56, height: 42)
-                                        .overlay(Image(systemName: "newspaper").font(.caption).foregroundColor(AppTheme.secondaryText))
-                                }
+                        HStack(spacing: 12) {
+                            RemoteImage(url: item.image.flatMap(URL.init(string:)), cornerRadius: 8) {
+                                RoundedRectangle(cornerRadius: 8).fill(AppTheme.subtleFill)
+                                    .overlay(Image(systemName: "newspaper").font(.caption).foregroundColor(AppTheme.secondaryText))
                             }
+                            .frame(width: 56, height: 42)
                             Text(item.headline)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(AppTheme.primaryText)
                                 .lineLimit(2)
-                            Spacer()
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     if item.id != companyNews.prefix(5).last?.id {
                         Divider()
                             .overlay(AppTheme.border.opacity(0.3))
@@ -1556,6 +1554,12 @@ struct StockDetailView: View {
                             .interpolationMethod(.catmullRom)
                     }
 
+                    // Latest point while the market is open (static dot, no pulse)
+                    if selectedInterval == "1D" && marketSession == .open && !showMarker, let last = chartEntries.last {
+                        PointMark(x: .value("Time", last.index), y: .value("Price", Double(last.close)))
+                            .symbol { LivePulseDot(color: lineColor) }
+                    }
+
                     if let entry = selectedEntry, showMarker {
                         PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
                             .foregroundStyle(AppTheme.primaryText).symbolSize(50)
@@ -1566,6 +1570,7 @@ struct StockDetailView: View {
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
                 .chartYScale(domain: (minPrice - padding)...(maxPrice + padding))
+                .chartXScale(range: .plotDimension(startPadding: 0, endPadding: 10))
                 .chartLegend(.hidden)
                 .chartOverlay { proxy in
                     GeometryReader { _ in
@@ -1599,20 +1604,6 @@ struct StockDetailView: View {
                     }
                 }
 
-                // Live pulse dot at the last data point
-                if selectedInterval == "1D" && marketSession == .open && !showMarker {
-                    GeometryReader { geo in
-                        let totalEntries = max(chartEntries.count - 1, 1)
-                        if let lastEntry = chartEntries.last {
-                            let xFrac = CGFloat(lastEntry.index - (chartEntries.first?.index ?? 0)) / CGFloat(totalEntries)
-                            let yFrac = 1.0 - (Double(lastEntry.close) - (minPrice - padding)) / ((maxPrice + padding) - (minPrice - padding))
-                            LivePulseDot(color: lineColor)
-                                .position(x: xFrac * geo.size.width, y: yFrac * geo.size.height)
-                        }
-                    }
-                    .allowsHitTesting(false)
-                }
-
                 // Touch hint overlay — only shown if user has never interacted
                 if showChartHint && !showMarker {
                     chartHintOverlay(lineColor: lineColor)
@@ -1622,8 +1613,6 @@ struct StockDetailView: View {
 
             }
             .frame(height: chartHeight)
-            .padding(.horizontal, -16) // bleed to screen edges for immersive feel
-            .clipped()
             .onAppear {
                 if !hasUsedChartTouch {
                     // Delay slightly so chart renders first

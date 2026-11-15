@@ -947,29 +947,25 @@ struct MyHoldingView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             } else {
-                // Horizontal scroll with right-edge fade hint
-                ZStack(alignment: .trailing) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(movers) { mover in
-                                NavigationLink(destination: StockDetailView(symbol: mover.symbol, name: mover.name)) {
-                                    MoverChip(symbol: mover.symbol, name: mover.name, price: mover.price, changePercent: mover.changePercent)
-                                }
-                                .buttonStyle(.plain)
+                // Horizontal scroll; the right edge fades the content itself (a mask), so there's no
+                // coloured overlay to mismatch the card surface.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(movers) { mover in
+                            NavigationLink(destination: StockDetailView(symbol: mover.symbol, name: mover.name)) {
+                                MoverChip(symbol: mover.symbol, name: mover.name, price: mover.price, changePercent: mover.changePercent)
                             }
-                            // Trailing spacer so last chip isn't under fade
-                            Spacer().frame(width: 28)
+                            .buttonStyle(.plain)
                         }
+                        Spacer().frame(width: 20)
                     }
-                    // Fade gradient on right edge — visual hint for "swipe for more"
-                    LinearGradient(
-                        colors: [AppTheme.cardBackground.opacity(0), AppTheme.cardBackground],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: 36)
-                    .allowsHitTesting(false)
+                    .padding(.vertical, 6)   // room for the chips' outline
                 }
+                .padding(.vertical, -6)
+                .mask(
+                    LinearGradient(stops: [.init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
             }
         }
         .padding(.horizontal, 14)
@@ -1715,22 +1711,12 @@ struct StockRowView: View {
         HStack(spacing: 12) {
             // Asset icon with ring border
             if let logoURL = stock.logoURL, !logoURL.isEmpty, assetType == .stock {
-                AsyncImage(url: URL(string: logoURL)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(AppTheme.border, lineWidth: 1)
-                            )
-                    default:
-                        assetIcon
-                    }
-                }
+                RemoteImage(url: URL(string: logoURL), fit: true) { assetIcon }
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(AppTheme.border, lineWidth: 1)
+                    )
             } else {
                 assetIcon
             }

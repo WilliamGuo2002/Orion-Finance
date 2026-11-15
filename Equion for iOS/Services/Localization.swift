@@ -9,6 +9,13 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Data sources": "数据来源",
+        "AI features: Google Gemini, only if you turn them on.": "AI 功能：Google Gemini，仅在你开启后使用。",
+        "Bank accounts: Plaid (read-only).": "银行账户：Plaid（只读）。",
+        "Brokerage accounts: SnapTrade (read-only).": "券商账户：SnapTrade（只读）。",
+        "Market data: Yahoo Finance and Finnhub. Prices may be delayed.": "行情数据：Yahoo Finance 和 Finnhub，价格可能有延迟。",
+        "Version": "版本",
+        "About & Data Sources": "关于与数据来源",
         "Investment style: %@": "投资风格：%@",
         "Question %d of %d": "第 %d 题，共 %d 题",
         "You're comfortable with bigger swings in pursuit of growth. Orion will explain growth companies and newer trends — including their risks.": "为了增长，你能接受更大的波动。Orion 会讲解成长型公司和新兴趋势，也会讲清楚其中的风险。",

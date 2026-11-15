@@ -151,21 +151,10 @@ struct NewsCardView: View {
     var body: some View {
         HStack(spacing: 12) {
             // News image
-            AsyncImage(url: URL(string: item.image ?? "")) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 80, height: 64)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                case .failure(_):
-                    placeholderImage
-                default:
-                    placeholderImage
-                }
+            RemoteImage(url: item.image.flatMap(URL.init(string:))) {
+                placeholderImage
             }
+            .frame(width: 80, height: 64)
 
             // Title & source
             VStack(alignment: .leading, spacing: 6) {

@@ -373,6 +373,14 @@ struct PhoneTabBar: View {
         // Reserve the expanded height so the safe-area inset never changes. Animating the
         // inset relaid out the whole tab content every frame while the bar collapsed.
         .frame(height: Self.reservedHeight, alignment: .bottom)
+        // Content scrolling under the bar fades out instead of peeking through the gap
+        // between the two capsules.
+        .background(alignment: .bottom) {
+            LinearGradient(colors: [AppTheme.background.opacity(0), AppTheme.background.opacity(0.94)],
+                           startPoint: .top, endPoint: .center)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+        }
     }
 
     private func tabButton(_ tab: AppTab) -> some View {

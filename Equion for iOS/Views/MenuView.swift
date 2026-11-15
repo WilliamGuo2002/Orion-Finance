@@ -7,6 +7,7 @@ struct MenuView: View {
     @ObservedObject private var bank = BankManager.shared
     @ObservedObject private var aiConsent = AIConsent.shared
     @State private var showDisclaimer = false
+    @State private var showAbout = false
 
     @State private var showAppearance = false
     @State private var showLanguage = false
@@ -46,7 +47,7 @@ struct MenuView: View {
                 } label: {
                     let linkedCount = brokerage.connections.count + bank.currentItems.count
                     menuRow(icon: "building.columns", title: L("Linked Accounts"),
-                            detail: linkedCount == 0 ? nil : "\(linkedCount)")
+                            detail: linkedCount == 0 ? nil : "\(linkedCount)", accessory: .none)
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
@@ -54,7 +55,7 @@ struct MenuView: View {
                 NavigationLink {
                     TaxCenterView()
                 } label: {
-                    menuRow(icon: "doc.text.magnifyingglass", title: L("Tax Assistant"), detail: nil)
+                    menuRow(icon: "doc.text.magnifyingglass", title: L("Tax Assistant"), detail: nil, accessory: .none)
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
@@ -72,7 +73,7 @@ struct MenuView: View {
                         }
                     }
                 } label: {
-                    menuRow(icon: "dollarsign.circle", title: L("Display Currency"), detail: settings.displayCurrency)
+                    menuRow(icon: "dollarsign.circle", title: L("Display Currency"), detail: settings.displayCurrency, accessory: .menu)
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
@@ -87,7 +88,7 @@ struct MenuView: View {
                     NotificationSettingsView()
                 } label: {
                     menuRow(icon: "bell.badge", title: L("Notifications"),
-                            detail: settings.notificationsEnabled ? L("On") : L("Off"))
+                            detail: settings.notificationsEnabled ? L("On") : L("Off"), accessory: .none)
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
@@ -125,7 +126,7 @@ struct MenuView: View {
                 NavigationLink {
                     PaperTradingView()
                 } label: {
-                    menuRow(icon: "chart.line.uptrend.xyaxis", title: L("Paper Trading"), detail: String(format: "$%.0f", PaperPortfolioManager.shared.cash + PaperPortfolioManager.shared.holdings.reduce(0) { $0 + $1.cost }))
+                    menuRow(icon: "chart.line.uptrend.xyaxis", title: L("Paper Trading"), detail: String(format: "$%.0f", PaperPortfolioManager.shared.cash + PaperPortfolioManager.shared.holdings.reduce(0) { $0 + $1.cost }), accessory: .none)
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
@@ -155,14 +156,11 @@ struct MenuView: View {
                 }
                 .listRowBackground(AppTheme.cardBackground)
 
-                menuRow(icon: "square.and.arrow.up", title: L("Share"))
-                    .listRowBackground(AppTheme.cardBackground)
-                menuRow(icon: "questionmark.circle", title: L("Support"))
-                    .listRowBackground(AppTheme.cardBackground)
-                menuRow(icon: "envelope", title: L("Contact"))
-                    .listRowBackground(AppTheme.cardBackground)
-                menuRow(icon: "doc.text", title: L("Copyright Info"))
-                    .listRowBackground(AppTheme.cardBackground)
+                // Rows without a destination were removed — a row with a chevron must go somewhere.
+                Button(action: { showAbout = true }) {
+                    menuRow(icon: "doc.text", title: L("About & Data Sources"))
+                }
+                .listRowBackground(AppTheme.cardBackground)
             }
 
             // Logout
@@ -205,6 +203,9 @@ struct MenuView: View {
         .sheet(isPresented: $showStockCompare) {
             StockCompareView()
         }
+        .sheet(isPresented: $showAbout) {
+            AboutSheet()
+        }
         .sheet(isPresented: $showDisclaimer) {
             DisclaimerSheet()
                 .presentationDetents([.medium, .large])
@@ -233,8 +234,12 @@ struct MenuView: View {
         }
     }
 
+    enum RowAccessory { case none, chevron, menu }
+
+    /// - accessory: `.none` inside NavigationLink (the list draws its own chevron), `.chevron` for
+    ///   rows that open a sheet, `.menu` for pop-up menus.
     @ViewBuilder
-    private func menuRow(icon: String, title: String, detail: String? = nil) -> some View {
+    private func menuRow(icon: String, title: String, detail: String? = nil, accessory: RowAccessory = .chevron) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(AppTheme.accent)
@@ -247,10 +252,19 @@ struct MenuView: View {
                     .foregroundColor(AppTheme.secondaryText)
                     .font(.subheadline)
             }
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(AppTheme.secondaryText)
+            switch accessory {
+            case .none: EmptyView()
+            case .chevron:
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+            case .menu:
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+            }
         }
+        .contentShape(Rectangle())
     }
 
     private func currencyName(_ code: String) -> String {
@@ -378,5 +392,45 @@ struct LanguageSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - About & data sources
+struct AboutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private var version: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+        return b.isEmpty ? v : "\(v) (\(b))"
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    LabeledContent(L("Version"), value: version)
+                }
+                Section {
+                    Text(L("Market data: Yahoo Finance and Finnhub. Prices may be delayed."))
+                    Text(L("Brokerage accounts: SnapTrade (read-only)."))
+                    Text(L("Bank accounts: Plaid (read-only)."))
+                    Text(L("AI features: Google Gemini, only if you turn them on."))
+                } header: {
+                    Text(L("Data sources"))
+                }
+                Section {
+                    Text("© \(Calendar.current.component(.year, from: Date())) Orion Finance")
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+            }
+            .font(.subheadline)
+            .navigationTitle(L("About & Data Sources"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button(L("Done")) { dismiss() } }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
