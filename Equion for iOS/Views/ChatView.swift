@@ -115,7 +115,6 @@ struct ChatView: View {
     }
 
     private func createNewChat() {
-        Haptic.tap()
         let newId = String(Int(Date().timeIntervalSince1970 * 1000))
         activeChatId = newId
         navigateToChat = true
@@ -430,7 +429,6 @@ struct ChatDetailView: View {
     private func sendMessage() {
         let text = userInput.trimmingCharacters(in: .whitespaces)
         guard canSend else { return }
-        Haptic.tap()
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
         let imageData = attachedImageData
@@ -477,7 +475,6 @@ struct ChatDetailView: View {
                         messages.append(aiMsg)
                     }
                     isLoading = false
-                    Haptic.soft()
                 }
                 saveToFirebase()
             } catch {
@@ -485,7 +482,6 @@ struct ChatDetailView: View {
                 await MainActor.run {
                     messages.append(errorMsg)
                     isLoading = false
-                    Haptic.error()
                 }
             }
         }

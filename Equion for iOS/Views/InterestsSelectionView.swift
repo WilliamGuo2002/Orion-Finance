@@ -127,7 +127,6 @@ struct InterestsSelectionView: View {
     }
 
     private func toggleCategory(_ id: String) {
-        Haptic.light()
         withAnimation(Motion.tap) {
             if localSelection.contains(id) {
                 localSelection.remove(id)
@@ -138,7 +137,6 @@ struct InterestsSelectionView: View {
     }
 
     private func saveAndContinue() {
-        Haptic.success()
         manager.selectedInterests = localSelection
         manager.hasCompletedOnboarding = true
         manager.syncToFirestore()

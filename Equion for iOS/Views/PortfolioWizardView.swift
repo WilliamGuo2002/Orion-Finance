@@ -111,7 +111,6 @@ struct PortfolioWizardView: View {
 
     private func quickBudgetButton(_ label: String, value: String) -> some View {
         Button {
-            Haptic.light()
             budget = value
         } label: {
             Text(label)
@@ -178,7 +177,6 @@ struct PortfolioWizardView: View {
                 ForEach(options, id: \.id) { option in
                     let isSelected = selection.wrappedValue == option.id
                     Button {
-                        Haptic.light()
                         withAnimation(Motion.tap) {
                             selection.wrappedValue = option.id
                         }
@@ -221,7 +219,6 @@ struct PortfolioWizardView: View {
 
             HStack(spacing: 16) {
                 Button {
-                    Haptic.light()
                     withAnimation(Motion.standard) { currentStep -= 1 }
                 } label: {
                     HStack(spacing: 4) {
@@ -329,7 +326,6 @@ struct PortfolioWizardView: View {
 
                     // Redo button
                     Button {
-                        Haptic.light()
                         withAnimation(Motion.standard) {
                             currentStep = 0
                             budget = ""
@@ -434,7 +430,6 @@ struct PortfolioWizardView: View {
 
     private func nextButton(enabled: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            Haptic.light()
             withAnimation(Motion.standard) { action() }
         } label: {
             HStack(spacing: 4) {

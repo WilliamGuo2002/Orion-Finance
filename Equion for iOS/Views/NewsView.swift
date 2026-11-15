@@ -63,7 +63,6 @@ struct NewsView: View {
 
                                     Button {
                                         UIPasteboard.general.string = item.url
-                                        Haptic.tap()
                                     } label: {
                                         Label(L("Copy Link"), systemImage: "link")
                                     }
@@ -72,7 +71,6 @@ struct NewsView: View {
                                 Divider()
 
                                 Button {
-                                    Haptic.light()
                                     orionSummaryItem = item
                                 } label: {
                                     Label(L("Summarize with Orion"), systemImage: "sparkles")
@@ -258,13 +256,11 @@ struct OrionSummarySheet: View {
             await MainActor.run {
                 summary = result
                 isLoading = false
-                Haptic.soft()
             }
         } catch {
             await MainActor.run {
                 loadError = error.localizedDescription
                 isLoading = false
-                Haptic.error()
             }
         }
     }

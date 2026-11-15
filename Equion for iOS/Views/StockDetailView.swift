@@ -1510,7 +1510,7 @@ struct StockDetailView: View {
                     )
             }
             // One tick when scrubbing starts — not one per data point.
-            .sensoryFeedback(.selection, trigger: showMarker) { _, new in new }
+            .sensoryFeedback(.selection, trigger: showMarker) { _, new in new && Haptic.isEnabled }
             .popoverTip(ChartScrubTip(), arrowEdge: .top)
             .frame(height: chartHeight)
             .accessibilityElement(children: .ignore)

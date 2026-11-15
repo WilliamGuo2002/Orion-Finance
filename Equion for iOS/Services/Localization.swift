@@ -9,6 +9,7 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Haptics": "触感反馈",
         "%@ price chart, %@: from %@ to %@, %@": "%@ 价格图表，%@：从 %@ 到 %@，%@",
         "Price chart": "价格图表",
         "Slide across the chart to see the price at any point.": "在图表上滑动，可以查看任意时刻的价格。",

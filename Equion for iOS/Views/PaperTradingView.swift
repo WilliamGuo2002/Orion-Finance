@@ -325,7 +325,6 @@ struct PaperTradingView: View {
 
             // Sell button
             Button {
-                Haptic.light()
                 portfolio.sell(symbol: holding.symbol, shares: holding.shares, price: currentPrice)
             } label: {
                 Text(L("Sell"))
@@ -526,7 +525,6 @@ struct PaperTradeSheet: View {
                 let sym = searchText.trimmingCharacters(in: .whitespaces).uppercased()
                 if !sym.isEmpty && !filteredAssets.contains(where: { $0.symbol == sym }) {
                     Button {
-                        Haptic.light()
                         selectedSymbol = sym
                         selectedName = sym
                         loadPrice()
@@ -555,7 +553,6 @@ struct PaperTradeSheet: View {
                 LazyVStack(spacing: 4) {
                     ForEach(filteredAssets, id: \.symbol) { asset in
                         Button {
-                            Haptic.light()
                             selectedSymbol = asset.symbol
                             selectedName = asset.name
                             loadPrice()

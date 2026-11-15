@@ -242,13 +242,10 @@ struct MyHoldingView: View {
                             let ratio = max(0, min(1, val.location.x / width))
                             let idx = Int(round(ratio * Double(entries.count - 1)))
                             let clamped = max(0, min(entries.count - 1, idx))
-                            let previous = selectedPortfolioEntry
+                            if !showPortfolioMarker { Haptic.selection() }   // one tick when scrubbing starts
                             withAnimation(.easeInOut(duration: 0.05)) {
                                 selectedPortfolioEntry = entries[clamped]
                                 showPortfolioMarker = true
-                            }
-                            if selectedPortfolioEntry?.index != previous?.index {
-                                Haptic.selection()
                             }
                         }
                         .onEnded { _ in
@@ -257,7 +254,6 @@ struct MyHoldingView: View {
                                 showPortfolioMarker = false
                                 selectedPortfolioEntry = nil
                             }
-                            Haptic.soft()
                         }
                 )
         }
@@ -687,7 +683,6 @@ struct MyHoldingView: View {
             FirebaseController.shared.removeStockFromWatchlist(symbol: symbol)
         }
         stockList.remove(atOffsets: offsets)
-        Haptic.tap()
     }
 
     private func moveStock(from source: IndexSet, to destination: Int) {
@@ -1179,7 +1174,6 @@ struct HideValuesButton: View {
 
     var body: some View {
         Button {
-            Haptic.selection()
             withAnimation(Motion.tap) { hideValues.toggle() }
         } label: {
             Image(systemName: hideValues ? "eye.slash" : "eye")
@@ -1203,7 +1197,6 @@ struct CurrencyToggle: View {
             ForEach(SettingsManager.supportedCurrencies, id: \.self) { currency in
                 Button {
                     guard currency != selected else { return }
-                    Haptic.selection()
                     Task { await HoldingsManager.shared.setDisplayCurrency(currency) }
                 } label: {
                     Text(currency)

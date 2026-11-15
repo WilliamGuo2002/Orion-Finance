@@ -195,9 +195,9 @@ struct NetWorthChartModule: View {
                                         let ratio = max(0, min(1, g.location.x / geo.size.width))
                                         let idx = Int((ratio * Double(entries.count - 1)).rounded())
                                         if idx != selectedIndex {
+                                            if selectedIndex == nil { Haptic.selection() }   // only when scrubbing starts
                                             // Same quick transaction as home, so numericText rolls the digits
                                             withAnimation(.easeInOut(duration: 0.05)) { selectedIndex = idx }
-                                            Haptic.selection()
                                         }
                                     }
                                     .onEnded { _ in
@@ -316,7 +316,7 @@ struct NetWorthChartModule: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: split)
+            .sensoryFeedback(.selection, trigger: split) { _, _ in Haptic.isEnabled }
             .disabled(series.count < 2 && !split)
             .opacity(series.count < 2 && !split ? 0.4 : 1)
             .accessibilityLabel(split ? L("Show total") : L("Split by institution"))

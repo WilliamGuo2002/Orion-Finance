@@ -414,7 +414,6 @@ struct RiskProfileView: View {
     // MARK: - Actions
 
     private func saveProfile() {
-        Haptic.success()
         settings.riskProfile = profileResult.key
         FirebaseController.shared.saveUserRiskProfile(profileResult.key)
 

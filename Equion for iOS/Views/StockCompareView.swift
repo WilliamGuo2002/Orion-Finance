@@ -103,7 +103,6 @@ struct StockCompareView: View {
 
     private func stockPickerButton(symbol: String, name: String, placeholder: String, side: PickSide) -> some View {
         Button {
-            Haptic.light()
             pickingSide = side
         } label: {
             VStack(spacing: 4) {

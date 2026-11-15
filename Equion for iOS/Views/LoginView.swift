@@ -204,13 +204,11 @@ struct LoginView: View {
 
     private func login() {
         guard !email.isEmpty, !password.isEmpty else {
-            Haptic.warning()
             withAnimation(Motion.standard) {
                 errorMessage = L("Email and password are required")
             }
             return
         }
-        Haptic.tap()
         isLoading = true
         errorMessage = ""
         Task {

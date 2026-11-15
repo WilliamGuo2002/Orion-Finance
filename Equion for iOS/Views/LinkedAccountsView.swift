@@ -378,7 +378,6 @@ struct LinkedAccountsView: View {
         do {
             try await bank.remove(itemId: item.id)
             await HoldingsManager.shared.reloadAfterBrokerageChange()
-            Haptic.light()
         } catch {
             actionError = error.localizedDescription
             Haptic.error()
@@ -414,7 +413,6 @@ struct LinkedAccountsView: View {
         do {
             try await brokerage.disconnect(connectionId: connection.id)
             await HoldingsManager.shared.reloadAfterBrokerageChange()
-            Haptic.light()
         } catch {
             actionError = error.localizedDescription
             Haptic.error()

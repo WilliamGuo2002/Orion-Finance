@@ -42,7 +42,7 @@ struct RangePicker: View {
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .sensoryFeedback(.selection, trigger: selection)
+        .sensoryFeedback(.selection, trigger: selection) { _, _ in Haptic.isEnabled }
     }
 
     static func spoken(_ option: String) -> String {

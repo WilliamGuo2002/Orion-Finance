@@ -8,6 +8,7 @@ struct MenuView: View {
     @ObservedObject private var aiConsent = AIConsent.shared
     @State private var showDisclaimer = false
     @State private var showAbout = false
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
     @State private var showAppearance = false
     @State private var showLanguage = false
@@ -148,6 +149,18 @@ struct MenuView: View {
                                 .font(.caption)
                                 .foregroundColor(AppTheme.secondaryText)
                         }
+                    }
+                }
+                .tint(AppTheme.accent)
+                .listRowBackground(AppTheme.cardBackground)
+
+                Toggle(isOn: $hapticsEnabled) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.tap")
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(width: 24)
+                        Text(L("Haptics"))
+                            .foregroundColor(AppTheme.primaryText)
                     }
                 }
                 .tint(AppTheme.accent)

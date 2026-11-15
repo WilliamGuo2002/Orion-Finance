@@ -32,7 +32,6 @@ struct ErrorStateView: View {
 
             if let retry = retryAction {
                 Button(action: {
-                    Haptic.tap()
                     retry()
                 }) {
                     HStack(spacing: 8) {
