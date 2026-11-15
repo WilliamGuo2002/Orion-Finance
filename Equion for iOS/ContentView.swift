@@ -248,13 +248,13 @@ struct MainTabView: View {
 
     // MARK: - Landscape Side Rail (iPhone)
     private var landscapeSideRail: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             ForEach([AppTab.holdings, .news, .gurus, .more], id: \.self) { tab in
                 sideRailButton(tab)
             }
             Spacer()
             sideRailButton(.orion)
-                .padding(6)
+                .padding(8)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(selectedTab == .orion ? AppTheme.accent : Color.clear)

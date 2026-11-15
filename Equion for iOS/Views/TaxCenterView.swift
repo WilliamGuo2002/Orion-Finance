@@ -133,7 +133,7 @@ struct TaxCenterView: View {
                     .foregroundColor(AppTheme.secondaryText)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
     // MARK: Superficial loss
@@ -164,7 +164,7 @@ struct TaxCenterView: View {
     }
 
     private func lossRow(_ a: SuperficialLossAlert) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(a.symbol)
                     .font(.system(.subheadline, weight: .semibold))

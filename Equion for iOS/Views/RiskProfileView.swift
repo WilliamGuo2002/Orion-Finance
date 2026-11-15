@@ -168,7 +168,7 @@ struct RiskProfileView: View {
                 .accessibilityLabel(String(format: L("Question %d of %d"), currentPage + 1, questions.count))
 
                 if isOnboarding {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 8) {
                         Text(L("Investment Style"))
                             .font(AppTheme.serifTitle(28))
                             .foregroundColor(AppTheme.primaryText)
@@ -187,7 +187,7 @@ struct RiskProfileView: View {
             // (in a VStack they'd briefly stack on top of each other and push things around).
             ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("\(currentPage + 1) / \(questions.count)")
                         .font(.footnote.weight(.medium).monospacedDigit())
                         .foregroundColor(AppTheme.secondaryText)
@@ -229,7 +229,7 @@ struct RiskProfileView: View {
                                 .font(.system(.subheadline))
                         }
                         .foregroundColor(AppTheme.primaryText)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 16)
                         .padding(.horizontal, 24)
                         .background(Capsule().fill(AppTheme.subtleFill))
                     }
@@ -247,7 +247,7 @@ struct RiskProfileView: View {
                             .font(.system(.footnote, weight: .semibold))
                     }
                     .foregroundColor(AppTheme.onAccent)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .padding(.horizontal, 24)
                     .background(Capsule().fill(AppTheme.accent))
                 }
@@ -271,7 +271,7 @@ struct RiskProfileView: View {
                 answers[questionId] = option.id
             }
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: 16) {
                 Image(systemName: option.symbol)
                     .font(.title3)
                     .symbolRenderingMode(.hierarchical)
@@ -355,7 +355,7 @@ struct RiskProfileView: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.secondaryText)
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 48)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(String(format: L("Investment style: %@"), L(result.label)))
 
@@ -371,7 +371,7 @@ struct RiskProfileView: View {
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, 16)
                 .background(Capsule().fill(AppTheme.accent))
             }
             .padding(.horizontal, 24)

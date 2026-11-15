@@ -26,7 +26,7 @@ struct InterestsSelectionView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 if isOnboarding {
                     // Big welcome icon
                     ZStack {
@@ -95,7 +95,7 @@ struct InterestsSelectionView: View {
                     }
                     .foregroundColor(AppTheme.onAccent)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .background(
                         Capsule().fill(
                             localSelection.isEmpty
@@ -103,14 +103,12 @@ struct InterestsSelectionView: View {
                                 : AppTheme.accent
                         )
                     )
-                    .shadow(color: localSelection.isEmpty ? .clear : AppTheme.accent.opacity(0.3), radius: 8, y: 4)
                 }
                 .padding(.horizontal, 24)
             }
             .padding(.vertical, 12)
             .background(
                 AppTheme.background
-                    .shadow(color: AppTheme.primaryText.opacity(0.05), radius: 10, y: -4)
             )
         }
         .background(AppTheme.background)
@@ -199,7 +197,7 @@ struct InterestCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity)
             .background(
@@ -210,7 +208,6 @@ struct InterestCard: View {
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius)
                     .stroke(isSelected ? accentColor : AppTheme.border, lineWidth: isSelected ? 2 : 0.5)
             )
-            .shadow(color: isSelected ? accentColor.opacity(0.15) : AppTheme.primaryText.opacity(0.04), radius: 8, y: 4)
             .scaleEffect(isSelected ? 1.02 : 1.0)
         }
         .buttonStyle(.plain)

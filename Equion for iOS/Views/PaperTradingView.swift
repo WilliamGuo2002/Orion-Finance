@@ -264,14 +264,14 @@ struct PaperTradingView: View {
 
             // Buy button
             Button(action: { showBuySheet = true }) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
                     Text(L("Buy Stock"))
                         .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
             }
         }
@@ -332,7 +332,7 @@ struct PaperTradingView: View {
                     .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.negative)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(
                         Capsule().stroke(AppTheme.negative, lineWidth: 1)
                     )
@@ -340,11 +340,11 @@ struct PaperTradingView: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(AppTheme.cardBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(AppTheme.border, lineWidth: 0.5)
         )
     }
@@ -357,7 +357,7 @@ struct PaperTradingView: View {
                 .padding(.horizontal, 4)
 
             ForEach(portfolio.tradeHistory.prefix(20)) { record in
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: record.action == "buy" ? "arrow.down.left" : "arrow.up.right")
                         .font(.system(.caption, weight: .semibold))
                         .foregroundColor(record.action == "buy" ? AppTheme.positive : AppTheme.negative)
@@ -401,7 +401,7 @@ struct PaperTradingView: View {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 48, weight: .light))
                 .foregroundColor(AppTheme.accent.opacity(0.4))
-                .padding(.top, 40)
+                .padding(.top, 48)
 
             Text(L("Start your practice portfolio"))
                 .font(AppTheme.serifHeadline(18))
@@ -414,7 +414,7 @@ struct PaperTradingView: View {
                 .padding(.horizontal, 24)
 
             Button(action: { showBuySheet = true }) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
                     Text(L("Buy Your First Stock"))
                         .font(.system(.subheadline, weight: .semibold))
@@ -423,7 +423,6 @@ struct PaperTradingView: View {
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
-                .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
             }
         }
     }
@@ -518,7 +517,7 @@ struct PaperTradeSheet: View {
             }
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 10)
                     .fill(AppTheme.subtleFill)
             )
 
@@ -545,7 +544,7 @@ struct PaperTradeSheet: View {
                         }
                         .padding(12)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .stroke(AppTheme.accent.opacity(0.3), lineWidth: 1)
                         )
                     }
@@ -576,7 +575,7 @@ struct PaperTradeSheet: View {
                                     .font(.caption)
                                     .foregroundColor(AppTheme.secondaryText)
                             }
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                             .padding(.horizontal, 4)
                         }
                         .buttonStyle(.plain)
@@ -620,7 +619,7 @@ struct PaperTradeSheet: View {
             }
 
             // Shares input
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(L("Number of shares"))
                     .font(.system(.footnote))
                     .foregroundColor(AppTheme.secondaryText)
@@ -630,7 +629,7 @@ struct PaperTradeSheet: View {
                     .keyboardType(.decimalPad)
                     .padding(12)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(AppTheme.subtleFill)
                     )
             }
@@ -672,7 +671,7 @@ struct PaperTradeSheet: View {
                     .font(.system(.callout, weight: .semibold))
                     .foregroundColor(AppTheme.onAccent)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .background(
                         Capsule().fill(canTrade && total <= PaperPortfolioManager.shared.cash ? AppTheme.accent : AppTheme.secondaryText.opacity(0.3))
                     )

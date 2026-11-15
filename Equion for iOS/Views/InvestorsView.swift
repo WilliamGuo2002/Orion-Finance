@@ -22,7 +22,7 @@ struct InvestorsView: View {
 
             // Investor list — card style
             ScrollView {
-                LazyVGrid(columns: gridColumns, spacing: 10) {
+                LazyVGrid(columns: gridColumns, spacing: 12) {
                     ForEach(InvestorService.investors) { investor in
                         NavigationLink(destination: InvestorDetailView(investor: investor)) {
                             InvestorCardView(investor: investor)
@@ -45,7 +45,7 @@ struct InvestorCardView: View {
     let investor: FamousInvestor
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 16) {
             // Avatar circle with initials
             ZStack {
                 Circle()
@@ -74,12 +74,12 @@ struct InvestorCardView: View {
             Spacer(minLength: 0)
 
             // SEC badge + chevron
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text("13F")
                     .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 4)
                     .background(
                         Capsule().fill(AppTheme.accent.opacity(0.1))
                     )
@@ -88,7 +88,7 @@ struct InvestorCardView: View {
                     .foregroundColor(AppTheme.tertiaryText)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .themeCardSurface()
     }
@@ -128,7 +128,7 @@ struct InvestorDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Investor info header — card style
-                HStack(spacing: 14) {
+                HStack(spacing: 16) {
                     ZStack {
                         Circle()
                             .fill(AppTheme.accent.opacity(0.12))
@@ -152,7 +152,7 @@ struct InvestorDetailView: View {
                 if isLoading {
                     ProgressView(L("Loading..."))
                         .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
+                        .padding(.top, 64)
                 } else if let error = errorMessage {
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle")
@@ -164,7 +164,7 @@ struct InvestorDetailView: View {
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 60)
+                    .padding(.top, 64)
                 } else if let portfolio = portfolio {
                     portfolioContent(portfolio)
                 }
@@ -226,11 +226,11 @@ struct InvestorDetailView: View {
             Text("SEC 13F")
                 .font(.system(.caption2, weight: .semibold))
                 .foregroundColor(AppTheme.accentText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
                 .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .themeCardSurface()
         .padding(.horizontal, 16)
@@ -275,7 +275,7 @@ struct InvestorDetailView: View {
             // Legend
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
                 ForEach(Array(top.enumerated()), id: \.element.id) { idx, holding in
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(chartColors[idx % chartColors.count])
                             .frame(width: 8, height: 8)
@@ -287,7 +287,7 @@ struct InvestorDetailView: View {
                     }
                 }
                 if otherValue > 0 {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(AppTheme.secondaryText.opacity(0.4))
                             .frame(width: 8, height: 8)
@@ -307,7 +307,7 @@ struct InvestorDetailView: View {
     // MARK: - Holdings List
     @ViewBuilder
     private func holdingsListSection(_ portfolio: InvestorPortfolio) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             AccentSectionTitle("\(L("All Holdings")) (\(portfolio.holdings.count))", icon: "list.bullet")
                 .padding(.horizontal, 16)
 
@@ -324,7 +324,7 @@ struct InvestorDetailView: View {
             }
             .font(AppTheme.caption(11))
             .foregroundColor(AppTheme.secondaryText)
-            .padding(.horizontal, 30)
+            .padding(.horizontal, 32)
 
             // Holdings rows — card style
             VStack(spacing: 0) {
@@ -348,13 +348,13 @@ struct InvestorDetailView: View {
                             .foregroundColor(AppTheme.accentText)
                             .frame(width: 45, alignment: .trailing)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
 
                     if idx < portfolio.holdings.count - 1 {
                         Divider()
                             .overlay(AppTheme.border.opacity(0.5))
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, 16)
                     }
                 }
             }

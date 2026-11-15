@@ -19,7 +19,7 @@ struct ErrorStateView: View {
                     .foregroundColor(AppTheme.warning.opacity(0.7))
             }
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text(L("Something went wrong"))
                     .font(AppTheme.serifHeadline(16))
                     .foregroundColor(AppTheme.primaryText)
@@ -35,7 +35,7 @@ struct ErrorStateView: View {
                     Haptic.tap()
                     retry()
                 }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(.caption, weight: .semibold))
                         Text(L("Try Again"))
@@ -43,7 +43,7 @@ struct ErrorStateView: View {
                     }
                     .foregroundColor(AppTheme.onAccent)
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     .background(Capsule().fill(AppTheme.accent))
                 }
             }

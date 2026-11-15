@@ -47,14 +47,14 @@ struct RegisterView: View {
                         .foregroundColor(AppTheme.onAccent)
                     }
                     .background(AppTheme.accent)
-                    .cornerRadius(10)
+                    .clipShape(Capsule())
                     .disabled(isLoading)
                 }
                 .padding(24)
                 .background(AppTheme.cardBackground)
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(AppTheme.border, lineWidth: 1))
-                .padding(.horizontal, 40)
+                .cornerRadius(18)
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(AppTheme.border, lineWidth: 1))
+                .padding(.horizontal, 48)
 
                 Spacer()
             }

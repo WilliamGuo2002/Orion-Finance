@@ -63,13 +63,12 @@ struct ChatView: View {
                                 .font(.system(.subheadline, weight: .semibold))
                         }
                         .foregroundColor(AppTheme.onAccent)
-                        .padding(.horizontal, 28)
+                        .padding(.horizontal, 32)
                         .padding(.vertical, 12)
                         .background(Capsule().fill(AppTheme.accent))
-                        .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
                     }
                 }
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 48)
                 Spacer()
             } else {
                 List {
@@ -240,7 +239,7 @@ struct ChatDetailView: View {
             }
 
             // Input bar
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 // Photo picker
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Image(systemName: "photo")
@@ -295,11 +294,10 @@ struct ChatDetailView: View {
                     .font(.headline)
                     .foregroundColor(AppTheme.primaryText)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(
                         Capsule()
                             .fill(AppTheme.barBackground)
-                            .shadow(color: AppTheme.primaryText.opacity(0.08), radius: 2, y: 1)
                     )
             }
 
@@ -308,22 +306,20 @@ struct ChatDetailView: View {
                     Button(action: startNewChat) {
                         Image(systemName: "square.and.pencil")
                             .foregroundColor(AppTheme.primaryText)
-                            .padding(6)
+                            .padding(8)
                             .background(
                                 Circle()
                                     .fill(AppTheme.barBackground)
-                                    .shadow(color: AppTheme.primaryText.opacity(0.08), radius: 2, y: 1)
                             )
                     }
                 } else {
                     Button(action: { isTemporary.toggle() }) {
                         Image(systemName: isTemporary ? "clock.badge.xmark" : "clock")
                             .foregroundColor(isTemporary ? AppTheme.warning : AppTheme.primaryText)
-                            .padding(6)
+                            .padding(8)
                             .background(
                                 Circle()
                                     .fill(AppTheme.barBackground)
-                                    .shadow(color: AppTheme.primaryText.opacity(0.08), radius: 2, y: 1)
                             )
                     }
                 }
@@ -376,7 +372,7 @@ struct ChatDetailView: View {
                     .resizable()
                     .scaledToFill()
                     .frame(width: 48, height: 48)
-                    .cornerRadius(8)
+                    .cornerRadius(10)
                     .clipped()
                 Text(L("Photo attached"))
                     .font(AppTheme.caption())
@@ -398,7 +394,7 @@ struct ChatDetailView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .background(AppTheme.subtleFill)
     }
 
@@ -526,13 +522,13 @@ struct ChatBubble: View {
                 }
             }
 
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 6) {
+            VStack(alignment: isUser ? .trailing : .leading, spacing: 8) {
                 if let imgData = message.imageData, let uiImage = UIImage(data: imgData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: 220, maxHeight: 200)
-                        .cornerRadius(14)
+                        .cornerRadius(18)
                 }
 
                 if let fileName = message.fileName {
@@ -546,7 +542,7 @@ struct ChatBubble: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(AppTheme.subtleFill)
-                    .cornerRadius(8)
+                    .cornerRadius(10)
                 }
 
                 if !message.content.isEmpty {
@@ -558,8 +554,8 @@ struct ChatBubble: View {
                         }
                     }
                     .font(.system(.subheadline))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                     .background(isUser ? AppTheme.accent.opacity(0.12) : AppTheme.cardBackground)
                     .foregroundColor(AppTheme.primaryText)
                     .cornerRadius(18)
@@ -567,7 +563,6 @@ struct ChatBubble: View {
                         RoundedRectangle(cornerRadius: 18)
                             .stroke(isUser ? Color.clear : AppTheme.border, lineWidth: 0.5)
                     )
-                    .shadow(color: isUser ? Color.clear : AppTheme.primaryText.opacity(0.03), radius: 4, y: 2)
                 }
             }
             .frame(maxWidth: isUser ? 280 : .infinity, alignment: isUser ? .trailing : .leading)
@@ -626,7 +621,7 @@ struct GeminiVoiceChatView: View {
                     Color.clear.frame(width: 44, height: 44)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 60)
+                .padding(.top, 64)
 
                 Spacer()
 
@@ -707,7 +702,7 @@ struct GeminiVoiceChatView: View {
                         .frame(width: 70, height: 70)
                         .background(Circle().fill(Color.red))
                 }
-                .padding(.bottom, 60)
+                .padding(.bottom, 64)
             }
         }
         .onAppear {
@@ -797,7 +792,7 @@ struct GeminiVideoChatView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 60)
+                .padding(.top, 64)
 
                 Spacer()
 
@@ -811,7 +806,7 @@ struct GeminiVideoChatView: View {
                             .padding(12)
                     }
                     .frame(maxHeight: 150)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.6)))
+                    .background(RoundedRectangle(cornerRadius: 18).fill(Color.black.opacity(0.6)))
                     .padding(.horizontal, 24)
                 }
 
@@ -820,8 +815,8 @@ struct GeminiVideoChatView: View {
                     Text(live.transcript)
                         .font(.callout)
                         .foregroundColor(.white)
-                        .padding(10)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue.opacity(0.6)))
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.6)))
                         .padding(.horizontal, 24)
                         .padding(.top, 8)
                 }
@@ -832,12 +827,12 @@ struct GeminiVideoChatView: View {
                         .font(.caption)
                         .foregroundColor(.red)
                         .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.6)))
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.6)))
                         .padding(.horizontal, 24)
                 }
 
                 // Bottom controls
-                HStack(spacing: 50) {
+                HStack(spacing: 48) {
                     // Mute toggle placeholder
                     Button(action: switchCamera) {
                         Image(systemName: "camera.rotate.fill")
@@ -867,7 +862,7 @@ struct GeminiVideoChatView: View {
                             .symbolEffect(.variableColor.iterative, isActive: live.isAISpeaking)
                     }
                 }
-                .padding(.bottom, 50)
+                .padding(.bottom, 48)
             }
         }
         .onAppear {

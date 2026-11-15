@@ -99,7 +99,7 @@ struct AIConsentView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 Image(systemName: "sparkles")
                     .font(.system(.largeTitle))
                     .foregroundColor(AppTheme.accentText)
@@ -111,42 +111,42 @@ struct AIConsentView: View {
                     .font(.system(.subheadline))
                     .foregroundColor(AppTheme.primaryText)
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     bullet("text.bubble", L("What you type or say to Orion, and any images or files you attach"))
                     bullet("chart.bar", L("Public market data for the stocks you ask about (prices, fundamentals, news headlines)"))
                     bullet("person.crop.circle", L("Your language and the investing preferences you chose"))
                 }
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     bullet("lock.shield", L("Orion does not send your linked account balances, holdings, account numbers, name or email to the AI."))
                     bullet("graduationcap", L("Orion AI is for education and research. It is not a registered adviser and does not tell you what to buy or sell."))
                     bullet("arrow.uturn.backward", L("You can turn this off any time in More → AI Data Sharing."))
                 }
-                .padding(14)
-                .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.subtleFill))
+                .padding(16)
+                .background(RoundedRectangle(cornerRadius: 10).fill(AppTheme.subtleFill))
 
                 Text(L("Google processes this data under its own terms and may handle it outside Canada."))
                     .font(AppTheme.caption(12))
                     .foregroundColor(AppTheme.secondaryText)
 
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     Button(action: onAllow) {
                         Text(L("Allow and continue"))
                             .font(.system(.callout, weight: .semibold))
                             .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.accent))
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(AppTheme.accent))
                     }
                     Button(action: onDecline) {
                         Text(L("Not now"))
                             .font(.system(.subheadline))
                             .foregroundColor(AppTheme.secondaryText)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                     }
                 }
-                .padding(.top, 6)
+                .padding(.top, 8)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -155,7 +155,7 @@ struct AIConsentView: View {
     }
 
     private func bullet(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.system(.subheadline))
                 .foregroundColor(AppTheme.accentText)

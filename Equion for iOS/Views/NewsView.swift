@@ -31,7 +31,7 @@ struct NewsView: View {
             // News list — card style matching watchlist
             if isLoading && newsList.isEmpty {
                 ScrollView {
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         ForEach(0..<6, id: \.self) { _ in
                             SkeletonNewsCard()
                         }
@@ -49,7 +49,7 @@ struct NewsView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVGrid(columns: gridColumns, spacing: 10) {
+                    LazyVGrid(columns: gridColumns, spacing: 12) {
                         ForEach(Array(newsList.enumerated()), id: \.element.id) { index, item in
                             NavigationLink(destination: NewsDetailView(url: item.url)) {
                                 NewsCardView(item: item)
@@ -137,14 +137,14 @@ struct NewsCardView: View {
             .frame(width: 80, height: 64)
 
             // Title & source
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(item.headline)
                     .font(.system(.subheadline))
                     .foregroundColor(AppTheme.primaryText)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if let ts = item.datetime {
                         Text(timeString(from: ts))
                             .font(AppTheme.caption(11))
@@ -160,7 +160,7 @@ struct NewsCardView: View {
                 .font(.system(.caption))
                 .foregroundColor(AppTheme.tertiaryText)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .themeCardSurface()
     }
@@ -226,7 +226,7 @@ struct OrionSummarySheet: View {
                         )
                     } else {
                         // AI icon + summary
-                        HStack(alignment: .top, spacing: 10) {
+                        HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "sparkles")
                                 .font(.system(.subheadline))
                                 .foregroundColor(AppTheme.accentText)

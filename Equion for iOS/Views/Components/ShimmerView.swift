@@ -49,7 +49,7 @@ struct SkeletonStockCard: View {
                 .fill(AppTheme.subtleFill)
                 .frame(width: 40, height: 40)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(AppTheme.subtleFill)
                     .frame(width: 70, height: 12)
@@ -60,11 +60,11 @@ struct SkeletonStockCard: View {
 
             Spacer()
 
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 4)
                 .fill(AppTheme.subtleFill)
                 .frame(width: 60, height: 36)
 
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 8) {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(AppTheme.subtleFill)
                     .frame(width: 55, height: 12)
@@ -73,7 +73,7 @@ struct SkeletonStockCard: View {
                     .frame(width: 60, height: 18)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cardRadius)
@@ -138,7 +138,7 @@ struct SkeletonNewsCard: View {
 
             Spacer()
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cardRadius)
@@ -153,7 +153,7 @@ struct SkeletonNewsCard: View {
 /// Full skeleton loading view for the watchlist (shows 4 placeholder cards)
 struct SkeletonWatchlist: View {
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             ForEach(0..<4, id: \.self) { _ in
                 SkeletonStockCard()
             }

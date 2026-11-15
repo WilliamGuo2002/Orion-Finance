@@ -290,7 +290,7 @@ struct DisclaimerSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
                     Text(L("Orion Finance provides information and education only. It is not a registered investment adviser, dealer or tax professional, and nothing in the app is a recommendation to buy, sell or hold any security."))
                     Text(L("AI-generated content can be wrong or out of date. Market data may be delayed. Linked account data comes from your institutions through SnapTrade and Plaid and may not match your official statements."))
                     Text(L("Tax features are estimates to help you spot issues. Confirm your contribution room in CRA My Account and talk to a qualified professional before making decisions."))

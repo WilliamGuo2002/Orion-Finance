@@ -132,7 +132,7 @@ struct TaxAssistantCard: View {
                         .font(.system(.caption, weight: .semibold))
                         .foregroundColor(AppTheme.secondaryText)
                 }
-                .padding(14)
+                .padding(16)
                 .themeCardSurface()
                 .padding(.horizontal, 16)
             }

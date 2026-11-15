@@ -103,7 +103,7 @@ struct NetWorthChartModule: View {
             }
             .padding(.horizontal, 20)
         }
-        .padding(.top, 6)
+        .padding(.top, 8)
         .task(id: range) { await reload() }
         // New balances (sync / link / unlink) → redraw. Currency changes don't need new data:
         // entries are USD and converted at display time.
@@ -144,7 +144,7 @@ struct NetWorthChartModule: View {
             if let first = entries.first {
                 let change = value - first.value
                 let pct = abs(first.value) > 0.005 ? change / abs(first.value) * 100 : 0
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(String(format: "%@%@ (%@%.2f%%)", change >= 0 ? "+" : "-", snap.format(abs(change)),
                                 pct >= 0 ? "+" : "", pct))
                         .font(AppTheme.number(13, weight: .semibold))
@@ -306,10 +306,10 @@ struct NetWorthChartModule: View {
                     Text(r)
                         .font(.system(.caption2, weight: .semibold))
                         .foregroundColor(range == r ? AppTheme.onAccent : AppTheme.secondaryText)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(range == r ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
-                        .cornerRadius(6)
+                        .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
             }
@@ -325,8 +325,8 @@ struct NetWorthChartModule: View {
                         .font(.system(.caption2, weight: .semibold))
                 }
                 .foregroundColor(split ? AppTheme.onAccent : AppTheme.accentText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
                 .background(Capsule().fill(split ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.accent.opacity(0.12))))
             }
             .buttonStyle(.plain)
@@ -344,8 +344,8 @@ struct NetWorthChartModule: View {
         let rows = series.map { ($0, point.map($0.value) ?? 0) }.sorted { $0.1 > $1.1 }
         return VStack(spacing: 8) {
             ForEach(rows, id: \.0.id) { line, value in
-                HStack(spacing: 10) {
-                    RoundedRectangle(cornerRadius: 1.5)
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(line.color)
                         .frame(width: 14, height: 3)
                     Text(line.name)

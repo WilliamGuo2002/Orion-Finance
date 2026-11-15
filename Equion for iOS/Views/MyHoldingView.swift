@@ -108,7 +108,7 @@ struct MyHoldingView: View {
             MarketTickerView(indices: marketIndices)
 
             // Greeting header
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(AppTheme.greeting())
                     .font(AppTheme.serifTitle(26))
                     .foregroundColor(AppTheme.primaryText)
@@ -126,8 +126,8 @@ struct MyHoldingView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
             // Main content area — chart pinned behind, cards scroll over it
             ZStack(alignment: .top) {
@@ -157,7 +157,6 @@ struct MyHoldingView: View {
                     .background(
                         Circle()
                             .fill(AppTheme.accent)
-                            .shadow(color: AppTheme.accent.opacity(0.35), radius: 12, y: 6)
                     )
             }
             .padding(.trailing, 20)
@@ -316,7 +315,7 @@ struct MyHoldingView: View {
                 watchlistStatus
 
                 // Watchlist
-                LazyVGrid(columns: gridColumns, spacing: 10) {
+                LazyVGrid(columns: gridColumns, spacing: 12) {
                     ForEach(Array(stockList.enumerated()), id: \.element.id) { index, stock in
                         NavigationLink(destination: StockDetailView(symbol: stock.symbol, name: stock.name)) {
                             StockRowView(stock: stock)
@@ -409,10 +408,9 @@ struct MyHoldingView: View {
                         .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.onAccent)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 32)
                 .padding(.vertical, 12)
                 .background(Capsule().fill(AppTheme.accent))
-                .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
             }
 
             Button(action: { Haptic.tap(); showPortfolioWizard = true }) {
@@ -423,7 +421,7 @@ struct MyHoldingView: View {
                         .font(.system(.subheadline, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.accentText)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 32)
                 .padding(.vertical, 12)
                 .background(
                     Capsule()
@@ -431,7 +429,7 @@ struct MyHoldingView: View {
                 )
             }
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 48)
     }
 
     // MARK: - Load All
@@ -478,7 +476,7 @@ struct MyHoldingView: View {
                     .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.secondaryText)
             }
-            .padding(14)
+            .padding(16)
             .themeCardSurface()
             .padding(.horizontal, 16)
         }
@@ -630,7 +628,7 @@ struct MyHoldingView: View {
     private var watchlistStatus: some View {
         VStack(spacing: 8) {
             if let notice = watchlistNotice {
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
                         .foregroundColor(AppTheme.secondaryText)
                     Text(notice.text)
@@ -654,9 +652,9 @@ struct MyHoldingView: View {
                     }
                     .accessibilityLabel(L("Dismiss"))
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(AppTheme.subtleFill))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(AppTheme.subtleFill))
                 .transition(.opacity)
                 .task(id: notice.id) {
                     // Informational notes fade on their own; errors stay until dismissed or retried.
@@ -675,8 +673,8 @@ struct MyHoldingView: View {
                         .foregroundColor(AppTheme.secondaryText)
                     Spacer()
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
                 .themeCardSurface()
                 .transition(.opacity)
             }
@@ -834,7 +832,7 @@ struct MyHoldingView: View {
                 headerControls(ghost: false)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 6)
+            .padding(.top, 8)
 
             // Edge-to-edge chart — isolated view, won't re-render on scroll
             if !portfolioChartData.isEmpty {
@@ -871,7 +869,7 @@ struct MyHoldingView: View {
                                         ? AnyShapeStyle(AppTheme.accent)
                                         : AnyShapeStyle(AppTheme.subtleFill)
                                 )
-                                .cornerRadius(6)
+                                .cornerRadius(4)
                         }
                     }
                     Spacer()
@@ -897,7 +895,7 @@ struct MyHoldingView: View {
     // MARK: - Today's Market Card
     @ViewBuilder
     private var todayMarketCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header row
             HStack(spacing: 0) {
                 AccentSectionTitle(L("Today's Market"), icon: "chart.bar.xaxis")
@@ -908,21 +906,21 @@ struct MyHoldingView: View {
             }
 
             // Tab pills
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach([TodayTab.active, .gainers, .losers], id: \.self) { tab in
                     Button {
                         Haptic.light()
                         withAnimation(.easeInOut(duration: 0.2)) { todayTab = tab }
                     } label: {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 4) {
                             Image(systemName: tab.icon)
                                 .font(.system(.caption2))
                             Text(tab.label)
                                 .font(.system(.caption2))
                         }
                         .foregroundColor(todayTab == tab ? AppTheme.onAccent : AppTheme.secondaryText)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(
                             Capsule().fill(todayTab == tab ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(AppTheme.subtleFill))
                         )
@@ -945,7 +943,7 @@ struct MyHoldingView: View {
                     .font(AppTheme.caption(12))
                     .foregroundColor(AppTheme.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
             } else {
                 // Horizontal scroll; the right edge fades the content itself (a mask), so there's no
                 // coloured overlay to mismatch the card surface.
@@ -959,7 +957,7 @@ struct MyHoldingView: View {
                         }
                         Spacer().frame(width: 20)
                     }
-                    .padding(.vertical, 6)   // room for the chips' outline
+                    .padding(.vertical, 8)   // room for the chips' outline
                 }
                 .padding(.vertical, -6)
                 .mask(
@@ -968,7 +966,7 @@ struct MyHoldingView: View {
                 )
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .themeCardSurface()
         .padding(.horizontal, 16)
@@ -978,7 +976,7 @@ struct MyHoldingView: View {
     @ViewBuilder
     private var myMoversCard: some View {
         if stockList.count >= 2 && (!cachedGainers.isEmpty || !cachedLosers.isEmpty) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack(spacing: 0) {
                     AccentSectionTitle(L("My Movers"), icon: "star.fill")
@@ -992,8 +990,8 @@ struct MyHoldingView: View {
                 HStack(spacing: 0) {
                     // Gainers column
                     if !cachedGainers.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 3) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 4) {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.positive)
@@ -1021,8 +1019,8 @@ struct MyHoldingView: View {
 
                     // Losers column
                     if !cachedLosers.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 3) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 4) {
                                 Image(systemName: "arrow.down.right")
                                     .font(.system(.caption2, weight: .semibold))
                                     .foregroundColor(AppTheme.negative)
@@ -1042,7 +1040,7 @@ struct MyHoldingView: View {
                     }
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .themeCardSurface()
             .padding(.horizontal, 16)
@@ -1051,7 +1049,7 @@ struct MyHoldingView: View {
 
     @ViewBuilder
     private func myMoverRow(symbol: String, name: String, changePercent: Double) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Text(symbol)
                 .font(.system(.caption, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
@@ -1121,7 +1119,7 @@ struct MyHoldingView: View {
                     Text(L("Popular names in your interests · not a recommendation"))
                         .font(AppTheme.caption(12))
                         .foregroundColor(AppTheme.secondaryText)
-                        .padding(.leading, 11) // align with title text after accent bar
+                        .padding(.leading, 12) // align with title text after accent bar
                 }
                 Spacer()
                 if isLoadingRecommendations {
@@ -1240,8 +1238,8 @@ struct CurrencyToggle: View {
                     Text(currency)
                         .font(.system(.caption2, weight: .semibold))
                         .foregroundColor(currency == selected ? AppTheme.onAccent : AppTheme.secondaryText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
                         .background(
                             Capsule().fill(currency == selected ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(Color.clear))
                         )
@@ -1276,14 +1274,14 @@ struct PortfolioHeaderControls: View {
                         .opacity(0.6)
                 }
                 .foregroundColor(AppTheme.accentText)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(Capsule().fill(AppTheme.accent.opacity(0.12)))
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if showCurrencyToggle {
                     CurrencyToggle(selected: displayCurrency)
                 }
@@ -1369,7 +1367,7 @@ struct HoldingsListPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 16) {
                 NetWorthChartModule()
 
                 SyncHealthBanner()
@@ -1380,10 +1378,10 @@ struct HoldingsListPage: View {
                     Text(L("No accounts linked yet"))
                         .font(AppTheme.caption(13))
                         .foregroundColor(AppTheme.secondaryText)
-                        .padding(.top, 60)
+                        .padding(.top, 64)
                 } else {
                     ForEach(accounts) { account in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             accountHeader(account)
                             ForEach(holdings(in: account)) { holding in
                                 NavigationLink(destination: StockDetailView(symbol: holding.symbol, name: holding.name)) {
@@ -1392,7 +1390,7 @@ struct HoldingsListPage: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .themeCardSurface()
                         .padding(.horizontal, 16)
@@ -1401,7 +1399,7 @@ struct HoldingsListPage: View {
 
                 // Banks (Plaid): one card per bank login, one row per account
                 ForEach(bankItems) { item in
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Label(item.institution, systemImage: "building.columns.fill")
                             .font(.system(.caption, weight: .semibold))
                             .foregroundColor(AppTheme.accentText)
@@ -1414,7 +1412,7 @@ struct HoldingsListPage: View {
                             bankRow(account)
                         }
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .themeCardSurface()
                     .padding(.horizontal, 16)
@@ -1422,8 +1420,8 @@ struct HoldingsListPage: View {
 
                 linkBrokerageCard
             }
-            .padding(.top, 10)
-            .padding(.bottom, 40)
+            .padding(.top, 12)
+            .padding(.bottom, 48)
         }
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(L("Accounts"))
@@ -1448,7 +1446,7 @@ struct HoldingsListPage: View {
 
     private func bankRow(_ account: BankAccount) -> some View {
         let value = manager.snapshot.accountValues[HoldingsSnapshot.bankKey(account.id)] ?? 0
-        return HStack(spacing: 10) {
+        return HStack(spacing: 12) {
             Image(systemName: account.icon)
                 .font(.system(.caption))
                 .foregroundColor(AppTheme.secondaryText)
@@ -1470,7 +1468,7 @@ struct HoldingsListPage: View {
                 .font(AppTheme.number(14, weight: .semibold))
                 .foregroundColor(value < 0 && !hideValues ? AppTheme.negative : AppTheme.primaryText)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
     private func accountIcon(_ account: LinkedAccount) -> String {
@@ -1518,7 +1516,7 @@ struct HoldingsListPage: View {
         NavigationLink {
             LinkedAccountsView()
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(systemName: "building.columns")
                     .font(.system(.subheadline, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
@@ -1535,7 +1533,7 @@ struct HoldingsListPage: View {
                     .font(.system(.caption, weight: .semibold))
                     .foregroundColor(AppTheme.secondaryText)
             }
-            .padding(14)
+            .padding(16)
             .themeCardSurface()
             .padding(.horizontal, 16)
         }
@@ -1543,7 +1541,7 @@ struct HoldingsListPage: View {
     }
 
     private func holdingRow(_ holding: AggregatedHolding) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(holding.symbol)
                     .font(.system(.subheadline, weight: .semibold))
@@ -1565,7 +1563,7 @@ struct HoldingsListPage: View {
                     .foregroundColor(hideValues ? AppTheme.secondaryText : (holding.totalPnLPercent >= 0 ? AppTheme.positive : AppTheme.negative))
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 }
 
@@ -1677,7 +1675,7 @@ struct MarketTickerView: View {
 
     @ViewBuilder
     private func tickerLabel(_ index: MarketIndex) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Text(index.symbol)
                 .foregroundColor(AppTheme.secondaryText)
                 .font(.system(.caption))
@@ -1722,8 +1720,8 @@ struct StockRowView: View {
             }
 
             // Symbol & Name
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
                     Text(displaySymbol)
                         .font(.system(.callout, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
@@ -1731,7 +1729,7 @@ struct StockRowView: View {
                         Text(assetType.label)
                             .font(.system(.caption2, weight: .semibold))
                             .foregroundColor(assetTypeColor)
-                            .padding(.horizontal, 5)
+                            .padding(.horizontal, 4)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(assetTypeColor.opacity(0.12)))
                     }
@@ -1768,7 +1766,7 @@ struct StockRowView: View {
             }
             .frame(width: 100, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .themeCardSurface()
     }
@@ -1864,11 +1862,11 @@ struct AddAssetSheet: View {
                         categoryTab(.commodity, icon: "drop.halffull")
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                 }
 
                 // Search field
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(AppTheme.secondaryText)
                     TextField(searchPlaceholder, text: $searchText)
@@ -1881,10 +1879,10 @@ struct AddAssetSheet: View {
                         }
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(AppTheme.subtleFill)
-                .cornerRadius(12)
+                .cornerRadius(10)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
 
@@ -1907,9 +1905,9 @@ struct AddAssetSheet: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
                             .background(AppTheme.cardBackground)
-                            .cornerRadius(12)
+                            .cornerRadius(10)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 10)
                                     .stroke(AppTheme.accent.opacity(0.3), lineWidth: 1)
                             )
                             .padding(.horizontal, 16)
@@ -1921,7 +1919,7 @@ struct AddAssetSheet: View {
 
                 // Popular assets list
                 ScrollView {
-                    LazyVStack(spacing: 6) {
+                    LazyVStack(spacing: 8) {
                         Text(L("Popular"))
                             .font(AppTheme.caption(12))
                             .foregroundColor(AppTheme.secondaryText)
@@ -1966,14 +1964,14 @@ struct AddAssetSheet: View {
                                     }
                                 }
                                 .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
+                                .padding(.vertical, 12)
                             }
                             .buttonStyle(.plain)
                             .disabled(alreadyAdded)
                             .opacity(alreadyAdded ? 0.5 : 1)
                         }
                     }
-                    .padding(.bottom, 30)
+                    .padding(.bottom, 32)
                 }
             }
             .background(AppTheme.background)
@@ -2025,14 +2023,14 @@ struct AddAssetSheet: View {
 
     private func categoryTab(_ type: AssetType, icon: String) -> some View {
         Button(action: { withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = type } }) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(.footnote))
                 Text(type.label)
                     .font(.system(.footnote))
             }
             .foregroundColor(selectedTab == type ? AppTheme.onAccent : AppTheme.primaryText)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 ZStack {
@@ -2089,14 +2087,13 @@ struct MoverChip: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.6), value: changePercent)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(AppTheme.cardBackground)
-                .shadow(color: AppTheme.primaryText.opacity(0.03), radius: 4, y: 2)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(AppTheme.border, lineWidth: 0.5)
         )
     }
@@ -2121,14 +2118,14 @@ struct RecommendationCard: View {
     private var assetType: AssetType { AssetMeta.assetType(for: stock.symbol) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             // Top: category badge
             HStack {
                 Text(L(stock.categoryName))
                     .font(.system(.caption2, weight: .semibold))
                     .foregroundColor(AppTheme.accentText)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
                 Spacer()
                 // Add button
@@ -2172,7 +2169,7 @@ struct RecommendationCard: View {
                 ChangeBadge(value: stock.changePercent, size: .compact)
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(width: 170)
         .themeCardSurface()
     }
@@ -2259,15 +2256,15 @@ struct StockContextPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header: symbol + name
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 if let logoURL = stock.logoURL, !logoURL.isEmpty {
                     AsyncImage(url: URL(string: logoURL)) { phase in
                         if case .success(let img) = phase {
                             img.resizable().scaledToFit()
                                 .frame(width: 36, height: 36)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
                         } else {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(AppTheme.subtleFill)
                                 .frame(width: 36, height: 36)
                         }

@@ -175,7 +175,7 @@ struct NotificationSettingsView: View {
                         Image(systemName: "info.circle")
                             .foregroundColor(AppTheme.accentText)
                             .padding(.top, 2)
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(L("How it works"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppTheme.primaryText)

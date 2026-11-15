@@ -50,7 +50,7 @@ struct StockCompareView: View {
                                 .foregroundColor(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
+                        .padding(.top, 48)
                     } else {
                         emptyPrompt
                     }
@@ -233,7 +233,7 @@ struct StockCompareView: View {
 
     private var aiVerdictCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                     .foregroundColor(AppTheme.accentText)
                 Text(L("AI Verdict"))
@@ -242,7 +242,7 @@ struct StockCompareView: View {
             }
 
             if isLoadingAI {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     ProgressView().tint(AppTheme.accent)
                     Text(L("Analyzing..."))
                         .font(.subheadline)
@@ -267,7 +267,7 @@ struct StockCompareView: View {
             Image(systemName: "arrow.left.arrow.right.circle")
                 .font(.system(size: 44, weight: .light))
                 .foregroundColor(AppTheme.accent.opacity(0.4))
-                .padding(.top, 40)
+                .padding(.top, 48)
 
             Text(L("Pick two stocks to compare"))
                 .font(AppTheme.serifHeadline(18))
@@ -385,7 +385,7 @@ struct StockPickerSheet: View {
                 }
                 .padding(12)
                 .background(AppTheme.subtleFill)
-                .cornerRadius(12)
+                .cornerRadius(10)
                 .padding(16)
 
                 // Manual entry
@@ -427,7 +427,7 @@ struct StockPickerSheet: View {
                                     Spacer()
                                 }
                                 .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
+                                .padding(.vertical, 12)
                             }
                             .buttonStyle(.plain)
                             Divider().padding(.leading, 20)

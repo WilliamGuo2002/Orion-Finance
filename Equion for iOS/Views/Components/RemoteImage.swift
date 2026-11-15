@@ -60,7 +60,7 @@ struct RemoteImage<Placeholder: View>: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
-                        .padding(6)
+                        .padding(8)
                 } else {
                     Image(uiImage: image)
                         .resizable()

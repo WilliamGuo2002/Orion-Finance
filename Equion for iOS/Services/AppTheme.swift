@@ -66,13 +66,22 @@ struct AppTheme {
     static let cardPadding: CGFloat = 16
 
     /// Standard module spacing (between cards)
-    static let moduleSpacing: CGFloat = 22
+    static let moduleSpacing: CGFloat = 24
 
-    /// Card shadow
-    static func cardShadow() -> some View {
-        Color.clear
-            .shadow(color: primaryText.opacity(0.10), radius: 10, y: 5)
+    /// Spacing scale. Neighbouring steps differ by ≥25%; space between groups > space within.
+    enum Space {
+        static let xxs: CGFloat = 2
+        static let xs: CGFloat = 4
+        static let s: CGFloat = 8
+        static let m: CGFloat = 12
+        static let l: CGFloat = 16
+        static let xl: CGFloat = 24
+        static let xxl: CGFloat = 32
+        static let xxxl: CGFloat = 48
+        /// Leading/trailing margin for page content.
+        static let screenMargin: CGFloat = 20
     }
+
 
     // =====================
     // MARK: - Fonts
@@ -341,65 +350,39 @@ struct AppTheme {
 
 }
 
-// MARK: - Shared card background builder
-private struct CardBackgroundContent: View {
-    let colorScheme: ColorScheme
+// MARK: - Card surfaces
+/// Resting cards are flat: a solid surface one step off the page background plus a hairline.
+/// No drop shadow, no gradient — hierarchy comes from layout and grouping (WWDC25 #356), and a
+/// cream-on-cream gradient read as muddy.
+private struct CardSurfaceBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-            .fill(
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [AppTheme.cardBackground, AppTheme.cardBackground.opacity(0.92)]
-                        : [Color.white, Color(red: 0.97, green: 0.95, blue: 0.93)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+            .fill(AppTheme.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.08) : AppTheme.border, lineWidth: 0.5)
             )
-            // Shadow from the rounded-rect path only. A .shadow on the whole card made SwiftUI
-            // render each card's contents offscreen every frame just to find its outline.
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, y: 5)
     }
 }
 
 // MARK: - Card Modifier
 struct ThemeCardModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
         content
             .padding(AppTheme.cardPadding)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
-            .background(CardBackgroundContent(colorScheme: colorScheme))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                    .stroke(
-                        colorScheme == .dark
-                            ? Color.white.opacity(0.08)
-                            : AppTheme.border.opacity(0.6),
-                        lineWidth: colorScheme == .dark ? 0.5 : 0.8
-                    )
-            )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+            .background(CardSurfaceBackground())
     }
 }
 
 /// Surface-only modifier — no padding
 struct ThemeCardSurface: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
         content
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
-            .background(CardBackgroundContent(colorScheme: colorScheme))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                    .stroke(
-                        colorScheme == .dark
-                            ? Color.white.opacity(0.08)
-                            : AppTheme.border.opacity(0.6),
-                        lineWidth: colorScheme == .dark ? 0.5 : 0.8
-                    )
-            )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+            .background(CardSurfaceBackground())
     }
 }
 
@@ -497,8 +480,8 @@ struct PageHeader<Trailing: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 }
 
@@ -605,7 +588,7 @@ struct ChangeBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             Image(systemName: arrow)
                 .imageScale(.small)
                 .fontWeight(.semibold)

@@ -177,7 +177,7 @@ struct LinkedAccountsView: View {
     private var introSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "building.columns.fill")
                         .font(.system(.title2))
                         .foregroundColor(AppTheme.accentText)
@@ -190,7 +190,7 @@ struct LinkedAccountsView: View {
                     .foregroundColor(AppTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .listRowBackground(AppTheme.cardBackground)
         }
     }
@@ -200,7 +200,7 @@ struct LinkedAccountsView: View {
             Button {
                 Task { await connect() }
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     if isConnecting {
                         ProgressView()
                     } else {
@@ -217,7 +217,7 @@ struct LinkedAccountsView: View {
             Button {
                 Task { await connectBank() }
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     if isConnectingBank {
                         ProgressView()
                     } else {
@@ -265,7 +265,7 @@ struct LinkedAccountsView: View {
     }
 
     private func accountRow(_ account: LinkedAccount) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(account.name)

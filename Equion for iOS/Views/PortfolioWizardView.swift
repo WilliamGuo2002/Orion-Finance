@@ -90,7 +90,7 @@ struct PortfolioWizardView: View {
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 60)
+            .padding(.horizontal, 64)
 
             // Quick select
             HStack(spacing: 12) {
@@ -164,7 +164,7 @@ struct PortfolioWizardView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(.title3))
                     .foregroundColor(AppTheme.accentText)
@@ -183,7 +183,7 @@ struct PortfolioWizardView: View {
                             selection.wrappedValue = option.id
                         }
                     } label: {
-                        HStack(spacing: 14) {
+                        HStack(spacing: 16) {
                             Text(option.emoji)
                                 .font(.system(.title))
                             VStack(alignment: .leading, spacing: 2) {
@@ -230,7 +230,7 @@ struct PortfolioWizardView: View {
                         Text(L("Back"))
                     }
                     .foregroundColor(AppTheme.secondaryText)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .padding(.horizontal, 24)
                     .background(Capsule().fill(AppTheme.subtleFill))
                 }
@@ -291,7 +291,7 @@ struct PortfolioWizardView: View {
 
                     // Portfolio items
                     if !recommendations.isEmpty {
-                        VStack(spacing: 10) {
+                        VStack(spacing: 12) {
                             ForEach(recommendations) { item in
                                 portfolioItemCard(item)
                             }
@@ -301,7 +301,7 @@ struct PortfolioWizardView: View {
                     // AI explanation
                     if !resultText.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "lightbulb.fill")
                                     .font(.system(.caption))
                                     .foregroundColor(AppTheme.accentText)
@@ -314,9 +314,9 @@ struct PortfolioWizardView: View {
                                 .foregroundColor(AppTheme.primaryText)
                                 .lineSpacing(4)
                         }
-                        .padding(14)
+                        .padding(16)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(AppTheme.accent.opacity(0.06))
                         )
                     }
@@ -339,7 +339,7 @@ struct PortfolioWizardView: View {
                             resultText = ""
                         }
                     } label: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: "arrow.counterclockwise")
                             Text(L("Start Over"))
                         }
@@ -348,7 +348,7 @@ struct PortfolioWizardView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .stroke(AppTheme.accent, lineWidth: 1)
                         )
                     }
@@ -377,7 +377,7 @@ struct PortfolioWizardView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(item.symbol)
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
@@ -402,11 +402,11 @@ struct PortfolioWizardView: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(AppTheme.cardBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(AppTheme.border, lineWidth: 0.5)
         )
     }
@@ -444,10 +444,9 @@ struct PortfolioWizardView: View {
                     .font(.system(.footnote, weight: .semibold))
             }
             .foregroundColor(AppTheme.onAccent)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .padding(.horizontal, 24)
             .background(Capsule().fill(enabled ? AppTheme.accent : AppTheme.secondaryText.opacity(0.3)))
-            .shadow(color: enabled ? AppTheme.accent.opacity(0.3) : .clear, radius: 8, y: 4)
         }
         .disabled(!enabled)
         .padding(.bottom, 24)

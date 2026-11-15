@@ -196,13 +196,13 @@ struct StockDetailView: View {
 
                     Divider()
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Label(String(format: L("For %@"), symbol), systemImage: "sparkles")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(AppTheme.secondaryText)
 
                         if isLoadingMetricAI {
-                            HStack(spacing: 10) {
+                            HStack(spacing: 12) {
                                 ProgressView()
                                 Text(L("Asking Orion…"))
                                     .font(.subheadline)
@@ -281,13 +281,13 @@ struct StockDetailView: View {
                     .padding(.bottom, 8)
                 chartSection
                 intervalSelector
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 8)
 
                 // Holdings (if user owns this asset)
                 holdingsModule
 
                 moduleDivider
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
 
                 // ── AI & Data group ──
                 VStack(spacing: 16) {
@@ -300,7 +300,7 @@ struct StockDetailView: View {
 
 
                 moduleDivider
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
 
                 // ── News & Activity group ──
                 VStack(spacing: 16) {
@@ -309,7 +309,7 @@ struct StockDetailView: View {
 
 
                 moduleDivider
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
 
                 // ── Social group (wider breathing room) ──
                 VStack(spacing: 20) {
@@ -442,7 +442,6 @@ struct StockDetailView: View {
                                 Circle()
                                     .fill(AppTheme.accent)
                                     .frame(width: 12, height: 12)
-                                    .shadow(color: AppTheme.accent.opacity(0.3), radius: 3, y: 1)
                                     .offset(x: geo.size.width * clampedPct - 6)
                             }
                         }
@@ -482,7 +481,6 @@ struct StockDetailView: View {
                                 Circle()
                                     .fill(AppTheme.accent)
                                     .frame(width: 12, height: 12)
-                                    .shadow(color: AppTheme.accent.opacity(0.3), radius: 3, y: 1)
                                     .offset(x: geo.size.width * clampedPct - 6)
                             }
                         }
@@ -544,8 +542,8 @@ struct StockDetailView: View {
                 ForEach(companyNews.prefix(5)) { item in
                     NavigationLink(destination: NewsDetailView(url: item.url)) {
                         HStack(spacing: 12) {
-                            RemoteImage(url: item.image.flatMap(URL.init(string:)), cornerRadius: 8) {
-                                RoundedRectangle(cornerRadius: 8).fill(AppTheme.subtleFill)
+                            RemoteImage(url: item.image.flatMap(URL.init(string:)), cornerRadius: 10) {
+                                RoundedRectangle(cornerRadius: 10).fill(AppTheme.subtleFill)
                                     .overlay(Image(systemName: "newspaper").font(.caption).foregroundColor(AppTheme.secondaryText))
                             }
                             .frame(width: 56, height: 42)
@@ -562,7 +560,7 @@ struct StockDetailView: View {
                     if item.id != companyNews.prefix(5).last?.id {
                         Divider()
                             .overlay(AppTheme.border.opacity(0.3))
-                            .padding(.leading, 28)
+                            .padding(.leading, 32)
                     }
                 }
             }
@@ -589,7 +587,7 @@ struct StockDetailView: View {
 
     @ViewBuilder
     private func peerCard(_ peer: PeerStock) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(peer.symbol)
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
@@ -700,7 +698,7 @@ struct StockDetailView: View {
                     if comment.id != comments.last?.id {
                         Divider()
                             .overlay(AppTheme.border.opacity(0.3))
-                            .padding(.leading, 28)
+                            .padding(.leading, 32)
                     }
                 }
 
@@ -811,7 +809,7 @@ struct StockDetailView: View {
                     Text(L(d.rating))
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
                             Capsule().fill(ratingColor(d.rating))
@@ -861,7 +859,7 @@ struct StockDetailView: View {
                 }
 
                 // ── Sentiment Gauge ──
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     HStack {
                         Text(L("Market Sentiment"))
                             .font(.system(.caption))
@@ -888,7 +886,6 @@ struct StockDetailView: View {
                             Circle()
                                 .fill(.white)
                                 .frame(width: 14, height: 14)
-                                .shadow(color: sentimentColor(d.sentiment).opacity(0.4), radius: 3, y: 1)
                                 .overlay(Circle().fill(sentimentColor(d.sentiment)).frame(width: 8, height: 8))
                                 .offset(x: geo.size.width * CGFloat(max(0, min(1, pct))) - 7)
                         }
@@ -899,7 +896,7 @@ struct StockDetailView: View {
                 // ── Bull / Bear Points ──
                 HStack(alignment: .top, spacing: 12) {
                     // Bull points
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.right")
                                 .font(.system(.caption2, weight: .semibold))
@@ -929,7 +926,7 @@ struct StockDetailView: View {
                         .padding(.vertical, 4)
 
                     // Bear points
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.down.right")
                                 .font(.system(.caption2, weight: .semibold))
@@ -956,7 +953,7 @@ struct StockDetailView: View {
                 // ── Action Guide for Beginners ──
                 if !d.actionGuide.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: "figure.walk")
                                 .font(.system(.caption2, weight: .semibold))
                                 .foregroundColor(AppTheme.accentText)
@@ -998,7 +995,7 @@ struct StockDetailView: View {
                             .font(.system(.caption2, weight: .semibold))
                     }
                     .foregroundColor(AppTheme.accentText)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     .padding(.horizontal, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
@@ -1008,7 +1005,7 @@ struct StockDetailView: View {
             } else if !aiConsent.granted && !isLoadingDashboard {
                 aiOptInPrompt
             } else if aiDashboardFailed && !isLoadingDashboard {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Text(L("Couldn't generate the snapshot right now."))
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
@@ -1020,7 +1017,7 @@ struct StockDetailView: View {
             } else if isLoadingDashboard {
                 // Loading state
                 VStack(spacing: 12) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         ProgressView()
                         Text(L("Generating AI analysis..."))
                             .font(.system(.footnote))
@@ -1030,7 +1027,7 @@ struct StockDetailView: View {
                     HStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 10).fill(AppTheme.subtleFill).frame(width: 80, height: 32)
                         Circle().fill(AppTheme.subtleFill).frame(width: 48, height: 48)
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             RoundedRectangle(cornerRadius: 4).fill(AppTheme.subtleFill).frame(height: 10)
                             RoundedRectangle(cornerRadius: 4).fill(AppTheme.subtleFill).frame(width: 120, height: 10)
                         }
@@ -1046,7 +1043,7 @@ struct StockDetailView: View {
     /// Shown instead of the snapshot until the user opts in to AI. Tapping is the only thing that
     /// can bring up the consent sheet on this page.
     private var aiOptInPrompt: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(String(format: L("A short, AI-written research summary of %@: what's driving the stock, key risks and what to watch. Not a recommendation."), symbol))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.secondaryText)
@@ -1221,9 +1218,9 @@ struct StockDetailView: View {
                             .font(AppTheme.number(13, weight: .semibold))
                             .foregroundColor(agg.dayPnL >= 0 ? AppTheme.positive : AppTheme.negative)
                     }
-                    .padding(10)
+                    .padding(12)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill((agg.dayPnL >= 0 ? AppTheme.positive : AppTheme.negative).opacity(0.06))
                     )
 
@@ -1231,7 +1228,7 @@ struct StockDetailView: View {
                     if !holdingTransactions.isEmpty {
                         Divider().overlay(AppTheme.border.opacity(0.4))
 
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(L("Transaction History"))
                                 .font(.system(.caption, weight: .semibold))
                                 .foregroundColor(AppTheme.secondaryText)
@@ -1262,7 +1259,7 @@ struct StockDetailView: View {
                                             .foregroundColor(AppTheme.secondaryText)
                                     }
                                 }
-                                .padding(.vertical, 3)
+                                .padding(.vertical, 4)
                             }
                         }
                     }
@@ -1270,7 +1267,7 @@ struct StockDetailView: View {
                 .padding(AppTheme.cardPadding)
                 .themeCardSurface()
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
+                .padding(.top, 12)
             }
         }
     }
@@ -1303,10 +1300,10 @@ struct StockDetailView: View {
                         }
                         .frame(width: 44)
                         .background(AppTheme.subtleFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
                                 Text(L("Earnings Report"))
                                     .font(.system(.footnote, weight: .semibold))
                                     .foregroundColor(AppTheme.primaryText)
@@ -1314,7 +1311,7 @@ struct StockDetailView: View {
                                     Text(event.hour == "bmo" ? L("Before Open") : L("After Close"))
                                         .font(.system(.caption2))
                                         .foregroundColor(AppTheme.accentText)
-                                        .padding(.horizontal, 6)
+                                        .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
                                         .background(Capsule().fill(AppTheme.accent.opacity(0.1)))
                                 }
@@ -1342,9 +1339,9 @@ struct StockDetailView: View {
                         .foregroundColor(AppTheme.secondaryText)
                         .lineSpacing(2)
                 }
-                .padding(10)
+                .padding(12)
                 .background(
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: 10)
                         .fill(AppTheme.accent.opacity(0.05))
                 )
             }
@@ -1369,7 +1366,7 @@ struct StockDetailView: View {
     // =============================
     @ViewBuilder
     private var intervalSelector: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             ForEach(intervals, id: \.self) { interval in
                 Button(interval) {
                     Haptic.light()
@@ -1383,7 +1380,7 @@ struct StockDetailView: View {
                 .font(.system(.footnote, weight: selectedInterval == interval ? .semibold : .regular))
                 .foregroundColor(selectedInterval == interval ? AppTheme.onAccent : AppTheme.secondaryText)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 7)
+                .padding(.vertical, 8)
                 .background(
                     ZStack {
                         if selectedInterval == interval {
@@ -1397,7 +1394,7 @@ struct StockDetailView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
     /// Splits a price string into (currency symbol, number) for typographic contrast
@@ -1446,7 +1443,7 @@ struct StockDetailView: View {
                             .contentTransition(.numericText(value: ch.percent))
                     }
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if marketSession == .closed || marketSession == .holiday {
                         Image(systemName: "moon.zzz.fill")
                             .font(.system(.caption2))
@@ -1477,7 +1474,7 @@ struct StockDetailView: View {
 
     @ViewBuilder
     private var toolbarHeader: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Text(symbol).font(.headline).foregroundColor(AppTheme.primaryText)
             Text("$\(priceString)").font(AppTheme.number()).foregroundColor(AppTheme.secondaryText)
                 .redacted(reason: priceLoaded ? [] : .placeholder)
@@ -1485,8 +1482,9 @@ struct StockDetailView: View {
                 ChangeBadge(value: ch.percent, size: .compact)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(Capsule().fill(AppTheme.barBackground).shadow(color: AppTheme.primaryText.opacity(0.08), radius: 2, y: 1))
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Capsule().fill(AppTheme.barBackground))
+        .overlay(Capsule().stroke(AppTheme.border, lineWidth: 0.5))
     }
 
     @ViewBuilder
@@ -1647,7 +1645,6 @@ struct StockDetailView: View {
                     Circle()
                         .fill(lineColor)
                         .frame(width: 8, height: 8)
-                        .shadow(color: lineColor.opacity(0.6), radius: 4)
                 }
                 .position(x: dotX, y: dotY)
 
@@ -1659,12 +1656,11 @@ struct StockDetailView: View {
                         .font(.system(.caption2))
                 }
                 .foregroundColor(AppTheme.secondaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     Capsule()
                         .fill(.ultraThinMaterial)
-                        .shadow(color: AppTheme.primaryText.opacity(0.08), radius: 6, y: 2)
                 )
                 .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
                 .position(
@@ -1939,8 +1935,8 @@ struct AIAnalysisView: View {
                 }
                 .font(.system(.footnote, weight: currentTone == tone ? .semibold : .regular))
                 .foregroundColor(currentTone == tone ? AppTheme.onAccent : AppTheme.secondaryText)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .background(Capsule().fill(currentTone == tone ? AppTheme.accent : AppTheme.subtleFill))
                 .overlay(Capsule().stroke(currentTone == tone ? Color.clear : AppTheme.border, lineWidth: 0.5))
             }
@@ -1960,7 +1956,7 @@ struct AIAnalysisView: View {
     @ViewBuilder private var analysisContent: some View {
         if isLoadingAnalysis {
             VStack(spacing: 12) { ProgressView(); Text(L("Generating...")).font(.subheadline).foregroundColor(AppTheme.secondaryText) }
-                .frame(maxWidth: .infinity).padding(.top, 40)
+                .frame(maxWidth: .infinity).padding(.top, 48)
         } else if hasLoaded {
             if !aiHeadlines.isEmpty { Text(aiHeadlines).font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText).padding(.horizontal, 16) }
             MarkdownText(text: aiAnalysis).font(.body).foregroundColor(AppTheme.primaryText).padding(.horizontal, 16)
@@ -1970,18 +1966,18 @@ struct AIAnalysisView: View {
     @ViewBuilder private var imagePreview: some View {
         HStack(spacing: 8) {
             if let d = attachedImageData, let ui = UIImage(data: d) {
-                Image(uiImage: ui).resizable().scaledToFill().frame(width: 48, height: 48).cornerRadius(8).clipped()
+                Image(uiImage: ui).resizable().scaledToFill().frame(width: 48, height: 48).cornerRadius(10).clipped()
                 Text(L("Photo attached")).font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText)
             }
             Spacer()
             Button(action: { attachedImageData = nil; selectedPhoto = nil }) {
                 Image(systemName: "xmark.circle.fill").foregroundColor(AppTheme.secondaryText)
             }
-        }.padding(.horizontal, 16).padding(.vertical, 6).background(AppTheme.subtleFill)
+        }.padding(.horizontal, 16).padding(.vertical, 8).background(AppTheme.subtleFill)
     }
 
     @ViewBuilder private var inputBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                 Image(systemName: "photo").font(.system(.title3)).foregroundColor(AppTheme.secondaryText)
             }
@@ -2031,14 +2027,14 @@ private struct AnalysisChatBubble: View {
     var body: some View {
         HStack {
             if isUser { Spacer() }
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 6) {
+            VStack(alignment: isUser ? .trailing : .leading, spacing: 8) {
                 if let d = message.imageData, let ui = UIImage(data: d) {
-                    Image(uiImage: ui).resizable().scaledToFit().frame(maxWidth: 220, maxHeight: 200).cornerRadius(12)
+                    Image(uiImage: ui).resizable().scaledToFit().frame(maxWidth: 220, maxHeight: 200).cornerRadius(10)
                 }
                 if !message.content.isEmpty {
                     Group { if isUser { Text(message.content) } else { MarkdownText(text: message.content) } }
                         .padding(12).background(isUser ? AppTheme.accent.opacity(0.15) : AppTheme.subtleFill)
-                        .foregroundColor(AppTheme.primaryText).cornerRadius(16)
+                        .foregroundColor(AppTheme.primaryText).cornerRadius(18)
                 }
             }
             .frame(maxWidth: isUser ? 280 : .infinity, alignment: isUser ? .trailing : .leading)
@@ -2087,9 +2083,9 @@ struct TransactionEntrySheet: View {
                     .padding(.horizontal, 16)
 
                     // Input fields
-                    VStack(spacing: 14) {
+                    VStack(spacing: 16) {
                         // Shares
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(L("Number of Shares"))
                                 .font(.system(.footnote))
                                 .foregroundColor(AppTheme.secondaryText)
@@ -2103,7 +2099,7 @@ struct TransactionEntrySheet: View {
                         }
 
                         // Price per share
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text(L("Price per Share"))
                                     .font(.system(.footnote))
@@ -2130,7 +2126,7 @@ struct TransactionEntrySheet: View {
                         }
 
                         // Date
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(L("Transaction Date"))
                                 .font(.system(.footnote))
                                 .foregroundColor(AppTheme.secondaryText)
@@ -2153,9 +2149,9 @@ struct TransactionEntrySheet: View {
                                 .foregroundColor(AppTheme.primaryText)
                         }
                         .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 16)
                         .background(AppTheme.subtleFill)
-                        .cornerRadius(12)
+                        .cornerRadius(10)
                         .padding(.horizontal, 16)
                     }
 
@@ -2167,16 +2163,16 @@ struct TransactionEntrySheet: View {
                             .font(.system(.callout, weight: .semibold))
                             .foregroundColor(AppTheme.onAccent)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 10)
                                     .fill(isValid ? AppTheme.accent : AppTheme.accent.opacity(0.3))
                             )
                     }
                     .disabled(!isValid)
                     .padding(.horizontal, 16)
                 }
-                .padding(.bottom, 30)
+                .padding(.bottom, 32)
             }
             .background(AppTheme.background)
             .navigationTitle(action == .buy ? L("Buy") + " \(symbol)" : L("Sell") + " \(symbol)")

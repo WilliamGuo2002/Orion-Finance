@@ -2,6 +2,7 @@ import SwiftUI
 import AuthenticationServices
 
 struct LoginView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var firebaseController: FirebaseController
     @State private var email = ""
     @State private var password = ""
@@ -42,7 +43,6 @@ struct LoginView: View {
                             .foregroundColor(AppTheme.accentText)
                             .scaleEffect(logoAppeared ? 1 : 0.3)
                             .opacity(logoAppeared ? 1 : 0)
-                            .shadow(color: AppTheme.accent.opacity(0.4), radius: 12)
                     }
 
                     // App title
@@ -67,7 +67,7 @@ struct LoginView: View {
                             .disableAutocorrection(true)
                             .focused($focusedField, equals: .email)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 4)
                                     .stroke(focusedField == .email ? AppTheme.accent : Color.clear, lineWidth: 1.5)
                             )
 
@@ -76,12 +76,12 @@ struct LoginView: View {
                             .textFieldStyle(.roundedBorder)
                             .focused($focusedField, equals: .password)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 4)
                                     .stroke(focusedField == .password ? AppTheme.accent : Color.clear, lineWidth: 1.5)
                             )
 
                         if !errorMessage.isEmpty {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(.caption))
                                 Text(errorMessage)
@@ -107,7 +107,7 @@ struct LoginView: View {
                             .foregroundColor(AppTheme.onAccent)
                         }
                         .background(AppTheme.accent)
-                        .cornerRadius(10)
+                        .clipShape(Capsule())
                         .disabled(isLoading)
 
                         // Forgot password
@@ -119,9 +119,9 @@ struct LoginView: View {
                     }
                     .padding(24)
                     .background(AppTheme.cardBackground)
-                    .cornerRadius(16)
+                    .cornerRadius(18)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: 18)
                             .stroke(AppTheme.border, lineWidth: 1)
                     )
                     .padding(.horizontal, 32)
@@ -161,7 +161,8 @@ struct LoginView: View {
                             }
                         }
                         .frame(height: 50)
-                        .cornerRadius(10)
+                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                        .clipShape(Capsule())
                     }
                     .padding(.horizontal, 32)
 
@@ -242,14 +243,11 @@ struct GoogleSignInButton: View {
                     .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .background(AppTheme.cardBackground)
             .foregroundColor(AppTheme.primaryText)
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(AppTheme.border, lineWidth: 1)
-            )
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(AppTheme.border, lineWidth: 1))
         }
     }
 
@@ -298,7 +296,7 @@ struct ForgotPasswordView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(AppTheme.accent)
-                            .cornerRadius(10)
+                            .clipShape(Capsule())
                     } else {
                         Text(L("Forgot Password"))
                             .font(AppTheme.serifHeadline(20))
@@ -334,14 +332,14 @@ struct ForgotPasswordView: View {
                             .foregroundColor(AppTheme.onAccent)
                         }
                         .background(AppTheme.accent)
-                        .cornerRadius(10)
+                        .clipShape(Capsule())
                         .disabled(isLoading)
                     }
                 }
-                .padding(28)
+                .padding(32)
                 .background(AppTheme.cardBackground)
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(AppTheme.border, lineWidth: 1))
+                .cornerRadius(18)
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(AppTheme.border, lineWidth: 1))
                 .padding(.horizontal, 32)
 
                 Spacer()
