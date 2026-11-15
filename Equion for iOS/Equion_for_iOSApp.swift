@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import TipKit
 import GoogleSignIn
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -7,6 +8,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
         OrionRefreshStyle.apply()
+        // One-time contextual tips (e.g. "touch and hold the chart") instead of pulsing overlays.
+        try? Tips.configure([.displayFrequency(.immediate)])
 
         // Notification setup
         UNUserNotificationCenter.current().delegate = self

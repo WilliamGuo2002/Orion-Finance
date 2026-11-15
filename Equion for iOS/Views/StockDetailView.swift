@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import TipKit
 import PhotosUI
 
 struct StockDetailView: View {
@@ -19,10 +20,6 @@ struct StockDetailView: View {
     @State private var selectedEntry: ChartEntry?
     @State private var showMarker = false
 
-    // Chart hint
-    @AppStorage("hasUsedChartTouch") private var hasUsedChartTouch = false
-    @State private var showChartHint = false
-    @State private var hintPulse = false
 
     // Scroll tracking
     @State private var headerVisible = true
@@ -33,7 +30,6 @@ struct StockDetailView: View {
     @State private var peers: [PeerStock] = []
     @State private var companyProfile: CompanyProfile?
     @State private var comments: [StockComment] = []
-    @State private var commentText = ""
     @State private var week52High: Double?
     @State private var week52Low: Double?
     @State private var fundamentals: FundamentalMetrics?
@@ -56,6 +52,8 @@ struct StockDetailView: View {
     @State private var aiDashboardFailed = false
 
     private enum PeerAddState { case adding, added, failed }
+    @State private var modulesLoaded = false
+    @State private var showAllMetrics = false
     @State private var peerAddState: [String: PeerAddState] = [:]
 
     // Holdings
@@ -70,6 +68,34 @@ struct StockDetailView: View {
     private var latestPrice: Double? {
         if priceLoaded, currentPrice > 0 { return currentPrice }
         return chartEntries.last.map { Double($0.close) }
+    }
+
+    /// What changes are measured from: previous close for 1D, the first bar for longer ranges.
+    private var changeReference: Double? {
+        if selectedInterval == "1D", let pc = quote?.previousClose, pc > 0 { return pc }
+        return chartEntries.first.map { Double($0.close) }
+    }
+
+    private static let barTimeParser: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        f.timeZone = AppLocale.easternTime
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    /// "3:55 PM", "Thu 3:30 PM" or "Nov 13, 2026" for a scrubbed bar, in the app's language (ET).
+    private func scrubTimeText(_ raw: String) -> String {
+        guard let date = Self.barTimeParser.date(from: raw) else { return raw }
+        let f = DateFormatter()
+        f.locale = AppLocale.current
+        f.timeZone = AppLocale.easternTime
+        switch selectedInterval {
+        case "1D": f.setLocalizedDateFormatFromTemplate("jmm")
+        case "5D": f.setLocalizedDateFormatFromTemplate("EEEjmm")
+        default:   f.setLocalizedDateFormatFromTemplate("yMMMd")
+        }
+        return f.string(from: date) + (selectedInterval == "1D" || selectedInterval == "5D" ? " ET" : "")
     }
 
     /// Change over the selected range. 1D is measured from the previous close (same as every
@@ -156,9 +182,15 @@ struct StockDetailView: View {
             }
         }
         .task {
-            await loadChart()
-            await loadQuote()
-            await loadAllModules()
+            // Everything in parallel; modules are revealed together when they're all back.
+            async let chart: () = loadChart()
+            async let quote: () = loadQuote()
+            async let modules: () = loadAllModules()
+            _ = await (chart, quote, modules)
+            withAnimation(Motion.standard) { modulesLoaded = true }
+            // AI snapshot only runs automatically for users who already opted in; everyone else
+            // sees an opt-in button (no consent sheet on page open).
+            if isStock && aiConsent.granted { await loadAIDashboard() }
         }
         .sheet(isPresented: $showMetricExplanation) {
             metricExplanationSheet
@@ -260,23 +292,28 @@ struct StockDetailView: View {
     }
 
     // MARK: - Compact (iPhone portrait)
-    /// Accent-tinted divider between module groups
-    private var moduleDivider: some View {
-        HStack(spacing: 0) {
-            LinearGradient(
-                colors: [AppTheme.accent.opacity(0), AppTheme.accent.opacity(0.4), AppTheme.accent.opacity(0)],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .frame(height: 1)
+    /// Modules in reading order. They are revealed together once loaded (placeholders hold the
+    /// space meanwhile), so nothing pops in and pushes the page around.
+    @ViewBuilder
+    private var moduleStack: some View {
+        if modulesLoaded {
+            keyDataModule
+            aiDashboardModule
+            earningsModule
+            predictionsModule
+            newsModule
+            peersModule
+            companyInfoModule
+            commentsLink
+        } else {
+            ModulePlaceholder(height: 180)
+            ModulePlaceholder(height: 140)
         }
-        .padding(.horizontal, 32)
     }
 
     private var compactBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // ── Chart group (tight) ──
                 headerSection
                     .padding(.bottom, 8)
                 chartSection
@@ -286,40 +323,11 @@ struct StockDetailView: View {
                 // Holdings (if user owns this asset)
                 holdingsModule
 
-                moduleDivider
-                    .padding(.vertical, 16)
-
-                // ── AI & Data group ──
-                VStack(spacing: 16) {
-                    aiDashboardModule
-                    fundamentalsModule
-                    earningsModule
-                    keyDataModule
-                    predictionsModule
+                VStack(spacing: AppTheme.moduleSpacing) {
+                    moduleStack
                 }
-
-
-                moduleDivider
-                    .padding(.vertical, 16)
-
-                // ── News & Activity group ──
-                VStack(spacing: 16) {
-                    newsModule
-                }
-
-
-                moduleDivider
-                    .padding(.vertical, 16)
-
-                // ── Social group (wider breathing room) ──
-                VStack(spacing: 20) {
-                    peersModule
-                    commentsModule
-                }
-
-
-                companyInfoModule
-                    .padding(.top, 8)
+                .padding(.top, 16)
+                .transition(.opacity)
 
                 Spacer(minLength: 24)
             }
@@ -331,32 +339,33 @@ struct StockDetailView: View {
     private var wideBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.moduleSpacing) {
-                // Top: header + chart full width
                 headerSection
                 chartSection
                 intervalSelector
-
-                // Holdings (if user owns this asset)
                 holdingsModule
 
-                // Two-column layout for modules
                 HStack(alignment: .top, spacing: 16) {
-                    // Left column
                     VStack(spacing: AppTheme.moduleSpacing) {
-                        aiDashboardModule
-                        fundamentalsModule
-                        earningsModule
-                        keyDataModule
-                        predictionsModule
-                        newsModule
+                        if modulesLoaded {
+                            keyDataModule
+                            aiDashboardModule
+                            earningsModule
+                            predictionsModule
+                        } else {
+                            ModulePlaceholder(height: 180)
+                        }
                     }
                     .frame(maxWidth: .infinity)
 
-                    // Right column
                     VStack(spacing: AppTheme.moduleSpacing) {
-                        peersModule
-                            commentsModule
-                        companyInfoModule
+                        if modulesLoaded {
+                            newsModule
+                            peersModule
+                            companyInfoModule
+                            commentsLink
+                        } else {
+                            ModulePlaceholder(height: 180)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -383,112 +392,124 @@ struct StockDetailView: View {
     }
 
     // ============================
-    // MARK: - Module 1: Key Data
+    // MARK: - Module 1: Key Data (price facts + fundamentals, merged)
     // ============================
+    /// Six facts up front; the remaining fundamentals one tap away. Ranges are neutral — a 52-week
+    /// high isn't "good" and a low isn't "bad".
     @ViewBuilder
     private var keyDataModule: some View {
-        if let q = quote {
-            moduleCard("Key Data", icon: "chart.bar.doc.horizontal") {
-                let items: [(String, String)] = [
-                    (L("Open Price"), String(format: "$%.2f", q.open)),
-                    (L("Previous Close"), String(format: "$%.2f", q.previousClose)),
-                    (L("Day High"), String(format: "$%.2f", q.high)),
-                    (L("Day Low"), String(format: "$%.2f", q.low))
-                ]
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(items, id: \.0) { label, value in
+        let f = fundamentals
+        let primary: [(key: String, value: String, tappable: Bool)] = {
+            var rows: [(String, String, Bool)] = []
+            if let q = quote {
+                rows.append(("Previous Close", String(format: "$%.2f", q.previousClose), false))
+                rows.append(("Open Price", String(format: "$%.2f", q.open), false))
+            }
+            if let pe = f?.peRatio { rows.append(("P/E", String(format: "%.1f", pe), true)) }
+            if let dy = f?.dividendYield { rows.append(("Div Yield", String(format: "%.2f%%", dy), true)) }
+            if let beta = f?.beta { rows.append(("Beta", String(format: "%.2f", beta), true)) }
+            if let rev = f?.revenueGrowth { rows.append(("Revenue Growth", String(format: "%+.1f%%", rev), true)) }
+            return rows.map { (key: $0.0, value: $0.1, tappable: $0.2) }
+        }()
+        let more: [(key: String, value: String)] = {
+            guard let f else { return [] }
+            var rows: [(String, String)] = []
+            if let pb = f.pbRatio { rows.append(("P/B", String(format: "%.1f", pb))) }
+            if let eps = f.epsGrowth { rows.append(("EPS Growth", String(format: "%+.1f%%", eps))) }
+            if let roe = f.roe { rows.append(("ROE", String(format: "%.1f%%", roe))) }
+            if let de = f.debtToEquity { rows.append(("D/E", String(format: "%.1f", de))) }
+            if let gm = f.grossMargin { rows.append(("Gross Margin", String(format: "%.1f%%", gm))) }
+            if let om = f.operatingMargin { rows.append(("Op Margin", String(format: "%.1f%%", om))) }
+            return rows.map { (key: $0.0, value: $0.1) }
+        }()
+
+        if !primary.isEmpty {
+            moduleCard("Key Data") {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 12) {
+                    ForEach(primary, id: \.key) { row in
+                        if row.tappable {
+                            fundamentalRow(row.key, value: row.value)
+                        } else {
+                            factRow(L(row.key), value: row.value)
+                        }
+                    }
+                    if showAllMetrics {
+                        ForEach(more, id: \.key) { row in
+                            fundamentalRow(row.key, value: row.value)
+                        }
+                    }
+                }
+
+                if let q = quote, q.high > q.low {
+                    rangeBar(title: L("Day Range"), low: q.low, high: q.high, value: q.price)
+                }
+                if let h = week52High, let l = week52Low, h > l, let q = quote {
+                    rangeBar(title: L("52W Range"), low: l, high: h, value: q.price)
+                }
+
+                if !more.isEmpty {
+                    Button {
+                        withAnimation(Motion.standard) { showAllMetrics.toggle() }
+                    } label: {
                         HStack(spacing: 4) {
-                            Text(label)
-                                .font(.system(.caption))
-                                .foregroundColor(AppTheme.secondaryText)
-                            Spacer()
-                            Text(value)
-                                .font(AppTheme.number(14, weight: .semibold))
-                                .foregroundColor(AppTheme.primaryText)
+                            Text(showAllMetrics ? L("Fewer metrics") : L("All metrics"))
+                            Image(systemName: showAllMetrics ? "chevron.up" : "chevron.down")
+                                .imageScale(.small)
                         }
-                        .padding(.vertical, 2)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppTheme.accentText)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
                     }
-                }
-
-                // Day range bar
-                if q.high > q.low {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(String(format: "$%.2f", q.low))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.negative)
-                            Spacer()
-                            Text(L("Day Range"))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.secondaryText)
-                            Spacer()
-                            Text(String(format: "$%.2f", q.high))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.positive)
-                        }
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [AppTheme.negative.opacity(0.2), AppTheme.positive.opacity(0.2)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(height: 5)
-                                let pct = (q.price - q.low) / (q.high - q.low)
-                                let clampedPct = max(0, min(1, pct))
-                                Circle()
-                                    .fill(AppTheme.accent)
-                                    .frame(width: 12, height: 12)
-                                    .offset(x: geo.size.width * clampedPct - 6)
-                            }
-                        }
-                        .frame(height: 12)
-                    }
-                }
-
-                // 52-Week range bar
-                if let w52H = week52High, let w52L = week52Low, w52H > w52L {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(String(format: "$%.2f", w52L))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.negative)
-                            Spacer()
-                            Text(L("52W Range"))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.secondaryText)
-                            Spacer()
-                            Text(String(format: "$%.2f", w52H))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.positive)
-                        }
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [AppTheme.negative.opacity(0.2), AppTheme.positive.opacity(0.2)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(height: 5)
-                                let pct = (q.price - w52L) / (w52H - w52L)
-                                let clampedPct = max(0, min(1, pct))
-                                Circle()
-                                    .fill(AppTheme.accent)
-                                    .frame(width: 12, height: 12)
-                                    .offset(x: geo.size.width * clampedPct - 6)
-                            }
-                        }
-                        .frame(height: 12)
-                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private func factRow(_ label: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.footnote)
+                .foregroundColor(AppTheme.secondaryText)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundColor(AppTheme.primaryText)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Low–high range with the current price marked. Neutral track; labels in secondary ink.
+    private func rangeBar(title: String, low: Double, high: Double, value: Double) -> some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text(String(format: "$%.2f", low))
+                Spacer()
+                Text(title)
+                Spacer()
+                Text(String(format: "$%.2f", high))
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundColor(AppTheme.secondaryText)
+            GeometryReader { geo in
+                let pct = max(0, min(1, (value - low) / (high - low)))
+                ZStack(alignment: .leading) {
+                    Capsule().fill(AppTheme.subtleFill).frame(height: 4)
+                    Circle()
+                        .fill(AppTheme.primaryText)
+                        .frame(width: 10, height: 10)
+                        .offset(x: geo.size.width * pct - 5)
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .frame(height: 12)
+        }
+        .padding(.top, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(format: L("%@: %@ to %@, now %@"), title,
+                                   String(format: "$%.2f", low), String(format: "$%.2f", high), String(format: "$%.2f", value)))
     }
 
     // ================================
@@ -539,7 +560,7 @@ struct StockDetailView: View {
     private var newsModule: some View {
         if !companyNews.isEmpty {
             moduleCard("Related News", icon: "newspaper") {
-                ForEach(companyNews.prefix(5)) { item in
+                ForEach(companyNews.prefix(3)) { item in
                     NavigationLink(destination: NewsDetailView(url: item.url)) {
                         HStack(spacing: 12) {
                             RemoteImage(url: item.image.flatMap(URL.init(string:)), cornerRadius: 10) {
@@ -557,14 +578,52 @@ struct StockDetailView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if item.id != companyNews.prefix(5).last?.id {
+                    if item.id != companyNews.prefix(3).last?.id {
                         Divider()
                             .overlay(AppTheme.border.opacity(0.3))
                             .padding(.leading, 32)
                     }
                 }
+                if companyNews.count > 3 {
+                    NavigationLink {
+                        CompanyNewsListView(title: symbol, items: companyNews)
+                    } label: {
+                        Text(String(format: L("See all %d stories"), companyNews.count))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
+    }
+
+    /// Comments live on their own page; the detail page just links to them.
+    private var commentsLink: some View {
+        NavigationLink {
+            AllCommentsView(symbol: symbol)
+        } label: {
+            HStack {
+                Text(L("Comments"))
+                    .font(.body)
+                    .foregroundColor(AppTheme.primaryText)
+                if !comments.isEmpty {
+                    Text("\(comments.count)")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppTheme.tertiaryText)
+            }
+            .padding(.horizontal, AppTheme.cardPadding)
+            .frame(minHeight: 52)
+            .themeCardSurface()
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(.plain)
     }
 
     // ====================================
@@ -649,87 +708,6 @@ struct StockDetailView: View {
         .disabled(state == .adding || state == .added)
         .accessibilityLabel(state == .added ? String(format: L("%@ added to watchlist"), peerSymbol)
                                             : String(format: L("Add %@ to watchlist"), peerSymbol))
-    }
-
-    // ============================
-    // MARK: - Module 6: Comments
-    // ============================
-    @ViewBuilder
-    private var commentsModule: some View {
-        moduleCard("Comments", icon: "bubble.left.and.bubble.right") {
-            // Post comment
-            HStack(spacing: 8) {
-                TextField(L("Leave a comment..."), text: $commentText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.subheadline)
-                Button(action: postComment) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(commentText.trimmingCharacters(in: .whitespaces).isEmpty ? AppTheme.secondaryText : AppTheme.primaryText)
-                }
-                .disabled(commentText.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-
-            if comments.isEmpty {
-                Text(L("No comments yet. Be the first!"))
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .padding(.vertical, 8)
-            } else {
-                ForEach(comments) { comment in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundColor(AppTheme.secondaryText)
-                                .font(.subheadline)
-                            Text(comment.userName)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(AppTheme.primaryText)
-                            Spacer()
-                            Text(commentTimeAgo(comment.timestamp))
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.secondaryText)
-                        }
-                        Text(comment.text)
-                            .font(.subheadline)
-                            .foregroundColor(AppTheme.primaryText)
-                    }
-                    .padding(.vertical, 4)
-                    if comment.id != comments.last?.id {
-                        Divider()
-                            .overlay(AppTheme.border.opacity(0.3))
-                            .padding(.leading, 32)
-                    }
-                }
-
-                NavigationLink(destination: AllCommentsView(symbol: symbol)) {
-                    Text(L("View more comments"))
-                        .font(.caption)
-                        .foregroundColor(AppTheme.accentText)
-                }
-                .padding(.top, 4)
-            }
-        }
-    }
-
-    private func postComment() {
-        let text = commentText.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        FirebaseController.shared.postComment(symbol: symbol, text: text)
-        commentText = ""
-        // Reload comments
-        Task {
-            comments = await FirebaseController.shared.fetchComments(symbol: symbol)
-        }
-    }
-
-    private func commentTimeAgo(_ date: Date) -> String {
-        let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 { return L("just now") }
-        if seconds < 3600 { return "\(seconds / 60)m" }
-        if seconds < 86400 { return "\(seconds / 3600)h" }
-        return "\(seconds / 86400)d"
     }
 
     // ==================================
@@ -1090,26 +1068,6 @@ struct StockDetailView: View {
     // ===================================
     // MARK: - Fundamentals Module
     // ===================================
-    @ViewBuilder
-    private var fundamentalsModule: some View {
-        if let f = fundamentals, hasAnyFundamental(f) {
-            moduleCard("Fundamentals", icon: "chart.bar.xaxis") {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    if let pe = f.peRatio { fundamentalRow("P/E", value: String(format: "%.1f", pe)) }
-                    if let pb = f.pbRatio { fundamentalRow("P/B", value: String(format: "%.1f", pb)) }
-                    if let eps = f.epsGrowth { fundamentalRow("EPS Growth", value: String(format: "%.1f%%", eps), color: eps >= 0 ? AppTheme.positive : AppTheme.negative) }
-                    if let rev = f.revenueGrowth { fundamentalRow("Revenue Growth", value: String(format: "%.1f%%", rev), color: rev >= 0 ? AppTheme.positive : AppTheme.negative) }
-                    if let dy = f.dividendYield { fundamentalRow("Div Yield", value: String(format: "%.2f%%", dy)) }
-                    if let beta = f.beta { fundamentalRow("Beta", value: String(format: "%.2f", beta)) }
-                    if let roe = f.roe { fundamentalRow("ROE", value: String(format: "%.1f%%", roe), color: roe >= 0 ? AppTheme.positive : AppTheme.negative) }
-                    if let de = f.debtToEquity { fundamentalRow("D/E", value: String(format: "%.1f", de)) }
-                    if let gm = f.grossMargin { fundamentalRow("Gross Margin", value: String(format: "%.1f%%", gm)) }
-                    if let om = f.operatingMargin { fundamentalRow("Op Margin", value: String(format: "%.1f%%", om)) }
-                }
-            }
-        }
-    }
-
     private func hasAnyFundamental(_ f: FundamentalMetrics) -> Bool {
         f.peRatio != nil || f.pbRatio != nil || f.epsGrowth != nil || f.revenueGrowth != nil ||
         f.dividendYield != nil || f.beta != nil || f.roe != nil
@@ -1129,19 +1087,21 @@ struct StockDetailView: View {
         } label: {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(.system(.caption))
+                    .font(.footnote)
                     .foregroundColor(AppTheme.secondaryText)
-                Image(systemName: "questionmark.circle")
-                    .font(.system(.caption2))
-                    .foregroundColor(AppTheme.accent.opacity(0.6))
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+                    .foregroundColor(AppTheme.tertiaryText)
                 Spacer()
                 Text(value)
-                    .font(AppTheme.number(14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundColor(color ?? AppTheme.primaryText)
             }
             .padding(.vertical, 2)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityHint(L("Shows what this metric means"))
     }
 
     // ===================================
@@ -1379,60 +1339,58 @@ struct StockDetailView: View {
 
     @ViewBuilder
     private var headerSection: some View {
+        // One layout for both resting and scrubbing states, so nothing jumps under the finger.
+        let scrubbing = showMarker && selectedEntry != nil
+        let shownPrice: String = {
+            if scrubbing, let e = selectedEntry { return String(format: "%.2f", e.close) }
+            return priceString
+        }()
+        let shownChange: PriceChange? = {
+            guard scrubbing, let e = selectedEntry else { return intervalChange }
+            return PriceChange(price: Double(e.close), reference: changeReference ?? Double(e.close))
+        }()
+
         VStack(alignment: .leading, spacing: 4) {
+            Text(MyHoldingView.displaySymbol(symbol))
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppTheme.secondaryText)
             Text(name)
-                .font(AppTheme.serifTitle(24)).foregroundColor(AppTheme.primaryText)
-            if let entry = selectedEntry, showMarker {
-                // Chart drag: split $ sign
+                .font(AppTheme.serifTitle(24))
+                .foregroundColor(AppTheme.primaryText)
+                .lineLimit(2)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("$")
-                        .font(AppTheme.number(20, weight: .medium))
+                        .font(.title3.weight(.medium))
                         .foregroundColor(AppTheme.secondaryText)
-                    Text(String(format: "%.2f", entry.close))
-                        .font(AppTheme.number(32, weight: .bold))
+                    Text(shownPrice)
+                        .font(.largeTitle.weight(.semibold).monospacedDigit())
                         .foregroundColor(AppTheme.primaryText)
+                        .redacted(reason: priceLoaded || scrubbing ? [] : .placeholder)
                         .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.05), value: entry.close)
+                        .animation(scrubbing ? .easeInOut(duration: 0.05) : Motion.number, value: shownPrice)
                 }
-                Text(entry.datetime)
-                    .font(AppTheme.caption())
-                    .foregroundColor(AppTheme.secondaryText)
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.05), value: entry.datetime)
-            } else {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    // Split currency symbol from number
-                    HStack(alignment: .firstTextBaseline, spacing: 1) {
-                        Text("$")
-                            .font(AppTheme.number(20, weight: .medium))
-                            .foregroundColor(AppTheme.secondaryText)
-                        Text(priceString)
-                            .font(AppTheme.number(32, weight: .bold))
-                            .foregroundColor(AppTheme.primaryText)
-                            .redacted(reason: priceLoaded ? [] : .placeholder)
-                            .contentTransition(.numericText())
-                            .animation(Motion.standard, value: currentPrice)
-                    }
-                    if let ch = intervalChange {
-                        ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
-                            .contentTransition(.numericText(value: ch.percent))
-                    }
+                if let ch = shownChange {
+                    ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
                 }
-                HStack(spacing: 8) {
-                    if marketSession == .closed || marketSession == .holiday {
-                        Image(systemName: "moon.zzz.fill")
-                            .font(.system(.caption2))
-                            .foregroundColor(AppTheme.accentText)
-                    }
-                    Text(marketStatusText).font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText)
+            }
+            .padding(.top, 4)
+
+            HStack(spacing: 8) {
+                if scrubbing, let e = selectedEntry {
+                    Text(scrubTimeText(e.datetime))
+                } else {
+                    Text(marketStatusText)
                     if let ext = extendedHoursChange {
-                        Text("·").font(AppTheme.caption()).foregroundColor(AppTheme.secondaryText)
-                        Text(String(format: "$%.2f", ext.price)).font(AppTheme.caption()).fontWeight(.medium).foregroundColor(AppTheme.primaryText)
-                        Text(AppTheme.formattedChange(ext.percent))
-                            .font(AppTheme.caption()).foregroundColor(ext.change >= 0 ? AppTheme.positive : AppTheme.negative)
+                        Text("·")
+                        Text(String(format: "$%.2f", ext.price)).foregroundColor(AppTheme.primaryText)
+                        ChangeBadge(value: ext.percent, size: .compact)
                     }
                 }
             }
+            .font(.footnote)
+            .foregroundColor(AppTheme.secondaryText)
         }
         .padding(.horizontal, 16)
         .background(
@@ -1477,173 +1435,95 @@ struct StockDetailView: View {
             .frame(height: chartHeight)
             .padding(.horizontal, 16)
         } else if !chartEntries.isEmpty {
-            let minPrice = Double(chartEntries.map(\.close).min() ?? 0)
-            let maxPrice = Double(chartEntries.map(\.close).max() ?? 0)
-            let padding = (maxPrice - minPrice) * 0.1
+            let closes = chartEntries.map { Double($0.close) }
+            let baseline: Double? = selectedInterval == "1D" ? quote?.previousClose : nil
+            let lo = min(closes.min() ?? 0, baseline ?? .infinity)
+            let hi = max(closes.max() ?? 0, baseline ?? -.infinity)
+            let pad = max((hi - lo) * 0.05, 0.01)
             let isUp = (intervalChange?.amount ?? 0) >= 0
             let lineColor = isUp ? AppTheme.positive : AppTheme.negative
 
-            ZStack {
-                // The chart
-                Chart {
-                    ForEach(chartEntries) { entry in
-                        AreaMark(
-                            x: .value("Time", entry.index),
-                            yStart: .value("Min", minPrice - padding),
-                            yEnd: .value("Price", Double(entry.close))
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [lineColor.opacity(0.2), lineColor.opacity(0.0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .interpolationMethod(.catmullRom)
-                    }
-
-                    ForEach(chartEntries) { entry in
-                        LineMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
-                            .foregroundStyle(lineColor)
-                            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                            .interpolationMethod(.catmullRom)
-                    }
-
-                    // Latest point while the market is open (static dot, no pulse)
-                    if selectedInterval == "1D" && marketSession == .open && !showMarker, let last = chartEntries.last {
-                        PointMark(x: .value("Time", last.index), y: .value("Price", Double(last.close)))
-                            .symbol { LivePulseDot(color: lineColor) }
-                    }
-
-                    if let entry = selectedEntry, showMarker {
-                        PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
-                            .foregroundStyle(AppTheme.primaryText).symbolSize(50)
-                        RuleMark(x: .value("Time", entry.index))
-                            .foregroundStyle(AppTheme.secondaryText.opacity(0.3)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
-                    }
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartYScale(domain: (minPrice - padding)...(maxPrice + padding))
-                .chartXScale(range: .plotDimension(startPadding: 0, endPadding: 10))
-                .chartLegend(.hidden)
-                .chartOverlay { proxy in
-                    GeometryReader { _ in
-                        Rectangle().fill(.clear).contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { value in
-                                        // Dismiss hint on first touch
-                                        if !hasUsedChartTouch {
-                                            hasUsedChartTouch = true
-                                            withAnimation(Motion.standard) { showChartHint = false }
-                                        }
-                                        if let index: Int = proxy.value(atX: value.location.x) {
-                                            let previousEntry = selectedEntry
-                                            if let entry = chartEntries.first(where: { $0.index == index }) {
-                                                selectedEntry = entry; showMarker = true
-                                            } else if let closest = chartEntries.min(by: { abs($0.index - index) < abs($1.index - index) }) {
-                                                selectedEntry = closest; showMarker = true
-                                            }
-                                            // Haptic when moving to a different data point
-                                            if selectedEntry?.index != previousEntry?.index {
-                                                Haptic.selection()
-                                            }
-                                        }
-                                    }
-                                    .onEnded { _ in
-                                        showMarker = false; selectedEntry = nil
-                                        Haptic.soft()
-                                    }
-                            )
-                    }
+            Chart {
+                ForEach(chartEntries) { entry in
+                    AreaMark(
+                        x: .value("Time", entry.index),
+                        yStart: .value("Min", lo - pad),
+                        yEnd: .value("Price", Double(entry.close))
+                    )
+                    .foregroundStyle(
+                        LinearGradient(colors: [lineColor.opacity(0.08), lineColor.opacity(0)],
+                                       startPoint: .top, endPoint: .bottom)
+                    )
+                    .interpolationMethod(.monotone)
                 }
 
-                // Touch hint overlay — only shown if user has never interacted
-                if showChartHint && !showMarker {
-                    chartHintOverlay(lineColor: lineColor)
-                        .allowsHitTesting(false)
-                        .transition(.opacity)
+                ForEach(chartEntries) { entry in
+                    LineMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
+                        .foregroundStyle(lineColor)
+                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.monotone)
                 }
 
+                // Previous close: the line the day is measured against
+                if let baseline {
+                    RuleMark(y: .value("Previous close", baseline))
+                        .foregroundStyle(AppTheme.tertiaryText)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
+                }
+
+                // Latest point while the market is open (static dot, no pulse)
+                if selectedInterval == "1D" && marketSession == .open && !showMarker, let last = chartEntries.last {
+                    PointMark(x: .value("Time", last.index), y: .value("Price", Double(last.close)))
+                        .symbol { LivePulseDot(color: lineColor) }
+                }
+
+                if let entry = selectedEntry, showMarker {
+                    RuleMark(x: .value("Time", entry.index))
+                        .foregroundStyle(AppTheme.tertiaryText)
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                    PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
+                        .foregroundStyle(AppTheme.primaryText)
+                        .symbolSize(40)
+                }
             }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartYScale(domain: (lo - pad)...(hi + pad))
+            .chartXScale(range: .plotDimension(startPadding: 0, endPadding: 10))
+            .chartLegend(.hidden)
+            .chartOverlay { proxy in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if !showMarker { ChartScrubTip().invalidate(reason: .actionPerformed) }
+                                guard let index: Int = proxy.value(atX: value.location.x),
+                                      let nearest = chartEntries.min(by: { abs($0.index - index) < abs($1.index - index) })
+                                else { return }
+                                if nearest.index != selectedEntry?.index { selectedEntry = nearest }
+                                showMarker = true
+                            }
+                            .onEnded { _ in
+                                showMarker = false
+                                selectedEntry = nil
+                            }
+                    )
+            }
+            // One tick when scrubbing starts — not one per data point.
+            .sensoryFeedback(.selection, trigger: showMarker) { _, new in new }
+            .popoverTip(ChartScrubTip(), arrowEdge: .top)
             .frame(height: chartHeight)
-            .onAppear {
-                if !hasUsedChartTouch {
-                    // Delay slightly so chart renders first
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        withAnimation(.easeIn(duration: 0.6)) { showChartHint = true }
-                        // Start pulse
-                        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                            hintPulse = true
-                        }
-                    }
-                    // Auto-dismiss after 5 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                        withAnimation(.easeOut(duration: 0.8)) { showChartHint = false }
-                    }
-                }
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(chartAccessibilitySummary)
         }
     }
 
-    // MARK: - Chart Touch Hint
-    @ViewBuilder
-    private func chartHintOverlay(lineColor: Color) -> some View {
-        GeometryReader { geo in
-            // Position the hint at roughly 60% along the x-axis on the chart line
-            let targetIndex = Int(Double(chartEntries.count) * 0.6)
-            let entry = chartEntries.indices.contains(targetIndex) ? chartEntries[targetIndex] : chartEntries.last
-
-            if let entry = entry {
-                let minP = Double(chartEntries.map(\.close).min() ?? 0)
-                let maxP = Double(chartEntries.map(\.close).max() ?? 0)
-                let pad = (maxP - minP) * 0.1
-                let totalEntries = max(chartEntries.count - 1, 1)
-
-                let xFraction = CGFloat(entry.index - (chartEntries.first?.index ?? 0)) / CGFloat(totalEntries)
-                let yFraction = 1.0 - (Double(entry.close) - (minP - pad)) / ((maxP + pad) - (minP - pad))
-
-                let dotX = xFraction * geo.size.width
-                let dotY = yFraction * geo.size.height
-
-                // Pulsing dot on the line
-                ZStack {
-                    // Outer pulse ring
-                    Circle()
-                        .fill(lineColor.opacity(0.15))
-                        .frame(width: hintPulse ? 36 : 20, height: hintPulse ? 36 : 20)
-                    Circle()
-                        .fill(lineColor.opacity(0.3))
-                        .frame(width: hintPulse ? 22 : 14, height: hintPulse ? 22 : 14)
-                    // Inner dot
-                    Circle()
-                        .fill(lineColor)
-                        .frame(width: 8, height: 8)
-                }
-                .position(x: dotX, y: dotY)
-
-                // Floating label below the dot
-                HStack(spacing: 4) {
-                    Image(systemName: "hand.draw")
-                        .font(.system(.caption2))
-                    Text(L("Touch to explore"))
-                        .font(.system(.caption2))
-                }
-                .foregroundColor(AppTheme.secondaryText)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-                .position(
-                    x: min(max(dotX, 70), geo.size.width - 70),
-                    y: min(dotY + 32, geo.size.height - 16)
-                )
-            }
-        }
+    private var chartAccessibilitySummary: String {
+        guard let first = chartEntries.first, let last = latestPrice else { return L("Price chart") }
+        let change = intervalChange.map { ChangeBadge.spoken($0.percent) } ?? ""
+        return String(format: L("%@ price chart, %@: from %@ to %@, %@"),
+                      symbol, RangePicker.spoken(selectedInterval),
+                      String(format: "$%.2f", changeReference ?? Double(first.close)), String(format: "$%.2f", last), change)
     }
 
     // MARK: - Data Loading
@@ -1712,9 +1592,6 @@ struct StockDetailView: View {
             async let fundamentalsTask: () = loadFundamentals()
             async let earningsTask: () = loadEarnings()
             _ = await (recTask, newsTask, peersTask, profileTask, commentsTask, week52Task, fundamentalsTask, earningsTask, holdingsTask)
-            // AI snapshot only runs automatically for users who already opted in; everyone else
-            // sees an opt-in button (no consent sheet on page open).
-            if aiConsent.granted { Task { await loadAIDashboard() } }
         } else {
             _ = await (newsTask, commentsTask, holdingsTask)
         }
@@ -2184,4 +2061,56 @@ struct TransactionEntrySheet: View {
         onComplete()
         dismiss()
     }
+}
+
+// MARK: - Placeholder that holds a module's space while data loads
+struct ModulePlaceholder: View {
+    var height: CGFloat = 160
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RoundedRectangle(cornerRadius: 4).fill(AppTheme.subtleFill).frame(width: 120, height: 14)
+            RoundedRectangle(cornerRadius: 4).fill(AppTheme.subtleFill).frame(height: 10)
+            RoundedRectangle(cornerRadius: 4).fill(AppTheme.subtleFill).frame(width: 200, height: 10)
+            Spacer(minLength: 0)
+        }
+        .padding(AppTheme.cardPadding)
+        .frame(maxWidth: .infinity, minHeight: height, alignment: .topLeading)
+        .themeCardSurface()
+        .padding(.horizontal, 16)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - All related news for a symbol
+struct CompanyNewsListView: View {
+    let title: String
+    let items: [NewsItem]
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(items) { item in
+                    NavigationLink(destination: NewsDetailView(url: item.url)) {
+                        NewsCardView(item: item)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(AppTheme.background)
+        .navigationTitle(String(format: L("%@ news"), title))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Tip: scrub the chart
+
+/// Shown once, the first time someone opens a chart, until they scrub it.
+struct ChartScrubTip: Tip {
+    var title: Text { Text(L("Touch and hold to explore")) }
+    var message: Text? { Text(L("Slide across the chart to see the price at any point.")) }
+    var image: Image? { Image(systemName: "hand.point.up.left") }
 }
