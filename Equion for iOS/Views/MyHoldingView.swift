@@ -788,6 +788,8 @@ struct MyHoldingView: View {
                             Text("\(L("Cost")) \(holdingsSnapshot.format(investedCost))")
                                 .font(AppTheme.number(11, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
+                                .contentTransition(.numericText())
+                                .animation(.easeInOut(duration: 0.05), value: investedCost)
 
                             Text(String(format: "%@%@ (%@%.2f%%)",
                                         selPnL >= 0 ? "+" : "-", holdingsSnapshot.format(abs(selPnL)),
@@ -1140,11 +1142,14 @@ struct ParallaxChartLayer<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        // Cards scrolling over the pinned chart only dim it slightly. No blur, sink or scale —
-        // depth effects under moving content are what Reduce Motion asks apps to avoid.
+        // As cards cover the chart it sinks a little, blurs softly and dims (never fully hidden).
+        // With Reduce Motion on, the chart simply stays put.
         let progress = reduceMotion ? 0 : ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
         content
-            .opacity(1.0 - progress * 0.3)
+            .offset(y: progress * 20)              // gentle sink
+            .blur(radius: progress * 6)            // soft blur — stays readable
+            .opacity(1.0 - progress * 0.3)         // fades only to 0.7
+            .scaleEffect(1.0 - progress * 0.03, anchor: .top)
             .allowsHitTesting(false)               // gestures go to the scroll spacer
     }
 }
@@ -1158,12 +1163,14 @@ struct PinnedHeaderTapLayer<Content: View>: View {
     var parallax: ChartParallax
     var chartHeight: CGFloat
     @ViewBuilder var content: Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let progress = ChartParallax.progress(offset: parallax.scrollOffset, chartHeight: chartHeight)
+        let sink = reduceMotion ? 0 : progress * 20   // same sink as the visible header
         content
-            // Cancel the scroll translation so it stays over the (unmoving) visible header.
-            .offset(y: parallax.scrollOffset)
+            // Cancel the scroll translation (pin), then follow the chart's sink.
+            .offset(y: parallax.scrollOffset + sink)
             // Stop catching taps once the header is mostly covered by cards.
             .allowsHitTesting(progress < 0.85)
     }

@@ -581,11 +581,14 @@ struct ChangeBadge: View {
             Image(systemName: arrow)
                 .imageScale(.small)
                 .fontWeight(.semibold)
-            if let amount {
-                Text(String(format: "%@%.2f (%@%.2f%%)", amount >= 0 ? "+" : "−", abs(amount), value >= 0 ? "+" : "−", abs(value)))
-            } else {
-                Text(String(format: "%@%.2f%%", value >= 0 ? "+" : "−", abs(value)))
+            Group {
+                if let amount {
+                    Text(String(format: "%@%.2f (%@%.2f%%)", amount >= 0 ? "+" : "−", abs(amount), value >= 0 ? "+" : "−", abs(value)))
+                } else {
+                    Text(String(format: "%@%.2f%%", value >= 0 ? "+" : "−", abs(value)))
+                }
             }
+            .contentTransition(.numericText(value: value))   // digits roll when the value animates
         }
         .font(font)
         .foregroundColor(color)

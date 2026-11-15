@@ -1373,6 +1373,7 @@ struct StockDetailView: View {
                 }
                 if let ch = shownChange {
                     ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
+                        .animation(scrubbing ? .easeInOut(duration: 0.05) : Motion.number, value: ch.percent)
                 }
             }
             .padding(.top, 4)
@@ -1380,6 +1381,8 @@ struct StockDetailView: View {
             HStack(spacing: 8) {
                 if scrubbing, let e = selectedEntry {
                     Text(scrubTimeText(e.datetime))
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.05), value: e.datetime)
                 } else {
                     Text(marketStatusText)
                     if let ext = extendedHoursChange {
@@ -1489,7 +1492,7 @@ struct StockDetailView: View {
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartYScale(domain: (lo - pad)...(hi + pad))
-            .chartXScale(range: .plotDimension(startPadding: 0, endPadding: 10))
+            .chartXScale(range: .plotDimension)
             .chartLegend(.hidden)
             .chartOverlay { proxy in
                 Rectangle().fill(.clear).contentShape(Rectangle())
