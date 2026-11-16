@@ -31,6 +31,8 @@ enum InstitutionPalette {
 /// net-worth line into one line per institution (brokerage / bank) with a legend; scrubbing the
 /// chart shows every institution's value at that moment.
 struct NetWorthChartModule: View {
+    /// When set, header + chart + range controls pin and get covered by the cards below (as on home).
+    var parallax: ChartParallax? = nil
     @ObservedObject private var manager = HoldingsManager.shared
     @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
     @AppStorage("netWorthSplitByInstitution") private var split = false
@@ -68,6 +70,38 @@ struct NetWorthChartModule: View {
     var body: some View {
         let snap = manager.snapshot
         VStack(alignment: .leading, spacing: 8) {
+            if let parallax {
+                PinnedHero(parallax: parallax, height: 300) { hero(snap) }
+                    .zIndex(0)
+            } else {
+                hero(snap)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+            if split && !entries.isEmpty {
+                legend(snap)
+            }
+
+            if snap.aggregated.contains(where: { $0.currency != snap.displayCurrency })
+                || BankManager.shared.currentAccounts.contains(where: { $0.currency != snap.displayCurrency }) {
+                Text(L("Converted at live exchange rates"))
+                    .font(AppTheme.caption(11))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            }
+            .padding(.horizontal, 20)
+            .zIndex(1)
+        }
+        .padding(.top, 8)
+        .task(id: range) { await reload() }
+        // New balances (sync / link / unlink) → redraw. Currency changes don't need new data:
+        // entries are USD and converted at display time.
+        .onChange(of: manager.snapshot.accountValues) { _, _ in Task { await reload() } }
+    }
+
+    /// Value header, chart and range controls — the part that pins.
+    private func hero(_ snap: HoldingsSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(L("Net Worth"))
@@ -87,27 +121,9 @@ struct NetWorthChartModule: View {
                 .frame(height: 180)
                 .padding(.top, 4)
 
-            VStack(alignment: .leading, spacing: 8) {
             controls
-
-            if split && !entries.isEmpty {
-                legend(snap)
-            }
-
-            if snap.aggregated.contains(where: { $0.currency != snap.displayCurrency })
-                || BankManager.shared.currentAccounts.contains(where: { $0.currency != snap.displayCurrency }) {
-                Text(L("Converted at live exchange rates"))
-                    .font(AppTheme.caption(11))
-                    .foregroundColor(AppTheme.secondaryText)
-            }
-            }
-            .padding(.horizontal, 20)
+                .padding(.horizontal, 20)
         }
-        .padding(.top, 8)
-        .task(id: range) { await reload() }
-        // New balances (sync / link / unlink) → redraw. Currency changes don't need new data:
-        // entries are USD and converted at display time.
-        .onChange(of: manager.snapshot.accountValues) { _, _ in Task { await reload() } }
     }
 
     private func reload() async {

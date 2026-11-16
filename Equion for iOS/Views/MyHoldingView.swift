@@ -1319,6 +1319,8 @@ struct HoldingsListPage: View {
     @ObservedObject private var brokerage = BrokerageManager.shared
     @ObservedObject private var bank = BankManager.shared
     @AppStorage(PortfolioPrivacy.storageKey) private var hideValues = false
+    /// Scroll offset for the pinned net-worth chart.
+    @State private var parallax = ChartParallax()
 
     /// Banks that have at least one account counted in net worth (or need attention).
     private var bankItems: [BankItem] {
@@ -1353,8 +1355,11 @@ struct HoldingsListPage: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                NetWorthChartModule()
+                NetWorthChartModule(parallax: parallax)
+                    .zIndex(0)
 
+                // Everything below slides up over the pinned chart.
+                VStack(spacing: 16) {
                 SyncHealthBanner()
 
                 TaxAssistantCard()
@@ -1404,10 +1409,14 @@ struct HoldingsListPage: View {
                 }
 
                 linkBrokerageCard
+                }
+                .environment(\.glassCards, true)
+                .zIndex(1)
             }
             .padding(.top, 12)
             .padding(.bottom, 48)
         }
+        .trackingParallax(parallax)
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(L("Accounts"))
         .navigationBarTitleDisplayMode(.inline)

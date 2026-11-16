@@ -23,6 +23,8 @@ struct StockDetailView: View {
 
     // Scroll tracking
     @State private var headerVisible = true
+    /// Scroll offset for the pinned price + chart (compact layout).
+    @State private var parallax = ChartParallax()
 
     // New module data
     @State private var recommendation: RecommendationTrend?
@@ -343,24 +345,42 @@ struct StockDetailView: View {
     private var compactBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                headerSection
-                    .padding(.bottom, 8)
-                chartSection
-                intervalSelector
-                    .padding(.bottom, 8)
-
-                // Holdings (if user owns this asset)
-                holdingsModule
-
-                VStack(spacing: AppTheme.moduleSpacing) {
-                    moduleStack
+                // Price + chart stay pinned; everything below slides up over them (as on home).
+                // The range picker pins with them, so it never floats loose over the chart line.
+                PinnedHero(parallax: parallax, height: chartHeight + 190) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        headerSection
+                            .padding(.bottom, 8)
+                        chartSection
+                        intervalSelector
+                            .padding(.bottom, 8)
+                    }
                 }
-                .padding(.top, 16)
-                .transition(.opacity)
+                .zIndex(0)
 
-                Spacer(minLength: 24)
+                VStack(alignment: .leading, spacing: 0) {
+                    // Holdings (if user owns this asset)
+                    holdingsModule
+
+                    VStack(spacing: AppTheme.moduleSpacing) {
+                        moduleStack
+                    }
+                    .padding(.top, 16)
+                    .transition(.opacity)
+
+                    Spacer(minLength: 24)
+                }
+                .environment(\.glassCards, true)
+                .zIndex(1)
             }
             .padding(.top, 8)
+        }
+        // The compact title pill appears once the cards have climbed over the price.
+        .trackingParallax(parallax) { offset in
+            let visible = offset < chartHeight + 40
+            if visible != headerVisible {
+                withAnimation(Motion.tap) { headerVisible = visible }
+            }
         }
     }
 
@@ -1434,6 +1454,8 @@ struct StockDetailView: View {
         .background(
             GeometryReader { geo in
                 Color.clear.onChange(of: geo.frame(in: .named("scroll")).maxY) { _, newVal in
+                    // Compact layout pins the header; its visibility comes from the parallax offset.
+                    guard isWide else { return }
                     let isNowVisible = newVal > 0
                     if isNowVisible != headerVisible {
                         withAnimation(Motion.tap) { headerVisible = isNowVisible }
