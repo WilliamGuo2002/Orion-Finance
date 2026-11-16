@@ -267,6 +267,8 @@ class APIService {
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York")
 
+        let volumes = quoteData["volume"] as? [Any] ?? []
+
         var entries: [ChartEntry] = []
         for (i, ts) in timestamps.enumerated() {
             guard i < closes.count else { break }
@@ -275,7 +277,8 @@ class APIService {
                 entries.append(ChartEntry(
                     index: entries.count,
                     close: Float(close),
-                    datetime: dateFormatter.string(from: date)
+                    datetime: dateFormatter.string(from: date),
+                    volume: i < volumes.count ? (volumes[i] as? NSNumber)?.doubleValue ?? 0 : 0
                 ))
             }
         }

@@ -1391,10 +1391,10 @@ struct StockDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("$")
-                        .font(.title3.weight(.medium))
+                        .font(.title3)
                         .foregroundColor(AppTheme.secondaryText)
                     Text(shownPrice)
-                        .font(.largeTitle.weight(.semibold).monospacedDigit())
+                        .font(AppTheme.heroNumber(.largeTitle))
                         .foregroundColor(AppTheme.primaryText)
                         .redacted(reason: priceLoaded || scrubbing ? [] : .placeholder)
                         .contentTransition(.numericText())
@@ -1407,18 +1407,24 @@ struct StockDetailView: View {
             }
             .padding(.top, 4)
 
-            HStack(spacing: 8) {
-                if scrubbing, let e = selectedEntry {
-                    Text(scrubTimeText(e.datetime))
-                        .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.05), value: e.datetime)
-                } else {
+            // The resting status stays laid out (hidden) while scrubbing, so the row keeps its
+            // height — a two-line status collapsing to a one-line time would jerk the chart upward.
+            ZStack(alignment: .topLeading) {
+                HStack(spacing: 8) {
                     Text(marketStatusText)
                     if let ext = extendedHoursChange {
                         Text("·")
                         Text(String(format: "$%.2f", ext.price)).foregroundColor(AppTheme.primaryText)
                         ChangeBadge(value: ext.percent, size: .compact)
                     }
+                }
+                .opacity(scrubbing ? 0 : 1)
+                .accessibilityHidden(scrubbing)
+
+                if scrubbing, let e = selectedEntry {
+                    Text(scrubTimeText(e.datetime))
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.05), value: e.datetime)
                 }
             }
             .font(.footnote)
@@ -1475,6 +1481,10 @@ struct StockDetailView: View {
             let isUp = (intervalChange?.amount ?? 0) >= 0
             let lineColor = isUp ? AppTheme.positive : AppTheme.negative
 
+            let lastIndex = max(chartEntries.last?.index ?? 1, 1)
+            let hasVolume = chartEntries.contains { $0.volume > 0 }
+
+            VStack(spacing: 6) {
             Chart {
                 ForEach(chartEntries) { entry in
                     AreaMark(
@@ -1521,7 +1531,7 @@ struct StockDetailView: View {
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartYScale(domain: (lo - pad)...(hi + pad))
-            .chartXScale(range: .plotDimension)
+            .chartXScale(domain: 0...lastIndex, range: .plotDimension)
             .chartLegend(.hidden)
             .chartOverlay { proxy in
                 Rectangle().fill(.clear).contentShape(Rectangle())
@@ -1544,9 +1554,15 @@ struct StockDetailView: View {
             // One tick when scrubbing starts — not one per data point.
             .sensoryFeedback(.selection, trigger: showMarker) { _, new in new && Haptic.isEnabled }
             .popoverTip(ChartScrubTip(), arrowEdge: .top)
-            .frame(height: chartHeight)
+            .frame(height: hasVolume ? chartHeight - VolumeStrip.height - 6 : chartHeight)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(chartAccessibilitySummary)
+
+                if hasVolume {
+                    VolumeStrip(entries: chartEntries, lastIndex: lastIndex,
+                                highlighted: showMarker ? selectedEntry?.index : nil)
+                }
+            }
         }
     }
 
@@ -2290,5 +2306,40 @@ extension View {
                 )
             }
         }
+    }
+}
+
+// MARK: - Volume strip
+/// Trading volume as a fine "barcode" under the price line: hairline bars on the same x-scale,
+/// quiet gray so it never competes with the price. The scrubbed bar darkens with the marker.
+/// Decorative — the chart's spoken summary carries the information.
+private struct VolumeStrip: View {
+    static let height: CGFloat = 28
+    let entries: [ChartEntry]
+    let lastIndex: Int
+    let highlighted: Int?
+
+    var body: some View {
+        // Scale to the 90th percentile, clipping the rest: opening/closing auctions are often 10×
+        // a normal bar and would otherwise flatten the whole strip into dots.
+        let sorted = entries.map(\.volume).filter { $0 > 0 }.sorted()
+        let cap = max(sorted.isEmpty ? 1 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.9))], 1)
+        Chart(entries) { entry in
+            BarMark(
+                x: .value("Time", entry.index),
+                yStart: .value("Zero", 0),
+                yEnd: .value("Volume", min(entry.volume, cap)),
+                width: .fixed(1.5)
+            )
+            .foregroundStyle(entry.index == highlighted ? AppTheme.primaryText : AppTheme.secondaryText.opacity(0.4))
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartLegend(.hidden)
+        .chartXScale(domain: 0...lastIndex, range: .plotDimension)
+        .chartYScale(domain: 0...cap)
+        .frame(height: Self.height)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

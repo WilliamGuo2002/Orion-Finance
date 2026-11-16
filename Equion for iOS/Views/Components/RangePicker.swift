@@ -28,8 +28,7 @@ struct RangePicker: View {
                         .padding(.vertical, 4)
                         .background {
                             if selected {
-                                Capsule()
-                                    .fill(AppTheme.subtleFill)
+                                LitPill()
                                     .matchedGeometryEffect(id: "selection", in: namespace)
                             }
                         }

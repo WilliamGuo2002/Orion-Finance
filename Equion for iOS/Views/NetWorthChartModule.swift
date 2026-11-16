@@ -128,7 +128,7 @@ struct NetWorthChartModule: View {
     private func valueHeader(_ snap: HoldingsSnapshot) -> some View {
         if hideValues {
             Text(PortfolioPrivacy.mask)
-                .font(AppTheme.number(28, weight: .bold))
+                .font(AppTheme.heroNumber(.title))
                 .foregroundColor(AppTheme.primaryText)
             Text("\(PortfolioPrivacy.shortMask) (\(PortfolioPrivacy.shortMask))")
                 .font(AppTheme.number(13, weight: .semibold))
@@ -136,7 +136,7 @@ struct NetWorthChartModule: View {
         } else {
             let value = selected?.value ?? snap.totalValue
             Text(signed(value, snap))
-                .font(AppTheme.number(28, weight: .bold))
+                .font(AppTheme.heroNumber(.title))
                 .foregroundColor(AppTheme.primaryText)
                 .contentTransition(.numericText())
 

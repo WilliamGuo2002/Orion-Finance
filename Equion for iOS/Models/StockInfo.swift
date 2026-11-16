@@ -5,6 +5,8 @@ struct ChartEntry: Identifiable {
     let index: Int
     let close: Float
     let datetime: String
+    /// Shares traded in this bar (0 when the source has none — indices, FX).
+    var volume: Double = 0
 }
 
 struct StockComment: Identifiable {

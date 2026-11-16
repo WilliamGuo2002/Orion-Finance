@@ -165,6 +165,14 @@ struct AppTheme {
         .system(textStyle(for: size), weight: normalizedWeight(weight, size: size)).monospacedDigit()
     }
 
+    /// The one big number on a screen (net worth, a stock's price). Light weight on purpose:
+    /// a large, thin figure reads as settled and calm; a heavy one shouts. Only for title sizes
+    /// and up — below that, light digits lose legibility (body numbers stay on `number()`).
+    /// Bold Text in accessibility settings still thickens it.
+    static func heroNumber(_ style: Font.TextStyle = .largeTitle) -> Font {
+        .system(style, weight: .light).monospacedDigit()
+    }
+
     /// Caption text
     static func caption(_ size: CGFloat = 12) -> Font {
         .system(textStyle(for: size))
@@ -377,6 +385,33 @@ enum GlassEdge {
                 : [Color.white.opacity(0.95), AppTheme.border.opacity(0.7)],
             startPoint: .top, endPoint: .bottom
         )
+    }
+}
+
+/// A pill with a lit top edge — the small, tactile highlight that makes a selected chip or a
+/// compact control read as a physical object rather than a flat tint. Used for selected states
+/// and header pills; keep plain fills for anything that isn't a control.
+struct LitPill: View {
+    var fill: AnyShapeStyle = AnyShapeStyle(AppTheme.subtleFill)
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Capsule()
+            .fill(fill)
+            .overlay(
+                Capsule().strokeBorder(
+                    LinearGradient(
+                        colors: colorScheme == .dark
+                            ? [Color.white.opacity(0.16), Color.white.opacity(0)]
+                            : [Color.white.opacity(0.9), Color.white.opacity(0)],
+                        startPoint: .top, endPoint: .center
+                    ),
+                    lineWidth: 0.75
+                )
+            )
+            // A hairline of shadow underneath: on a white card the lit edge alone vanishes,
+            // this is what lifts the pill off the surface.
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 1.5, x: 0, y: 1)
     }
 }
 

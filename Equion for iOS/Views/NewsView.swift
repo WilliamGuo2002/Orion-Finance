@@ -189,7 +189,7 @@ extension NewsView {
                             .foregroundColor(selected ? AppTheme.primaryText : AppTheme.secondaryText)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 4)
-                            .background(Capsule().fill(selected ? AppTheme.subtleFill : Color.clear))
+                            .background { if selected { LitPill() } }
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                     }

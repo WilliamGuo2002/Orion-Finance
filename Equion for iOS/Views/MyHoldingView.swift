@@ -758,7 +758,7 @@ struct MyHoldingView: View {
                     // Hidden → asterisks; else touched value; else current total
                     if hideValues {
                         Text(PortfolioPrivacy.mask)
-                            .font(.title.weight(.semibold).monospacedDigit())
+                            .font(AppTheme.heroNumber(.title))
                             .foregroundColor(AppTheme.primaryText)
                             .padding(.top, 2)
                         Text("\(PortfolioPrivacy.shortMask) (\(PortfolioPrivacy.shortMask))  ·  \(L("Today")) \(PortfolioPrivacy.shortMask)")
@@ -772,7 +772,7 @@ struct MyHoldingView: View {
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(String(format: "%.2f", holdingsSnapshot.display(sel.value)))
-                                .font(.title.weight(.semibold).monospacedDigit())
+                                .font(AppTheme.heroNumber(.title))
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                                 .animation(.easeInOut(duration: 0.05), value: sel.value)
@@ -812,7 +812,7 @@ struct MyHoldingView: View {
                                 .font(AppTheme.number(16, weight: .medium))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text((holdingsSnapshot.totalValue < 0 ? "−" : "") + String(format: "%.2f", abs(holdingsSnapshot.display(holdingsSnapshot.totalValue))))
-                                .font(.title.weight(.semibold).monospacedDigit())
+                                .font(AppTheme.heroNumber(.title))
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                         }
@@ -903,7 +903,7 @@ struct MyHoldingView: View {
                             .foregroundColor(selected ? AppTheme.primaryText : AppTheme.secondaryText)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 4)
-                            .background(Capsule().fill(selected ? AppTheme.subtleFill : Color.clear))
+                            .background { if selected { LitPill() } }
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                     }
@@ -1201,7 +1201,7 @@ struct HideValuesButton: View {
                 .font(.system(.caption, weight: .semibold))
                 .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 34, height: 27)
-                .background(Capsule().fill(AppTheme.subtleFill))
+                .background(LitPill())
                 .expandedHitArea()
         }
         .buttonStyle(.plain)
@@ -1226,7 +1226,7 @@ struct CurrencyToggle: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
                         .background(
-                            Capsule().fill(currency == selected ? AnyShapeStyle(AppTheme.accent) : AnyShapeStyle(Color.clear))
+                            Group { if currency == selected { LitPill(fill: AnyShapeStyle(AppTheme.accent)) } }
                         )
                         .expandedHitArea(10)
                 }
@@ -1234,7 +1234,7 @@ struct CurrencyToggle: View {
             }
         }
         .padding(2)
-        .background(Capsule().fill(AppTheme.subtleFill))
+        .background(LitPill())
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L("Display Currency"))
     }
