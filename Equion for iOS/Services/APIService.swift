@@ -65,9 +65,7 @@ struct AIDecisionDashboard {
     let rating: String            // "Buy", "Watch", "Sell"
     let score: Int                // 0-100
     let summary: String           // 1-sentence conclusion
-    let entryPrice: Double?       // Suggested entry price
-    let stopLoss: Double?         // Suggested stop-loss
-    let targetPrice: Double?      // Suggested target price
+    // No entry / stop-loss / target prices: Orion explains, it doesn't tell anyone when to trade.
     let bullPoints: [String]      // Positive catalysts
     let bearPoints: [String]      // Risk factors
     let sentiment: Double         // -1.0 (bearish) to +1.0 (bullish)
@@ -643,6 +641,10 @@ class APIService {
     // =========================================
 
     private func buildSystemPrompt(language: String? = nil) -> String {
+        basePrompt(language: language) + (Experience.current.map { " " + $0.aiTone } ?? "")
+    }
+
+    private func basePrompt(language: String?) -> String {
         if let lang = language {
             return """
                 You are Orion, an AI research assistant built into the Orion Finance app. \
@@ -865,9 +867,6 @@ class APIService {
           "rating": "Positive" or "Mixed" or "Negative",
           "score": 0-100 integer,
           "summary": "one-sentence neutral summary of the current picture",
-          "entryPrice": null,
-          "stopLoss": null,
-          "targetPrice": null,
           "bullPoints": ["point1", "point2", "point3"],
           "bearPoints": ["point1", "point2", "point3"],
           "sentiment": -1.0 to 1.0 float,
@@ -880,7 +879,7 @@ class APIService {
         Rules:
         - rating describes the overall balance of signals (news, trend, fundamentals): Positive, Mixed or Negative — it is not a buy/sell call
         - score: strength of the signals, 0-30 mostly negative, 31-60 mixed, 61-100 mostly positive
-        - entryPrice, stopLoss and targetPrice MUST always be null
+        - never include price targets, entry prices or stop-loss levels anywhere
         - bullPoints/bearPoints: 2-4 concise points each
         - sentiment: weighted average of news sentiment, technical trend, and fundamental health
         - rating MUST be exactly one of: "Positive", "Mixed", "Negative" (always English)
@@ -902,12 +901,9 @@ class APIService {
             return nil
         }
         return AIDecisionDashboard(
-            rating: json["rating"] as? String ?? "Watch",
+            rating: json["rating"] as? String ?? "Mixed",
             score: json["score"] as? Int ?? 50,
             summary: json["summary"] as? String ?? "",
-            entryPrice: json["entryPrice"] as? Double,
-            stopLoss: json["stopLoss"] as? Double,
-            targetPrice: json["targetPrice"] as? Double,
             bullPoints: json["bullPoints"] as? [String] ?? [],
             bearPoints: json["bearPoints"] as? [String] ?? [],
             sentiment: json["sentiment"] as? Double ?? 0,
@@ -933,9 +929,6 @@ class APIService {
             rating: rating,
             score: extractInt(from: cleaned, key: "score") ?? 50,
             summary: extractString(from: cleaned, key: "summary") ?? "",
-            entryPrice: extractDouble(from: cleaned, key: "entryPrice"),
-            stopLoss: extractDouble(from: cleaned, key: "stopLoss"),
-            targetPrice: extractDouble(from: cleaned, key: "targetPrice"),
             bullPoints: extractStringArray(from: cleaned, key: "bullPoints"),
             bearPoints: extractStringArray(from: cleaned, key: "bearPoints"),
             sentiment: extractDouble(from: cleaned, key: "sentiment") ?? 0,

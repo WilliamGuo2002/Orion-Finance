@@ -114,6 +114,7 @@ struct ChartDisplaySheet: View {
                     ForEach(ChartDisplay.Style.allCases) { option in
                         tile(option.title, selected: style == option) {
                             withAnimation(Motion.tap) { style = option }
+                            Experience.markChartCustomized()
                         } preview: {
                             StylePreview(style: option)
                         }
@@ -123,6 +124,7 @@ struct ChartDisplaySheet: View {
                     ForEach(ChartDisplay.Volume.allCases) { option in
                         tile(option.title, selected: volume == option) {
                             withAnimation(Motion.tap) { volume = option }
+                            Experience.markChartCustomized()
                         } preview: {
                             VolumePreview(volume: option)
                         }

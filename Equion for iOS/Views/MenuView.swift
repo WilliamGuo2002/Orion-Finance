@@ -13,6 +13,7 @@ struct MenuView: View {
     @State private var showAppearance = false
     @State private var showLanguage = false
     @State private var showInterests = false
+    @State private var showExperience = false
     @State private var showRiskProfile = false
     @State private var showPortfolioWizard = false
     @State private var showStockCompare = false
@@ -134,6 +135,12 @@ struct MenuView: View {
             }
 
             Section(L("Investing")) {
+                // Experience (sets chart and explanation defaults)
+                Button(action: { showExperience = true }) {
+                    menuRow(icon: "leaf", title: L("Investing Experience"), detail: Experience.current?.shortTitle)
+                }
+                .listRowBackground(AppTheme.cardBackground)
+
                 // Interests
                 Button(action: { showInterests = true }) {
                     menuRow(icon: "star.circle", title: L("My Interests"), detail: interestsDetail)
@@ -227,6 +234,11 @@ struct MenuView: View {
         .sheet(isPresented: $showLanguage) {
             LanguageSheet(selected: $settings.appLanguage)
                 .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showExperience) {
+            NavigationStack {
+                ExperienceSelectionView(isOnboarding: false)
+            }
         }
         .sheet(isPresented: $showInterests) {
             NavigationStack {

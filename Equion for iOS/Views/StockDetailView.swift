@@ -65,6 +65,8 @@ struct StockDetailView: View {
     @AppStorage(ChartDisplay.styleKey) private var chartStyle = ChartDisplay.Style.line
     @AppStorage(ChartDisplay.volumeKey) private var volumeStyle = ChartDisplay.Volume.mono
     @State private var showChartSettings = false
+    /// One teaching tip at a time: candles first, then volume.
+    @State private var chartTips = TipGroup(.ordered) { CandlesTip(); VolumeTip() }
 
     // Bottom action bar
     @State private var inWatchlist = false
@@ -203,6 +205,11 @@ struct StockDetailView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 toolbarHeader.opacity(headerVisible ? 0 : 1)
+            }
+            if isStock {
+                ToolbarItem(placement: .topBarTrailing) {
+                    BrokerMenu(symbol: MyHoldingView.displaySymbol(symbol))
+                }
             }
         }
         .task {
@@ -364,6 +371,8 @@ struct StockDetailView: View {
                 .zIndex(0)
 
                 VStack(alignment: .leading, spacing: 0) {
+                    chartTipView
+
                     // Holdings (if user owns this asset)
                     holdingsModule
 
@@ -396,6 +405,7 @@ struct StockDetailView: View {
                 headerSection
                 chartSection
                 intervalSelector
+                chartTipView
                 holdingsModule
 
                 HStack(alignment: .top, spacing: 16) {
@@ -873,26 +883,6 @@ struct StockDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // Price targets removed: specific entry / stop / target prices read as trading advice.
-                if false, d.entryPrice != nil || d.stopLoss != nil || d.targetPrice != nil {
-                    HStack(spacing: 0) {
-                        if let entry = d.entryPrice {
-                            priceTargetItem(L("Entry"), value: entry, color: AppTheme.accent)
-                        }
-                        if let stop = d.stopLoss {
-                            priceTargetItem(L("Stop Loss"), value: stop, color: AppTheme.negative)
-                        }
-                        if let target = d.targetPrice {
-                            priceTargetItem(L("Target"), value: target, color: AppTheme.positive)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(AppTheme.subtleFill.opacity(0.5))
-                    )
-                }
-
                 // ── Sentiment Gauge ──
                 VStack(spacing: 8) {
                     HStack {
@@ -1108,18 +1098,6 @@ struct StockDetailView: View {
         if value > 0.2 { return AppTheme.positive }
         if value < -0.2 { return AppTheme.negative }
         return AppTheme.accent
-    }
-
-    private func priceTargetItem(_ label: String, value: Double, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(.system(.caption2))
-                .foregroundColor(AppTheme.secondaryText)
-            Text(String(format: "$%.2f", value))
-                .font(AppTheme.number(15, weight: .bold))
-                .foregroundColor(color)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // ===================================
@@ -1382,7 +1360,23 @@ struct StockDetailView: View {
     // =============================
     // MARK: - Existing sections
     // =============================
+    /// Teaches candles / volume the first time they're on screen; nothing for line-only users.
     @ViewBuilder
+    private var chartTipView: some View {
+        if let tip = chartTips.currentTip {
+            TipView(tip)
+                .tipBackground(AppTheme.cardBackground)
+                .tint(AppTheme.accentText)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+        }
+    }
+
+    private func syncChartTipParameters() {
+        CandlesTip.isShowingCandles = chartStyle == .candles
+        VolumeTip.isShowingVolume = volumeStyle != .off
+    }
+
     private var intervalSelector: some View {
         HStack(spacing: 0) {
             RangePicker(options: intervals, selection: $selectedInterval) { _ in
@@ -1405,6 +1399,9 @@ struct StockDetailView: View {
         .sheet(isPresented: $showChartSettings) {
             ChartDisplaySheet(style: $chartStyle, volume: $volumeStyle)
         }
+        .onAppear(perform: syncChartTipParameters)
+        .onChange(of: chartStyle) { _, _ in syncChartTipParameters() }
+        .onChange(of: volumeStyle) { _, _ in syncChartTipParameters() }
     }
 
     /// Splits a price string into (currency symbol, number) for typographic contrast
@@ -2246,6 +2243,24 @@ struct CompanyNewsListView: View {
 // MARK: - Tip: scrub the chart
 
 /// Shown once, the first time someone opens a chart, until they scrub it.
+/// First time candles appear: one plain sentence on how to read them.
+struct CandlesTip: Tip {
+    @Parameter static var isShowingCandles: Bool = false
+    var title: Text { Text(L("How to read candles")) }
+    var message: Text? { Text(L("Each candle is one stretch of time. Hollow means the price ended higher, solid means lower. The thin lines reach the high and the low.")) }
+    var image: Image? { Image(systemName: "chart.bar.xaxis") }
+    var rules: [Rule] { [#Rule(Self.$isShowingCandles) { $0 }] }
+}
+
+/// First time the volume bars appear.
+struct VolumeTip: Tip {
+    @Parameter static var isShowingVolume: Bool = false
+    var title: Text { Text(L("The bars under the chart")) }
+    var message: Text? { Text(L("Each bar is how many shares changed hands in that stretch. Taller bars mean more activity, often around news, the open and the close.")) }
+    var image: Image? { Image(systemName: "chart.bar") }
+    var rules: [Rule] { [#Rule(Self.$isShowingVolume) { $0 }] }
+}
+
 struct ChartScrubTip: Tip {
     var title: Text { Text(L("Touch and hold to explore")) }
     var message: Text? { Text(L("Slide across the chart to see the price at any point.")) }

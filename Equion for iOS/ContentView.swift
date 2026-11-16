@@ -5,6 +5,7 @@ struct ContentView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @ObservedObject private var interests = InterestsManager.shared
     @State private var showOnboarding = false
+    @State private var showExperience = false
     @State private var showRiskProfile = false
     @State private var checkingNewUser = true
 
@@ -16,6 +17,16 @@ struct ContentView: View {
                         RiskProfileView(isOnboarding: true, onComplete: {
                             withAnimation(Motion.standard) {
                                 showRiskProfile = false
+                            }
+                        })
+                    }
+                    .transition(.move(edge: .trailing))
+                } else if showExperience {
+                    NavigationStack {
+                        ExperienceSelectionView(isOnboarding: true, onComplete: {
+                            withAnimation(Motion.standard) {
+                                showExperience = false
+                                showOnboarding = true
                             }
                         })
                     }
@@ -55,6 +66,7 @@ struct ContentView: View {
                 checkOnboardingStatus()
             } else {
                 showOnboarding = false
+                showExperience = false
                 checkingNewUser = true
             }
         }
@@ -83,7 +95,8 @@ struct ContentView: View {
                     showOnboarding = false
                 } else {
                     checkingNewUser = false
-                    showOnboarding = true
+                    // New user: experience → interests → risk profile.
+                    showExperience = true
                 }
             }
         }

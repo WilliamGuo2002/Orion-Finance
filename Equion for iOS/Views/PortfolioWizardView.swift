@@ -319,7 +319,7 @@ struct PortfolioWizardView: View {
                     }
 
                     // Disclaimer
-                    Text(L("This is AI-generated advice for educational purposes only. Always do your own research before investing."))
+                    Text(L("An AI-generated example for learning, not a recommendation. Your own research and judgment come first."))
                         .font(.system(.caption2))
                         .foregroundColor(AppTheme.secondaryText)
                         .padding(.top, 8)
