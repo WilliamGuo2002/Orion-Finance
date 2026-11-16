@@ -116,7 +116,7 @@ struct TaxAssistantCard: View {
                         Text(L("Tax Assistant"))
                             .font(.system(.subheadline, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
-                        Text(L("TFSA · RRSP · FHSA room and superficial loss watch"))
+                        Text(L("Room, cost basis, capital gains and superficial losses"))
                             .font(AppTheme.caption(11))
                             .foregroundColor(AppTheme.secondaryText)
                     }
@@ -157,6 +157,9 @@ final class TaxCenter: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var loadedAt: Date?
     @Published private var roomVersion = 0   // bumps when the user edits room
+    /// Cost bases and capital gains, rebuilt after each load (and when a transfer cost is entered).
+    @Published private(set) var acb: ACBReport?
+    @Published private(set) var isBuildingACB = false
 
     private var ownerUid: String?
 
@@ -165,7 +168,9 @@ final class TaxCenter: ObservableObject {
     private static let dayFmt: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        f.timeZone = TimeZone(identifier: "America/Toronto")
+        // Calendar days, shown in the device's zone: parsing in another zone shifted them a day west of Toronto.
+        f.timeZone = .current
+        f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
     static func date(_ s: String) -> Date? { dayFmt.date(from: String(s.prefix(10))) }
@@ -185,6 +190,85 @@ final class TaxCenter: ObservableObject {
         } catch {
             lastError = error.localizedDescription
         }
+        await rebuildACB()
+    }
+
+    // MARK: Cost basis
+
+    func rebuildACB() async {
+        guard !activities.isEmpty else { acb = nil; return }
+        isBuildingACB = true
+        defer { isBuildingACB = false }
+        let accounts = BrokerageManager.shared.currentAccounts
+        let types = Dictionary(accounts.map { ($0.id, TaxAccountType.of($0)) }, uniquingKeysWith: { a, _ in a })
+        let currencies = Set(activities.map { $0.currency.uppercased() })
+        // Live rate as a last resort (flagged as estimated in the results).
+        let live: [String: Double] = Dictionary(uniqueKeysWithValues: currencies.map { ($0, cad(1, from: $0)) })
+        let fx = await HistoricalFX.shared.table(for: currencies) { live[$0] }
+
+        func held(_ include: (LinkedAccount) -> Bool) -> [String: Double] {
+            var out: [String: Double] = [:]
+            for a in accounts where include(a) {
+                for p in a.positions where p.units > 1e-9 {
+                    out[(p.displaySymbol ?? p.symbol).uppercased(), default: 0] += p.units
+                }
+            }
+            return out
+        }
+        let input = ACBInput(
+            activities: activities,
+            accountTypes: types,
+            accountNames: Dictionary(accounts.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a }),
+            heldNowAnywhere: held { _ in true },
+            heldNowTaxable: held { TaxAccountType.of($0).isTaxable },
+            transferCosts: transferCosts,
+            today: ACBEngine.dayString(Date()),
+            rate: { fx.quote($0, $1) }
+        )
+        acb = ACBEngine.compute(input)
+    }
+
+    /// Non-registered accounts whose trades feed the cost bases (shown so the user can check).
+    var taxableAccountNames: [String] {
+        BrokerageManager.shared.currentAccounts.filter { TaxAccountType.of($0).isTaxable }.map(\.name)
+    }
+
+    /// Market value in CAD of what's held in non-registered accounts, per symbol.
+    var taxableMarketValueCAD: [String: Double] {
+        var out: [String: Double] = [:]
+        for a in BrokerageManager.shared.currentAccounts where TaxAccountType.of(a).isTaxable {
+            for p in a.positions where p.units > 1e-9 {
+                guard let price = p.price else { continue }
+                out[(p.displaySymbol ?? p.symbol).uppercased(), default: 0] += cad(p.units * price, from: p.currency)
+            }
+        }
+        return out
+    }
+
+    // MARK: Transfer-in costs (entered by the user; stored on device)
+
+    private var transferCostKey: String? {
+        Auth.auth().currentUser.map { "acbTransferCosts_" + $0.uid }
+    }
+
+    var transferCosts: [String: Double] {
+        guard let key = transferCostKey else { return [:] }
+        return UserDefaults.standard.dictionary(forKey: key) as? [String: Double] ?? [:]
+    }
+
+    /// Splits `totalCAD` across the transfer-ins of one security by units.
+    func setTransferCost(totalCAD: Double?, for issue: ACBIssue) async {
+        guard let key = transferCostKey else { return }
+        var costs = transferCosts
+        let ids = Set(issue.activityIds)
+        let rows = activities.filter { ids.contains($0.id) }
+        let totalUnits = rows.reduce(0) { $0 + abs($1.units ?? 0) }
+        for r in rows {
+            if let totalCAD, totalUnits > 0 { costs[r.id] = totalCAD * abs(r.units ?? 0) / totalUnits }
+            else { costs[r.id] = nil }
+        }
+        UserDefaults.standard.set(costs, forKey: key)
+        await rebuildACB()
     }
 
     // MARK: Room (entered by the user from CRA My Account; stored on device)
@@ -244,78 +328,28 @@ final class TaxCenter: ObservableObject {
 
     // MARK: Superficial loss
 
-    /// Rebuilds each account's average cost per security from its trade history, finds sales at
-    /// a loss in taxable accounts, and checks purchases of the same security in ANY linked account
-    /// (TFSA, RRSP… included) within 30 days before or after the sale.
+    /// Losses in non-registered accounts (pooled cost, in CAD) from this tax year and at least the
+    /// last 60 days, with repurchases of the same security in ANY linked account within ±30 days.
     var superficialLossAlerts: [SuperficialLossAlert] {
-        let accounts = accountsById
+        guard let acb else { return [] }
         let cal = Calendar.current
         let now = Date()
-        // This tax year, and at least the last 60 days (a December sale still matters in January).
         let startOfYear = cal.date(from: DateComponents(year: Self.year, month: 1, day: 1)) ?? now
-        let lookback = min(startOfYear, cal.date(byAdding: .day, value: -60, to: now) ?? now)
-
-        let trades = activities
-            .filter { ["BUY", "SELL", "REI", "SPLIT"].contains($0.type) && ($0.symbol ?? "").isEmpty == false }
-            .sorted { ($0.date, $0.type == "SELL" ? 1 : 0) < ($1.date, $1.type == "SELL" ? 1 : 0) }
-
-        // Currently held anywhere (proxy for "still owned at the end of the window").
-        let heldNow = Set(BrokerageManager.shared.currentAccounts.flatMap { acct in
-            acct.positions.filter { $0.units > 1e-9 }.map { ($0.displaySymbol ?? $0.symbol).uppercased() }
-        })
-
-        struct Lot { var units = 0.0; var cost = 0.0 }
-        var lots: [String: Lot] = [:]          // "accountId|SYMBOL"
-        var alerts: [SuperficialLossAlert] = []
-
-        for t in trades {
-            let sym = (t.symbol ?? "").uppercased()
-            let key = "\(t.accountId)|\(sym)"
-            let units = abs(t.units ?? 0)
-            switch t.type {
-            case "BUY", "REI":
-                let cost = units * (t.price ?? 0) + abs(t.fee ?? 0)
-                lots[key, default: Lot()].units += units
-                lots[key, default: Lot()].cost += cost
-            case "SPLIT":
-                // Units change, total cost stays the same.
-                lots[key, default: Lot()].units += (t.units ?? 0)
-            case "SELL":
-                var lot = lots[key, default: Lot()]
-                guard lot.units > 1e-9, units > 0 else { continue }
-                let sold = min(units, lot.units)
-                let avg = lot.cost / lot.units
-                let proceeds = sold * (t.price ?? 0) - abs(t.fee ?? 0)
-                let gain = proceeds - sold * avg
-                lot.cost -= sold * avg
-                lot.units -= sold
-                lots[key] = lot
-
-                guard gain < -1,
-                      let account = accounts[t.accountId], TaxAccountType.of(account).isTaxable,
-                      let saleDate = Self.date(t.date), saleDate >= lookback else { continue }
-                let start = cal.date(byAdding: .day, value: -30, to: saleDate) ?? saleDate
-                let end = cal.date(byAdding: .day, value: 30, to: saleDate) ?? saleDate
-                let repurchases: [(account: String, date: Date)] = activities.compactMap { b in
-                    guard ["BUY", "REI"].contains(b.type), (b.symbol ?? "").uppercased() == sym,
-                          let d = Self.date(b.date), d >= start, d <= end, b.id != t.id else { return nil }
-                    // Buys before the sale in the same account are usually the shares being sold.
-                    if b.accountId == t.accountId && d < saleDate { return nil }
-                    return (accounts[b.accountId]?.name ?? L("Account"), d)
-                }
-                let status: SuperficialLossAlert.Status = (!repurchases.isEmpty && heldNow.contains(sym)) ? .likelyDenied : .watching
-                // Past windows with no repurchase are resolved — nothing to show.
-                if status == .watching && end < now { continue }
-                alerts.append(SuperficialLossAlert(
-                    id: t.id, symbol: sym, saleDate: saleDate, accountName: account.name,
-                    loss: -gain, currency: t.currency, windowEnds: end, status: status,
-                    repurchases: repurchases
-                ))
-            default:
-                break
-            }
+        let lookback = ACBEngine.dayString(min(startOfYear, cal.date(byAdding: .day, value: -60, to: now) ?? now))
+        let today = ACBEngine.dayString(now)
+        return acb.dispositions.compactMap { d in
+            guard d.gainCAD < -1, d.day >= lookback,
+                  let saleDate = Self.date(d.day), let windowEnds = Self.date(d.windowEndDay) else { return nil }
+            let status: SuperficialLossAlert.Status = d.deniedLossCAD > 0.005 ? .likelyDenied : .watching
+            // Past windows with nothing denied are resolved — nothing to show.
+            if status == .watching && d.windowEndDay < today { return nil }
+            return SuperficialLossAlert(
+                id: d.id, symbol: d.symbol, saleDate: saleDate, accountName: d.accountName,
+                loss: -d.gainCAD, currency: "CAD", windowEnds: windowEnds, status: status,
+                repurchases: d.repurchases.compactMap { r in Self.date(r.day).map { (r.account, $0) } }
+            )
         }
-        return alerts.sorted { $0.saleDate > $1.saleDate }
+        .sorted { $0.saleDate > $1.saleDate }
     }
 
     /// Count for badges: over-contributions + superficial-loss alerts.

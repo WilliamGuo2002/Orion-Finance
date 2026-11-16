@@ -28,6 +28,7 @@ struct TaxCenterView: View {
             }
 
             contributionSection
+            CostBasisSection()
             superficialLossSection
         }
         .listStyle(.insetGrouped)
