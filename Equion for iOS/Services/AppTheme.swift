@@ -740,6 +740,12 @@ struct AdaptiveMaterialBackground<S: Shape>: View {
 }
 
 extension View {
+    /// A currency sign + amount is one unit: it reads "$202.31" in every language, so it never
+    /// mirrors under right-to-left layouts (the surrounding layout still does).
+    func leftToRightNumber() -> some View {
+        environment(\.layoutDirection, .leftToRight)
+    }
+
     /// Grows the tappable area by 8pt on every side without changing layout — for compact controls
     /// whose visual size must stay small (HIG: 44×44pt targets).
     func expandedHitArea(_ inset: CGFloat = 8) -> some View {

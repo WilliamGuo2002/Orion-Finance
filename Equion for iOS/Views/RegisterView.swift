@@ -14,17 +14,17 @@ struct RegisterView: View {
                 Spacer()
 
                 VStack(spacing: 16) {
-                    Text("Create Account")
+                    Text(L("Create Account"))
                         .font(AppTheme.serifHeadline(22))
                         .foregroundColor(AppTheme.primaryText)
 
-                    TextField("Email", text: $email)
+                    TextField(L("Email"), text: $email)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
 
-                    SecureField("Password", text: $password)
+                    SecureField(L("Password"), text: $password)
                         .textFieldStyle(.roundedBorder)
 
                     if !errorMessage.isEmpty {
@@ -38,7 +38,7 @@ struct RegisterView: View {
                             if isLoading {
                                 ProgressView().tint(.white)
                             } else {
-                                Text("Register")
+                                Text(L("Register"))
                                     .fontWeight(.semibold)
                             }
                         }

@@ -25,6 +25,7 @@ struct Sparkline: View {
             SparklineShape(values: values, closed: false)
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
         }
+        .environment(\.layoutDirection, .leftToRight)   // time runs left to right in every language
         .accessibilityHidden(true)
     }
 }

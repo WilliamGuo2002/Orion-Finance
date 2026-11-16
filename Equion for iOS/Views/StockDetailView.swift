@@ -530,6 +530,9 @@ struct StockDetailView: View {
             Text(value)
                 .font(.subheadline.weight(.semibold).monospacedDigit())
                 .foregroundColor(AppTheme.primaryText)
+                .lineLimit(1)
+                .fixedSize()
+                .leftToRightNumber()
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
@@ -1150,6 +1153,9 @@ struct StockDetailView: View {
                 Text(value)
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundColor(color ?? AppTheme.primaryText)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .leftToRightNumber()
             }
             .padding(.vertical, 2)
             .contentShape(Rectangle())
@@ -1440,6 +1446,7 @@ struct StockDetailView: View {
                         .contentTransition(.numericText())
                         .animation(scrubbing ? .easeInOut(duration: 0.05) : Motion.number, value: shownPrice)
                 }
+                .leftToRightNumber()
                 if let ch = shownChange {
                     ChangeBadge(value: ch.percent, amount: ch.amount, size: .large)
                         .animation(scrubbing ? .easeInOut(duration: 0.05) : Motion.number, value: ch.percent)
@@ -1511,8 +1518,13 @@ struct StockDetailView: View {
         .overlay(Capsule().stroke(AppTheme.border, lineWidth: 0.5))
     }
 
-    @ViewBuilder
+    /// Time runs left to right in every language (as in Apple Stocks), so the chart never mirrors.
     private var chartSection: some View {
+        chartSectionContent.environment(\.layoutDirection, .leftToRight)
+    }
+
+    @ViewBuilder
+    private var chartSectionContent: some View {
         if isLoadingChart {
             SkeletonChart()
                 .frame(height: chartHeight)

@@ -118,6 +118,7 @@ struct NetWorthChartModule: View {
 
             // Edge to edge: no side padding, the plot spans the full screen width.
             chartArea
+                .environment(\.layoutDirection, .leftToRight)   // time runs left to right in every language
                 .frame(height: 180)
                 .padding(.top, 4)
 

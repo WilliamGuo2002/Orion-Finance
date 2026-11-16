@@ -46,6 +46,10 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(settings.colorScheme)
+        // In-app language drives layout direction and formatting, not the device language:
+        // Hebrew and Arabic mirror the whole UI.
+        .environment(\.layoutDirection, AppLocale.isRightToLeft ? .rightToLeft : .leftToRight)
+        .environment(\.locale, AppLocale.current)
         .onChange(of: firebaseController.isLoggedIn) { _, loggedIn in
             if loggedIn {
                 checkOnboardingStatus()

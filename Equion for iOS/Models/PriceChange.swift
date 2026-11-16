@@ -38,10 +38,17 @@ enum AppLocale {
         case "Português": return Locale(identifier: "pt")
         case "Italiano": return Locale(identifier: "it")
         case "Русский": return Locale(identifier: "ru")
+        case "Українська": return Locale(identifier: "uk")
+        case "עברית": return Locale(identifier: "he")
         case "العربية": return Locale(identifier: "ar")
         case "हिन्दी": return Locale(identifier: "hi")
         default: return Locale(identifier: "en_US")
         }
+    }
+
+    /// Hebrew and Arabic read right to left; the UI mirrors for them.
+    static var isRightToLeft: Bool {
+        ["עברית", "العربية"].contains(SettingsManager.shared.appLanguage)
     }
 
     static let easternTime = TimeZone(identifier: "America/New_York")!

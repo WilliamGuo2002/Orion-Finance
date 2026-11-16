@@ -278,7 +278,7 @@ struct ForgotPasswordView: View {
                         Text(L("Forgot Password"))
                             .font(AppTheme.serifHeadline(20))
                             .foregroundColor(AppTheme.primaryText)
-                        Text("Enter your email and we'll send you a link to reset your password.")
+                        Text(L("Enter your email and we'll send you a link to reset your password."))
                             .font(.body)
                             .foregroundColor(AppTheme.secondaryText)
                             .multilineTextAlignment(.center)

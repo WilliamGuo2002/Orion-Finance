@@ -274,6 +274,8 @@ struct MyHoldingView: View {
                 )
         }
         .frame(height: portfolioChartHeight)
+        // Scrub x maps onto the (never mirrored) chart, so measure it left to right too.
+        .environment(\.layoutDirection, .leftToRight)
         // Invisible, tappable copy of the header controls (Holdings / USD-CAD / hide),
         // laid exactly over the visible ones in the pinned chart header. Pinned via offset
         // (in its own view) so it tracks the chart without re-rendering this body on scroll.
@@ -813,6 +815,7 @@ struct MyHoldingView: View {
                                 .contentTransition(.numericText())
                                 .animation(.easeInOut(duration: 0.05), value: sel.value)
                         }
+                        .leftToRightNumber()
 
                         // Date + cost basis + change (cash is in both value and cost, so it cancels;
                         // the % is on invested cost only)
@@ -852,6 +855,7 @@ struct MyHoldingView: View {
                                 .foregroundColor(AppTheme.primaryText)
                                 .contentTransition(.numericText())
                         }
+                        .leftToRightNumber()
 
                         HStack(spacing: 8) {
                             Text(String(format: "%@%@ (%@%.2f%%)",
@@ -894,6 +898,7 @@ struct MyHoldingView: View {
                             selectedEntry: $selectedPortfolioEntry,
                             showMarker: $showPortfolioMarker
                         )
+                        .environment(\.layoutDirection, .leftToRight)   // time runs left to right everywhere
                     }
                 }
                 .frame(height: 110)
@@ -1791,6 +1796,7 @@ struct StockRowView: View {
                         .contentTransition(.numericText())
                         .animation(Motion.standard, value: priceNumber)
                 }
+                .leftToRightNumber()
                 ChangeBadge(value: stock.changePercent, size: .compact)
                     .animation(Motion.number, value: stock.changePercent)
             }
@@ -2186,6 +2192,7 @@ struct RecommendationCard: View {
                         .font(AppTheme.number(14, weight: .semibold))
                         .foregroundColor(AppTheme.primaryText)
                 }
+                .leftToRightNumber()
                 Spacer()
                 ChangeBadge(value: stock.changePercent, size: .compact)
             }
@@ -2313,6 +2320,7 @@ struct StockContextPreview: View {
                         .font(AppTheme.number(26, weight: .bold))
                         .foregroundColor(AppTheme.primaryText)
                 }
+                .leftToRightNumber()
                 ChangeBadge(value: stock.changePercent, size: .large)
             }
 

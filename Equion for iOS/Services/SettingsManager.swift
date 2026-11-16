@@ -35,7 +35,7 @@ class SettingsManager: ObservableObject {
     static let supportedLanguages = [
         "English", "中文", "日本語", "한국어",
         "Español", "Français", "Deutsch", "Português",
-        "Italiano", "Русский", "العربية", "हिन्दी"
+        "Italiano", "Русский", "Українська", "עברית", "العربية", "हिन्दी"
     ]
 
     func requestNotificationPermission() {
