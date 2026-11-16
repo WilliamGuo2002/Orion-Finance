@@ -268,6 +268,13 @@ class APIService {
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York")
 
         let volumes = quoteData["volume"] as? [Any] ?? []
+        let opens = quoteData["open"] as? [Any] ?? []
+        let highs = quoteData["high"] as? [Any] ?? []
+        let lows = quoteData["low"] as? [Any] ?? []
+        func num(_ arr: [Any], _ i: Int) -> Float? {
+            guard i < arr.count, let v = (arr[i] as? NSNumber)?.floatValue, v > 0 else { return nil }
+            return v
+        }
 
         var entries: [ChartEntry] = []
         for (i, ts) in timestamps.enumerated() {
@@ -278,7 +285,8 @@ class APIService {
                     index: entries.count,
                     close: Float(close),
                     datetime: dateFormatter.string(from: date),
-                    volume: i < volumes.count ? (volumes[i] as? NSNumber)?.doubleValue ?? 0 : 0
+                    volume: i < volumes.count ? (volumes[i] as? NSNumber)?.doubleValue ?? 0 : 0,
+                    open: num(opens, i), high: num(highs, i), low: num(lows, i)
                 ))
             }
         }

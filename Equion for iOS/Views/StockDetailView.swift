@@ -61,6 +61,11 @@ struct StockDetailView: View {
     // Holdings
     @State private var showTransactionSheet = false
 
+    // Chart display (shared across stocks, remembered)
+    @AppStorage(ChartDisplay.styleKey) private var chartStyle = ChartDisplay.Style.line
+    @AppStorage(ChartDisplay.volumeKey) private var volumeStyle = ChartDisplay.Volume.mono
+    @State private var showChartSettings = false
+
     // Bottom action bar
     @State private var inWatchlist = false
     @State private var showPaperTrade = false
@@ -1373,12 +1378,27 @@ struct StockDetailView: View {
     // =============================
     @ViewBuilder
     private var intervalSelector: some View {
-        RangePicker(options: intervals, selection: $selectedInterval) { _ in
-            selectedEntry = nil
-            showMarker = false
-            Task { await loadChart() }
+        HStack(spacing: 0) {
+            RangePicker(options: intervals, selection: $selectedInterval) { _ in
+                selectedEntry = nil
+                showMarker = false
+                Task { await loadChart() }
+            }
+            Button { showChartSettings = true } label: {
+                Image(systemName: chartStyle == .candles ? "chart.bar.xaxis" : "chart.xyaxis.line")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 34, height: 44)
+                    .expandedHitArea(5)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("Chart display"))
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 8)
+        .sheet(isPresented: $showChartSettings) {
+            ChartDisplaySheet(style: $chartStyle, volume: $volumeStyle)
+        }
     }
 
     /// Splits a price string into (currency symbol, number) for typographic contrast
@@ -1442,9 +1462,20 @@ struct StockDetailView: View {
                 .accessibilityHidden(scrubbing)
 
                 if scrubbing, let e = selectedEntry {
-                    Text(scrubTimeText(e.datetime))
-                        .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.05), value: e.datetime)
+                    HStack(spacing: 10) {
+                        Text(scrubTimeText(e.datetime))
+                            .contentTransition(.numericText())
+                        // Candles: the bar's open / high / low beside the time (close is the big number).
+                        if chartStyle == .candles {
+                            Text(String(format: L("O %@  H %@  L %@"),
+                                        String(format: "%.2f", e.o), String(format: "%.2f", e.h), String(format: "%.2f", e.l)))
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.05), value: e.datetime)
                 }
             }
             .font(.footnote)
@@ -1495,19 +1526,23 @@ struct StockDetailView: View {
             .frame(height: chartHeight)
             .padding(.horizontal, 16)
         } else if !chartEntries.isEmpty {
+            let candles = chartStyle == .candles
             let closes = chartEntries.map { Double($0.close) }
+            let lows = candles ? chartEntries.map { Double($0.l) } : closes
+            let highs = candles ? chartEntries.map { Double($0.h) } : closes
             let baseline: Double? = selectedInterval == "1D" ? quote?.previousClose : nil
-            let lo = min(closes.min() ?? 0, baseline ?? .infinity)
-            let hi = max(closes.max() ?? 0, baseline ?? -.infinity)
+            let lo = min(lows.min() ?? 0, baseline ?? .infinity)
+            let hi = max(highs.max() ?? 0, baseline ?? -.infinity)
             let pad = max((hi - lo) * 0.05, 0.01)
             let isUp = (intervalChange?.amount ?? 0) >= 0
             let lineColor = isUp ? AppTheme.positive : AppTheme.negative
 
             let lastIndex = max(chartEntries.last?.index ?? 1, 1)
-            let hasVolume = chartEntries.contains { $0.volume > 0 }
+            let hasVolume = volumeStyle != .off && chartEntries.contains { $0.volume > 0 }
 
             VStack(spacing: 6) {
             Chart {
+                if !candles {
                 ForEach(chartEntries) { entry in
                     AreaMark(
                         x: .value("Time", entry.index),
@@ -1527,6 +1562,13 @@ struct StockDetailView: View {
                         .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                 }
+                } else {
+                    // Invisible marks give the candle canvas the same x/y scales.
+                    ForEach(chartEntries) { entry in
+                        PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
+                            .opacity(0)
+                    }
+                }
 
                 // Previous close: the line the day is measured against
                 if let baseline {
@@ -1536,7 +1578,7 @@ struct StockDetailView: View {
                 }
 
                 // Latest point while the market is open (static dot, no pulse)
-                if selectedInterval == "1D" && marketSession == .open && !showMarker, let last = chartEntries.last {
+                if !candles && selectedInterval == "1D" && marketSession == .open && !showMarker, let last = chartEntries.last {
                     PointMark(x: .value("Time", last.index), y: .value("Price", Double(last.close)))
                         .symbol { LivePulseDot(color: lineColor) }
                 }
@@ -1545,16 +1587,27 @@ struct StockDetailView: View {
                     RuleMark(x: .value("Time", entry.index))
                         .foregroundStyle(AppTheme.tertiaryText)
                         .lineStyle(StrokeStyle(lineWidth: 1))
-                    PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
-                        .foregroundStyle(AppTheme.primaryText)
-                        .symbolSize(40)
+                    if !candles {
+                        PointMark(x: .value("Time", entry.index), y: .value("Price", Double(entry.close)))
+                            .foregroundStyle(AppTheme.primaryText)
+                            .symbolSize(40)
+                    }
                 }
             }
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartYScale(domain: (lo - pad)...(hi + pad))
-            .chartXScale(domain: 0...lastIndex, range: .plotDimension)
+            // Lines run edge to edge; candles get half a body of inset so the first and last
+            // aren't sliced by the screen edge.
+            .chartXScale(domain: 0...lastIndex,
+                         range: .plotDimension(padding: candles ? OrionCandles.edgeInset(count: chartEntries.count) : 0))
             .chartLegend(.hidden)
+            .chartBackground { proxy in
+                if candles {
+                    OrionCandles(entries: chartEntries, proxy: proxy,
+                                 focused: showMarker ? selectedEntry?.index : nil)
+                }
+            }
             .chartOverlay { proxy in
                 Rectangle().fill(.clear).contentShape(Rectangle())
                     .gesture(
@@ -1582,7 +1635,9 @@ struct StockDetailView: View {
 
                 if hasVolume {
                     VolumeStrip(entries: chartEntries, lastIndex: lastIndex,
-                                highlighted: showMarker ? selectedEntry?.index : nil)
+                                highlighted: showMarker ? selectedEntry?.index : nil,
+                                colored: volumeStyle == .upDown,
+                                xPadding: candles ? OrionCandles.edgeInset(count: chartEntries.count) : 0)
                 }
             }
         }
@@ -2340,6 +2395,10 @@ private struct VolumeStrip: View {
     let entries: [ChartEntry]
     let lastIndex: Int
     let highlighted: Int?
+    /// Up bars in the gain color, down bars in the loss color (bar close vs open).
+    var colored: Bool = false
+    /// Same x inset as the price chart above, so bars stay under their candles.
+    var xPadding: CGFloat = 0
 
     var body: some View {
         // Scale to the 90th percentile, clipping the rest: opening/closing auctions are often 10×
@@ -2353,15 +2412,22 @@ private struct VolumeStrip: View {
                 yEnd: .value("Volume", min(entry.volume, cap)),
                 width: .fixed(1.5)
             )
-            .foregroundStyle(entry.index == highlighted ? AppTheme.primaryText : AppTheme.secondaryText.opacity(0.4))
+            .foregroundStyle(color(entry))
         }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartLegend(.hidden)
-        .chartXScale(domain: 0...lastIndex, range: .plotDimension)
+        .chartXScale(domain: 0...lastIndex, range: .plotDimension(padding: xPadding))
         .chartYScale(domain: 0...cap)
         .frame(height: Self.height)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private func color(_ entry: ChartEntry) -> Color {
+        if entry.index == highlighted { return AppTheme.primaryText }
+        guard colored else { return AppTheme.secondaryText.opacity(0.4) }
+        let dimmed = highlighted != nil
+        return (entry.isUp ? AppTheme.positive : AppTheme.negative).opacity(dimmed ? 0.3 : 0.55)
     }
 }

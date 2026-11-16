@@ -7,6 +7,16 @@ struct ChartEntry: Identifiable {
     let datetime: String
     /// Shares traded in this bar (0 when the source has none — indices, FX).
     var volume: Double = 0
+    /// Bar open / high / low (candlesticks). Fall back to the close when the source omits them.
+    var open: Float? = nil
+    var high: Float? = nil
+    var low: Float? = nil
+
+    var o: Float { open ?? close }
+    var h: Float { max(high ?? close, o, close) }
+    var l: Float { min(low ?? close, o, close) }
+    /// Up bar: closed at or above its open.
+    var isUp: Bool { close >= o }
 }
 
 struct StockComment: Identifiable {

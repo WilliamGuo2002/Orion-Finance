@@ -24,7 +24,9 @@ struct RangePicker: View {
                     Text(option)
                         .font(.subheadline.weight(selected ? .semibold : .regular))
                         .foregroundColor(selected ? AppTheme.primaryText : AppTheme.secondaryText)
-                        .padding(.horizontal, 12)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, fillsWidth ? 9 : 12)
                         .padding(.vertical, 4)
                         .background {
                             if selected {
