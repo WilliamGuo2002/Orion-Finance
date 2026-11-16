@@ -303,8 +303,28 @@ struct MyHoldingView: View {
                 watchlistHeader
                 watchlistStatus
 
-                emptyStateView
-                    .padding(.vertical, 12)
+                // Never an empty page: well-known names to start from, one tap to add.
+                // Falls back to the plain empty state if quotes can't load.
+                StarterPicksSection(
+                    title: L("You might be interested in"),
+                    watchlist: watchlistSymbols,
+                    pending: pendingAdds,
+                    onAdd: { symbol in Task { await fetchAndAddStock(symbol: symbol) } },
+                    onSearch: { showAddDialog = true }
+                ) {
+                    emptyStateView
+                        .padding(.vertical, 12)
+                }
+
+                if !StarterPicksModel.shared.failed {   // the fallback carries its own link
+                    Button { showPortfolioWizard = true } label: {
+                        Text(L("Explore example portfolios"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.accentText)
+                            .frame(minHeight: 44)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
 
                 todayMarketCard
                     .padding(.top, 12)
@@ -356,6 +376,18 @@ struct MyHoldingView: View {
                     }
                 }
                 .padding(.horizontal, 16)
+
+                // Still a short list: keep the starter picks under it (added ones show a check).
+                if stockList.count < 3 {
+                    StarterPicksSection(
+                        title: L("You might also like"),
+                        watchlist: watchlistSymbols,
+                        pending: pendingAdds,
+                        maxRows: 5,
+                        onAdd: { symbol in Task { await fetchAndAddStock(symbol: symbol) } }
+                    ) { EmptyView() }
+                    .padding(.top, 12)
+                }
 
                 myMoversCard
                     .padding(.top, 12)
@@ -691,6 +723,10 @@ struct MyHoldingView: View {
             }
         }
         .padding(.horizontal, 16)
+    }
+
+    private var watchlistSymbols: Set<String> {
+        Set(stockList.map { $0.symbol.uppercased() })
     }
 
     private func deleteStock(at offsets: IndexSet) {
