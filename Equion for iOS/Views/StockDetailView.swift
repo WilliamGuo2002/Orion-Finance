@@ -1391,7 +1391,7 @@ struct StockDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("$")
-                        .font(.title3)
+                        .font(AppTheme.heroCurrency(.title3))
                         .foregroundColor(AppTheme.secondaryText)
                     Text(shownPrice)
                         .font(AppTheme.heroNumber(.largeTitle))

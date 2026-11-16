@@ -769,7 +769,7 @@ struct MyHoldingView: View {
                         // Amounts are stored in USD; holdingsSnapshot converts to the display currency.
                         HStack(alignment: .firstTextBaseline, spacing: 1) {
                             Text(holdingsSnapshot.currencySymbol)
-                                .font(AppTheme.number(16, weight: .medium))
+                                .font(AppTheme.heroCurrency(.callout))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text(String(format: "%.2f", holdingsSnapshot.display(sel.value)))
                                 .font(AppTheme.heroNumber(.title))
@@ -809,7 +809,7 @@ struct MyHoldingView: View {
                         // Default: show current total
                         HStack(alignment: .firstTextBaseline, spacing: 1) {
                             Text(holdingsSnapshot.currencySymbol)
-                                .font(AppTheme.number(16, weight: .medium))
+                                .font(AppTheme.heroCurrency(.callout))
                                 .foregroundColor(AppTheme.secondaryText)
                             Text((holdingsSnapshot.totalValue < 0 ? "−" : "") + String(format: "%.2f", abs(holdingsSnapshot.display(holdingsSnapshot.totalValue))))
                                 .font(AppTheme.heroNumber(.title))

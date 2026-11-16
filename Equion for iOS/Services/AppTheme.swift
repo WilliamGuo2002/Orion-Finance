@@ -169,8 +169,14 @@ struct AppTheme {
     /// a large, thin figure reads as settled and calm; a heavy one shouts. Only for title sizes
     /// and up — below that, light digits lose legibility (body numbers stay on `number()`).
     /// Bold Text in accessibility settings still thickens it.
+    /// Serif (New York) to match the serif titles — figures set like a printed statement.
     static func heroNumber(_ style: Font.TextStyle = .largeTitle) -> Font {
-        .system(style, weight: .light).monospacedDigit()
+        .system(style, design: .serif, weight: .light).monospacedDigit()
+    }
+
+    /// The currency sign beside a hero number: same serif, smaller, so the figure leads.
+    static func heroCurrency(_ style: Font.TextStyle = .title3) -> Font {
+        .system(style, design: .serif)
     }
 
     /// Caption text
