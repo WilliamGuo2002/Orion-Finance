@@ -111,7 +111,7 @@ struct TaxCenterView: View {
                 .foregroundColor(AppTheme.primaryText)
 
                 if s.overContributedCAD > 0 {
-                    Label(String(format: L("CRA charges 1% per month on over-contributions (%@ here). Withdraw the excess to stop the penalty."),
+                    Label(String(format: L("CRA charges 1%% per month on over-contributions (%@ here). Withdraw the excess to stop the penalty."),
                                  money(s.overContributedCAD)),
                           systemImage: "exclamationmark.triangle.fill")
                         .font(AppTheme.caption(11))
