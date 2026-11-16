@@ -241,7 +241,7 @@ struct StockDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(L(metricKey))
-                            .font(.system(.title2, design: .serif, weight: .semibold))
+                            .font(AppTheme.serifTitle(22, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
                         Spacer()
                         Text(metricValue)

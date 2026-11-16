@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CoreText
 
 // MARK: - Orion Finance Theme System
 // Warm, approachable design for stock beginners
@@ -195,36 +196,42 @@ struct AppTheme {
         let size = UIFontDescriptor.preferredFontDescriptor(withTextStyle: uiStyle,
                                                             compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)).pointSize
 
-        // Primary: New York (system serif) for Latin characters
+        // New York (system serif) for Latin characters
         let nyDescriptor = UIFontDescriptor
             .preferredFontDescriptor(withTextStyle: .body)
             .withDesign(.serif)?
             .withSize(size) ?? UIFontDescriptor(name: "NewYork-Regular", size: size)
 
-        // CJK serif font name based on language
+        // CJK serif font name based on language.
+        // Songti SC and AppleMyungjo aren't installed on iOS (download-on-demand only), so asking
+        // for them silently fell back to PingFang / SD Gothic. Chinese and Korean use our bundled
+        // Source Han Serif subsets ("Orion Serif", see Resources/Fonts); Hiragino Mincho ships with iOS.
+        _ = BundledFonts.registered
         let cjkFontName: String
         switch cjkScript {
-        case .simplifiedChinese:
-            cjkFontName = bold ? "STSongti-SC-Bold" : "STSongti-SC-Regular"
+        case .simplifiedChinese, .none:
+            cjkFontName = bold ? "OrionSerifSC-SemiBold" : "OrionSerifSC-Regular"
         case .japanese:
             cjkFontName = bold ? "HiraMinProN-W6" : "HiraMinProN-W3"
         case .korean:
-            cjkFontName = "AppleMyungjo"
-        case .none:
-            cjkFontName = bold ? "STSongti-SC-Bold" : "STSongti-SC-Regular"
+            cjkFontName = bold ? "OrionSerifKR-SemiBold" : "OrionSerifKR-Regular"
         }
-        let cjkDescriptor = UIFontDescriptor(name: cjkFontName, size: size)
+        // New York at the matching weight (semibold, like Latin serif titles elsewhere).
+        let latin = bold
+            ? nyDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: UIFont.Weight.semibold]])
+            : nyDescriptor
 
-        // Cascade: New York for Latin, CJK serif for CJK glyphs
-        let cascadeDescriptor = nyDescriptor.addingAttributes([
-            .cascadeList: [cjkDescriptor]
-        ])
-
-        var traits = cascadeDescriptor.symbolicTraits
-        if bold { traits.insert(.traitBold) }
-        let finalDescriptor = cascadeDescriptor.withSymbolicTraits(traits) ?? cascadeDescriptor
-
-        let base = UIFont(descriptor: finalDescriptor, size: size)
+        // The CJK serif is the PRIMARY font and New York the cascade. The other way round doesn't
+        // work: a system font's built-in fallback (PingFang) takes precedence over a custom cascade
+        // list, so CJK came out sans. Our subsets carry no Latin glyphs, so letters and digits still
+        // fall through to New York. (Hiragino Mincho has its own serif Latin.)
+        let base: UIFont
+        if UIFont(name: cjkFontName, size: size) != nil {
+            let primary = UIFontDescriptor(name: cjkFontName, size: size).addingAttributes([.cascadeList: [latin]])
+            base = UIFont(descriptor: primary, size: size)
+        } else {
+            base = UIFont(descriptor: latin, size: size)   // font missing: plain New York
+        }
         return Font(UIFontMetrics(forTextStyle: uiStyle).scaledFont(for: base))
     }
 
@@ -738,4 +745,22 @@ extension View {
     func expandedHitArea(_ inset: CGFloat = 8) -> some View {
         contentShape(Rectangle().inset(by: -inset))
     }
+}
+
+// MARK: - Bundled fonts
+/// Registers the fonts in Resources/Fonts once, on first use (no Info.plist entry needed).
+///
+/// Orion Serif SC / KR are subsets of Adobe's Source Han Serif 2.003 (SIL Open Font License,
+/// SourceHanSerif-OFL.txt): GB2312 level-1 hanzi / KS X 1001 Hangul plus every character in the
+/// app's Chinese / Korean strings, Regular + SemiBold. Renamed because the OFL reserves "Source"
+/// for unmodified builds. Latin glyphs come from New York via the font cascade.
+/// Regenerate with the subset + rename steps if new UI strings use characters outside the set —
+/// missing glyphs just fall back to the system font.
+enum BundledFonts {
+    static let registered: Void = {
+        let urls = (Bundle.main.urls(forResourcesWithExtension: "otf", subdirectory: nil) ?? [])
+            + (Bundle.main.urls(forResourcesWithExtension: "otf", subdirectory: "Fonts") ?? [])
+        guard !urls.isEmpty else { return }
+        CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
+    }()
 }

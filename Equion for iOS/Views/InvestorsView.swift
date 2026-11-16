@@ -51,7 +51,7 @@ struct InvestorCardView: View {
                     .fill(AppTheme.accent.opacity(0.12))
                     .frame(width: 48, height: 48)
                 Text(initials(investor.name))
-                    .font(.system(.callout, design: .serif, weight: .semibold))
+                    .font(AppTheme.serifHeadline(16))
                     .foregroundColor(AppTheme.accentText)
             }
 
@@ -127,7 +127,7 @@ struct InvestorDetailView: View {
                             .fill(AppTheme.accent.opacity(0.12))
                             .frame(width: 56, height: 56)
                         Text(initials(investor.name))
-                            .font(.system(.title3, design: .serif, weight: .semibold))
+                            .font(AppTheme.serifHeadline(20))
                             .foregroundColor(AppTheme.accentText)
                     }
                     VStack(alignment: .leading, spacing: 4) {
