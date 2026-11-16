@@ -9,6 +9,9 @@ func L(_ key: String) -> String {
 
 private let translations: [String: [String: String]] = [
     "中文": [
+        "Remove %@ from watchlist": "将 %@ 移出自选",
+        "Compare": "对比",
+        "Paper trade": "模拟交易",
         "Privacy & About": "隐私与关于",
         "Investing": "投资",
         "Preferences": "偏好设置",

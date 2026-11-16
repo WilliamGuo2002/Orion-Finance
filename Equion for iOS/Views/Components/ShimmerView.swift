@@ -23,6 +23,9 @@ struct ShimmerModifier: ViewModifier {
                         endPoint: .init(x: phase + 1, y: 0.5)
                     )
                 }
+                // Only shimmer where the placeholder actually draws — otherwise the sweep spills
+                // past rounded card corners as a gray rectangle.
+                .mask(content)
                 .allowsHitTesting(false)
             )
             .onAppear {

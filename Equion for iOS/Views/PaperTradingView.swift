@@ -454,6 +454,9 @@ struct PaperTradingView: View {
 struct PaperTradeSheet: View {
     enum Mode { case buy, sell }
     let mode: Mode
+    /// Opened from a stock page: skip the search and go straight to the order form.
+    var initialSymbol: String? = nil
+    var initialName: String? = nil
     let onTrade: (String, String, Double, Double) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -496,6 +499,12 @@ struct PaperTradeSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .onAppear {
+            guard let sym = initialSymbol, !sym.isEmpty, selectedSymbol.isEmpty else { return }
+            selectedSymbol = sym
+            selectedName = initialName ?? sym
+            loadPrice()
+        }
     }
 
     private var searchSection: some View {

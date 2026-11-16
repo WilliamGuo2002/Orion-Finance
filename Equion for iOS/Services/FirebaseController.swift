@@ -195,6 +195,7 @@ class FirebaseController: ObservableObject {
     var hasAccount: Bool { (currentUser?.uid ?? auth.currentUser?.uid) != nil }
 
     func removeStockFromWatchlist(symbol: String) {
+        NotificationCenter.default.post(name: .watchlistRemoved, object: symbol)
         guard let uid = currentUser?.uid ?? auth.currentUser?.uid else { return }
         userDocRef(uid: uid).collection("watchlist").document(symbol).delete()
     }
@@ -398,4 +399,5 @@ extension Notification.Name {
     /// A symbol was added to the watchlist from somewhere other than the home screen
     /// (object: the symbol). Home appends it without reloading everything.
     static let watchlistAdded = Notification.Name("watchlistAdded")
+    static let watchlistRemoved = Notification.Name("watchlistRemoved")
 }

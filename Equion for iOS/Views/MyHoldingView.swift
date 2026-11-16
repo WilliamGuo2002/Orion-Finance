@@ -152,8 +152,10 @@ struct MyHoldingView: View {
                     .zIndex(0)
                 }
 
-                // Foreground layer: scrollable cards
+                // Foreground layer: scrollable cards — frosted glass while there's a chart behind them,
+                // so the chart blurs through as they slide over it instead of being cut off.
                 scrollContent
+                    .environment(\.glassCards, holdingsSnapshot.hasHoldings)
                     .zIndex(1)
             }
         }
@@ -179,6 +181,10 @@ struct MyHoldingView: View {
         // These only fire on real data updates, never per scroll frame.
         .onReceive(HoldingsManager.shared.$snapshot.dropFirst()) { holdingsSnapshot = $0 }
         .onReceive(HoldingsManager.shared.$portfolioChart.dropFirst()) { portfolioChartData = $0 }
+        .onReceive(NotificationCenter.default.publisher(for: .watchlistRemoved)) { note in
+            guard let symbol = note.object as? String else { return }
+            stockList.removeAll { $0.symbol.uppercased() == symbol.uppercased() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .watchlistAdded)) { note in
             guard let symbol = note.object as? String,
                   !stockList.contains(where: { $0.symbol.uppercased() == symbol.uppercased() }) else { return }
@@ -688,11 +694,11 @@ struct MyHoldingView: View {
     }
 
     private func deleteStock(at offsets: IndexSet) {
-        for index in offsets {
-            let symbol = stockList[index].symbol
-            FirebaseController.shared.removeStockFromWatchlist(symbol: symbol)
-        }
+        // Remove locally first: removeStockFromWatchlist posts .watchlistRemoved, which this view
+        // also handles — removing by symbol afterwards is a no-op instead of shifting offsets.
+        let symbols = offsets.map { stockList[$0].symbol }
         stockList.remove(atOffsets: offsets)
+        symbols.forEach { FirebaseController.shared.removeStockFromWatchlist(symbol: $0) }
     }
 
     private func moveStock(from source: IndexSet, to destination: Int) {

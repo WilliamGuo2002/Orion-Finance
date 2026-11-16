@@ -58,6 +58,11 @@ struct StockDetailView: View {
 
     // Holdings
     @State private var showTransactionSheet = false
+
+    // Bottom action bar
+    @State private var inWatchlist = false
+    @State private var showPaperTrade = false
+    @State private var showCompare = false
     @State private var holdingAgg: AggregatedHolding?
     @State private var holdingTransactions: [HoldingTransaction] = []
 
@@ -175,6 +180,18 @@ struct StockDetailView: View {
         }
         .background(AppTheme.background)
         .coordinateSpace(name: "scroll")
+        // A detail page owns the bottom edge: the tab bar steps aside for this page's own actions.
+        .toolbar(.hidden, for: .tabBar)
+        .bottomActionBar {
+            StockActionBar(
+                symbol: symbol,
+                name: name,
+                isStock: isStock,
+                inWatchlist: $inWatchlist,
+                onPaperTrade: { showPaperTrade = true },
+                onCompare: { showCompare = true }
+            )
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -194,6 +211,18 @@ struct StockDetailView: View {
         }
         .sheet(isPresented: $showMetricExplanation) {
             metricExplanationSheet
+        }
+        .sheet(isPresented: $showPaperTrade) {
+            PaperTradeSheet(mode: .buy, initialSymbol: symbol, initialName: name) { sym, nm, shares, price in
+                PaperPortfolioManager.shared.buy(symbol: sym, name: nm, shares: shares, price: price)
+            }
+        }
+        .sheet(isPresented: $showCompare) {
+            StockCompareView(symbolA: symbol, nameA: name)
+        }
+        .task {
+            let symbols = await FirebaseController.shared.getWatchlistSymbols()
+            inWatchlist = symbols.contains { $0.uppercased() == symbol.uppercased() }
         }
         .sheet(isPresented: $showTransactionSheet) {
             TransactionEntrySheet(symbol: symbol, name: name, currentPrice: currentPrice) {
@@ -2116,4 +2145,150 @@ struct ChartScrubTip: Tip {
     var title: Text { Text(L("Touch and hold to explore")) }
     var message: Text? { Text(L("Slide across the chart to see the price at any point.")) }
     var image: Image? { Image(systemName: "hand.point.up.left") }
+}
+
+
+// MARK: - Bottom action bar
+/// The page's actions in one floating glass bar at the thumb's reach — watchlist, paper trade,
+/// compare, ask Orion. Liquid Glass on iOS 26; a frosted material capsule before that.
+/// Read-only app: "Paper trade" is the only order-shaped action, and it's clearly labelled as such.
+struct StockActionBar: View {
+    let symbol: String
+    let name: String
+    let isStock: Bool
+    @Binding var inWatchlist: Bool
+    let onPaperTrade: () -> Void
+    let onCompare: () -> Void
+
+    @State private var busy = false
+
+    var body: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer(spacing: 10) {
+                    HStack(spacing: 10) { items(glass: true) }
+                }
+            } else {
+                HStack(spacing: 10) { items(glass: false) }
+            }
+        }
+        .padding(.horizontal, AppTheme.Space.screenMargin)
+        .padding(.top, AppTheme.Space.s)
+        .padding(.bottom, AppTheme.Space.xs)
+        .sensoryFeedback(.selection, trigger: inWatchlist) { _, _ in Haptic.isEnabled }
+    }
+
+    @ViewBuilder
+    private func items(glass: Bool) -> some View {
+        Button(action: toggleWatchlist) {
+            Image(systemName: inWatchlist ? "star.fill" : "star")
+                .font(.body.weight(.medium))
+                .foregroundColor(inWatchlist ? AppTheme.accentText : AppTheme.primaryText)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 48, height: 48)
+        }
+        .buttonStyle(.plain)
+        .disabled(busy)
+        .modifier(GlassPill(glass: glass, circle: true))
+        .accessibilityLabel(inWatchlist ? String(format: L("Remove %@ from watchlist"), symbol)
+                                        : String(format: L("Add %@ to watchlist"), symbol))
+
+        if isStock {
+            Button(action: onPaperTrade) {
+                pillLabel(L("Paper trade"), systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .buttonStyle(.plain)
+            .modifier(GlassPill(glass: glass, circle: false))
+
+            Button(action: onCompare) {
+                pillLabel(L("Compare"), systemImage: "arrow.left.arrow.right")
+            }
+            .buttonStyle(.plain)
+            .modifier(GlassPill(glass: glass, circle: false))
+
+            NavigationLink(destination: AIAnalysisView(symbol: symbol, name: name)) {
+                Image(systemName: "sparkles")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(AppTheme.accentText)
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.plain)
+            .modifier(GlassPill(glass: glass, circle: true))
+            .accessibilityLabel(L("Ask Orion"))
+        } else {
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func pillLabel(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(.titleAndIcon)
+            .font(.subheadline.weight(.medium))
+            .foregroundColor(AppTheme.primaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .padding(.horizontal, AppTheme.Space.s)
+    }
+
+    private func toggleWatchlist() {
+        let adding = !inWatchlist
+        withAnimation(Motion.tap) { inWatchlist = adding }
+        if adding {
+            busy = true
+            Task {
+                do { try await FirebaseController.shared.addToWatchlist(symbol: symbol) }
+                catch { withAnimation(Motion.tap) { inWatchlist = false } }
+                busy = false
+            }
+        } else {
+            FirebaseController.shared.removeStockFromWatchlist(symbol: symbol)
+        }
+    }
+}
+
+/// One capsule (or circle) of the action bar.
+private struct GlassPill: ViewModifier {
+    let glass: Bool
+    let circle: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        if glass, #available(iOS 26.0, *) {
+            if circle {
+                content.contentShape(Circle()).glassEffect(.regular.interactive(), in: Circle())
+            } else {
+                content.contentShape(Capsule()).glassEffect(.regular.interactive(), in: Capsule())
+            }
+        } else if circle {
+            content
+                .contentShape(Circle())
+                .background(AdaptiveMaterialBackground(shape: Circle()))
+                .overlay(Circle().strokeBorder(GlassEdge.gradient(colorScheme), lineWidth: 0.75))
+        } else {
+            content
+                .contentShape(Capsule())
+                .background(AdaptiveMaterialBackground(shape: Capsule()))
+                .overlay(Capsule().strokeBorder(GlassEdge.gradient(colorScheme), lineWidth: 0.75))
+        }
+    }
+}
+
+extension View {
+    /// Pins a floating bar to the bottom edge. iOS 26: `safeAreaBar`, so content scrolling beneath
+    /// gets the system's soft edge fade. Earlier: a safe-area inset over a short fade to the page color.
+    @ViewBuilder
+    func bottomActionBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
+        if #available(iOS 26.0, *) {
+            safeAreaBar(edge: .bottom, spacing: 0, content: bar)
+        } else {
+            safeAreaInset(edge: .bottom, spacing: 0) {
+                bar().background(
+                    LinearGradient(colors: [AppTheme.background.opacity(0), AppTheme.background],
+                                   startPoint: .top, endPoint: .center)
+                        .ignoresSafeArea(edges: .bottom)
+                )
+            }
+        }
+    }
 }

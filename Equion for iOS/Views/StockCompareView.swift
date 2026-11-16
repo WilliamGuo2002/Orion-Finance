@@ -3,10 +3,16 @@ import SwiftUI
 // MARK: - Stock Compare View
 struct StockCompareView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var symbolA = ""
+    @State private var symbolA: String
     @State private var symbolB = ""
-    @State private var nameA = ""
+    @State private var nameA: String
     @State private var nameB = ""
+
+    /// Opened from a stock page: that stock is pre-filled as A, so the user only picks what to compare it with.
+    init(symbolA: String = "", nameA: String = "") {
+        _symbolA = State(initialValue: symbolA)
+        _nameA = State(initialValue: nameA)
+    }
     @State private var pickingSide: PickSide? = nil
 
     // Data

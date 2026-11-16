@@ -345,14 +345,48 @@ struct AppTheme {
 /// cream-on-cream gradient read as muddy.
 private struct CardSurfaceBackground: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.glassCards) private var glassCards
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-            .fill(AppTheme.cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.08) : AppTheme.border, lineWidth: 0.5)
-            )
+        let shape = RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+        if glassCards && !reduceTransparency {
+            // Frosted glass: blurs whatever passes behind it (the pinned home chart), tinted with the
+            // card color so on the plain page it still reads as a calm, near-solid card.
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay(shape.fill(AppTheme.cardBackground.opacity(colorScheme == .dark ? 0.45 : 0.55)))
+                .overlay(shape.strokeBorder(GlassEdge.gradient(colorScheme), lineWidth: 0.75))
+        } else {
+            shape
+                .fill(AppTheme.cardBackground)
+                .overlay(
+                    shape.strokeBorder(colorScheme == .dark ? Color.white.opacity(0.08) : AppTheme.border, lineWidth: 0.5)
+                )
+        }
+    }
+}
+
+/// The lit edge of a glass surface: bright along the top (where light hits), fading to a hairline
+/// at the bottom. This is what makes a translucent panel read as a physical pane, not a gray box.
+enum GlassEdge {
+    static func gradient(_ scheme: ColorScheme) -> LinearGradient {
+        LinearGradient(
+            colors: scheme == .dark
+                ? [Color.white.opacity(0.22), Color.white.opacity(0.05)]
+                : [Color.white.opacity(0.95), AppTheme.border.opacity(0.7)],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+}
+
+private struct GlassCardsKey: EnvironmentKey { static let defaultValue = false }
+
+extension EnvironmentValues {
+    /// Cards inside this subtree render as frosted glass (used where content scrolls over the home chart).
+    var glassCards: Bool {
+        get { self[GlassCardsKey.self] }
+        set { self[GlassCardsKey.self] = newValue }
     }
 }
 
