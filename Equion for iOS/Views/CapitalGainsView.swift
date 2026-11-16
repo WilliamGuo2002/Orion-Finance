@@ -335,7 +335,7 @@ struct CapitalGainsView: View {
                 .font(.caption).foregroundColor(AppTheme.secondaryText)
             if d.currency.uppercased() != "CAD" {
                 Text(String(format: L("%@ at %@ CAD (Bank of Canada%@)"), d.currency, String(format: "%.4f", d.fx.cadPerUnit),
-                            d.fx.exact ? "" : ", " + L("estimated")))
+                            d.fx.exact ? "" : L(", estimated")))
                     .font(.caption2).foregroundColor(AppTheme.tertiaryText)
             }
             if d.deniedLossCAD > 0.005 {
